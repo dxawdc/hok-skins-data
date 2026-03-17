@@ -66,8 +66,15 @@ async function log(client, operator, action, targetId, detail) {
 
 // ── 入口 ─────────────────────────────────────────────────────
 module.exports = async function handler(req, res) {
-  Object.entries(CORS).forEach(([k, v]) => res.setHeader(k, v));
-  if (req.method === 'OPTIONS') return res.status(200).end();
+  // CORS headers — 每个响应都带上，包括错误响应
+  res.setHeader('Access-Control-Allow-Origin',  '*');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+
+  // OPTIONS 预检请求直接返回 200，不走业务逻辑
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
 
   const body   = await readBody(req);
   const url    = req.url || '/';
