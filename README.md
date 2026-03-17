@@ -92,7 +92,6 @@ python 02_import_data.py
 | `https://your-project.vercel.app` | 前台展示页面 |
 | `https://your-project.vercel.app/admin` | 后台管理页面 |
 
-- 用 `admin` / `Admin@2024` 登录后台（**立即修改密码**）
 - 后台可以：创建其他用户、编辑皮肤数据、上传 Excel 更新
 
 ---
