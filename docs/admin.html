@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>王者荣耀皮肤数据库 · 后台管理</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --gold: #c9a84c; --gold-light: #e8c97a;
+  --bg: #f0f2f5; --white: #fff; --panel: #fff;
+  --text: #1a1d23; --text2: #4a5568; --text3: #8a9ab0;
+  --border: rgba(0,0,0,0.08);
+  --red: #e53e3e; --green: #38a169; --blue: #3182ce;
+  --radius: 10px;
+}
+body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+a { color: var(--blue); text-decoration: none; }
+
+/* ── LOGIN ── */
+#login-page {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #0a0a0f 0%, #1a1a24 100%);
+}
+.login-box {
+  background: #fff; border-radius: 16px; padding: 40px 36px; width: 360px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+.login-logo { text-align: center; margin-bottom: 28px; }
+.login-logo h1 { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.login-logo p { font-size: 12px; color: var(--text3); }
+.login-logo .crown { font-size: 36px; display: block; margin-bottom: 10px; }
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 6px; font-weight: 500; }
+.form-group input {
+  width: 100%; padding: 10px 12px; border: 1px solid var(--border);
+  border-radius: 8px; font-size: 14px; outline: none; transition: border-color 0.2s; font-family: inherit;
+}
+.form-group input:focus { border-color: var(--gold); }
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 18px; border-radius: 8px; font-size: 14px;
+  font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; font-family: inherit;
+}
+.btn-primary { background: var(--gold); color: #fff; width: 100%; justify-content: center; }
+.btn-primary:hover { background: var(--gold-light); color: #1a1d23; }
+.btn-danger  { background: #fff2f2; color: var(--red); border: 1px solid #fecaca; }
+.btn-danger:hover  { background: #fee2e2; }
+.btn-outline { background: #fff; color: var(--text2); border: 1px solid var(--border); }
+.btn-outline:hover { border-color: var(--gold); color: var(--gold); }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+.btn-blue { background: #ebf8ff; color: var(--blue); border: 1px solid #bee3f8; }
+.btn-blue:hover { background: #bee3f8; }
+.login-error { color: var(--red); font-size: 13px; text-align: center; margin-top: 10px; display: none; }
+
+/* ── LAYOUT ── */
+#app { display: none; height: 100vh; overflow: hidden; }
+.layout { display: flex; height: 100%; }
+.sidebar {
+  width: 220px; flex-shrink: 0; background: #1a1d23;
+  display: flex; flex-direction: column; overflow-y: auto;
+}
+.sidebar-logo {
+  padding: 20px 18px 16px; border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.sidebar-logo h2 { font-size: 14px; font-weight: 700; color: var(--gold); }
+.sidebar-logo p  { font-size: 11px; color: #6a7080; margin-top: 2px; }
+.sidebar-user {
+  padding: 12px 18px; border-bottom: 1px solid rgba(255,255,255,0.07);
+  display: flex; align-items: center; gap: 10px;
+}
+.user-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--gold); display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700; color: #1a1d23; flex-shrink: 0;
+}
+.user-info { flex: 1; min-width: 0; }
+.user-info .name { font-size: 13px; font-weight: 600; color: #e8e0d0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-info .role { font-size: 11px; color: #6a7080; }
+.sidebar-nav { padding: 12px 10px; flex: 1; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 10px; border-radius: 8px; cursor: pointer;
+  font-size: 13px; font-weight: 500; color: #8a9ab0; transition: all 0.2s; margin-bottom: 2px;
+}
+.nav-item:hover { background: rgba(255,255,255,0.06); color: #e8e0d0; }
+.nav-item.active { background: rgba(201,168,76,0.15); color: var(--gold); }
+.nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+.sidebar-bottom { padding: 12px 10px; border-top: 1px solid rgba(255,255,255,0.07); }
+
+/* ── MAIN ── */
+.main { flex: 1; overflow-y: auto; background: var(--bg); }
+.page-header {
+  background: var(--white); border-bottom: 1px solid var(--border);
+  padding: 16px 28px; display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 10;
+}
+.page-title { font-size: 18px; font-weight: 700; }
+.page-subtitle { font-size: 12px; color: var(--text3); margin-top: 2px; }
+.page-body { padding: 24px 28px; }
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── CARDS / PANELS ── */
+.card { background: var(--white); border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 16px; }
+.card-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.card-title { font-size: 15px; font-weight: 700; }
+.card-body { padding: 20px; }
+
+/* ── STAT CARDS ── */
+.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+.stat-card { background: var(--white); border-radius: var(--radius); border: 1px solid var(--border); padding: 18px 20px; }
+.stat-card .label { font-size: 12px; color: var(--text3); margin-bottom: 6px; }
+.stat-card .value { font-size: 28px; font-weight: 700; color: var(--gold); }
+.stat-card .sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
+
+/* ── TABLE ── */
+.table-toolbar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 14px 20px; border-bottom: 1px solid var(--border); background: var(--white);
+  border-radius: var(--radius) var(--radius) 0 0; border: 1px solid var(--border); border-bottom: none;
+}
+.search-input {
+  padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px;
+  font-size: 14px; outline: none; width: 220px; font-family: inherit;
+}
+.search-input:focus { border-color: var(--gold); }
+.filter-select {
+  padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px;
+  font-size: 14px; cursor: pointer; outline: none; font-family: inherit; background: var(--white);
+}
+.batch-bar {
+  display: none; background: #fffbeb; border: 1px solid #fde68a;
+  border-radius: 8px; padding: 10px 16px; align-items: center; gap: 12px;
+  flex-wrap: wrap;
+}
+.batch-bar.show { display: flex; }
+.batch-count { font-size: 13px; font-weight: 600; color: #92400e; }
+.data-table-wrap { background: var(--white); border: 1px solid var(--border); border-radius: 0 0 var(--radius) var(--radius); overflow: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th {
+  text-align: left; padding: 10px 14px; background: #f8f9fb;
+  color: var(--text3); font-weight: 500; border-bottom: 1px solid var(--border);
+  white-space: nowrap; position: sticky; top: 0; z-index: 5;
+}
+td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #fafbfc; }
+tr.selected td { background: #fffbeb; }
+.check-col { width: 36px; }
+input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color: var(--gold); }
+
+/* Inline edit */
+.editable { cursor: pointer; }
+.editable:hover { background: #f0f7ff; border-radius: 4px; }
+.inline-input {
+  width: 100%; padding: 4px 8px; border: 1px solid var(--gold);
+  border-radius: 4px; font-size: 13px; outline: none; font-family: inherit;
+}
+
+/* BADGES */
+.badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.badge-史诗 { background: rgba(123,94,167,0.12); color: #7b5ea7; border: 1px solid rgba(123,94,167,0.3); }
+.badge-传说 { background: rgba(180,130,20,0.1); color: #b07a10; border: 1px solid rgba(180,130,20,0.3); }
+.badge-勇者 { background: rgba(50,110,200,0.1); color: #3264c8; border: 1px solid rgba(50,110,200,0.28); }
+.badge-伴生 { background: rgba(30,160,100,0.1); color: #1a9060; border: 1px solid rgba(30,160,100,0.28); }
+.badge-无双 { background: rgba(190,50,50,0.1); color: #c03030; border: 1px solid rgba(190,50,50,0.3); }
+.badge-荣耀典藏 { background: rgba(190,100,20,0.1); color: #b05a10; border: 1px solid rgba(190,100,20,0.3); }
+.badge-珍品传说 { background: rgba(180,130,20,0.15); color: #9a6a00; border: 1px solid rgba(180,130,20,0.4); }
+.badge-珍品无双 { background: rgba(190,50,50,0.14); color: #b02020; border: 1px solid rgba(190,50,50,0.4); }
+.badge-首发 { background: rgba(30,160,100,0.1); color: #1a9060; border: 1px solid rgba(30,160,100,0.28); }
+.badge-返场 { background: rgba(50,110,200,0.1); color: #3264c8; border: 1px solid rgba(50,110,200,0.28); }
+.badge-是 { background: rgba(30,160,100,0.08); color: #1a9060; }
+.badge-否 { background: rgba(120,120,120,0.08); color: #666; }
+
+/* PAGINATION */
+.pagination { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; background: var(--white); border-top: 1px solid var(--border); }
+.pg-info { font-size: 13px; color: var(--text3); }
+.pg-btns { display: flex; gap: 4px; }
+.pg-btn { padding: 5px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--white); cursor: pointer; font-size: 12px; }
+.pg-btn:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
+.pg-btn.active { background: var(--gold); color: #fff; border-color: var(--gold); }
+.pg-btn:disabled { opacity: 0.35; cursor: default; }
+
+/* IMPORT */
+.upload-zone {
+  border: 2px dashed var(--border); border-radius: var(--radius);
+  padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.2s;
+}
+.upload-zone:hover, .upload-zone.drag { border-color: var(--gold); background: #fffdf0; }
+.upload-zone .icon { font-size: 40px; display: block; margin-bottom: 12px; }
+.upload-zone p { color: var(--text2); font-size: 14px; }
+.upload-zone small { color: var(--text3); font-size: 12px; }
+.mode-select { display: flex; gap: 12px; margin-bottom: 20px; }
+.mode-opt {
+  flex: 1; border: 2px solid var(--border); border-radius: 10px; padding: 14px;
+  cursor: pointer; transition: all 0.2s;
+}
+.mode-opt:hover { border-color: var(--gold); }
+.mode-opt.selected { border-color: var(--gold); background: #fffdf0; }
+.mode-opt h4 { font-size: 14px; margin-bottom: 4px; }
+.mode-opt p { font-size: 12px; color: var(--text3); }
+.import-log {
+  background: #1a1d23; color: #e8e0d0; border-radius: 8px;
+  padding: 14px 16px; font-family: monospace; font-size: 13px;
+  max-height: 200px; overflow-y: auto; display: none;
+}
+.log-line { margin-bottom: 4px; }
+.log-line.ok  { color: #68d391; }
+.log-line.err { color: #fc8181; }
+.log-line.info { color: #63b3ed; }
+
+/* USERS */
+.user-table td { vertical-align: middle; }
+
+/* MODAL */
+.modal-bg {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100;
+  display: none; align-items: center; justify-content: center;
+}
+.modal-bg.show { display: flex; }
+.modal {
+  background: var(--white); border-radius: 14px; padding: 28px;
+  width: 460px; max-width: 95vw; box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+}
+.modal h3 { font-size: 17px; font-weight: 700; margin-bottom: 20px; }
+.modal .form-group { margin-bottom: 14px; }
+.modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+
+/* LOG TABLE */
+.log-action { font-size: 11px; padding: 2px 7px; border-radius: 4px; font-weight: 600; }
+.log-import { background: #ebf8ff; color: #2b6cb0; }
+.log-update { background: #f0fff4; color: #276749; }
+.log-delete { background: #fff5f5; color: #c53030; }
+.log-batch  { background: #fef9e7; color: #9a6a00; }
+
+/* TOAST */
+.toast {
+  position: fixed; bottom: 24px; right: 24px; z-index: 999;
+  background: #1a1d23; color: #e8e0d0; padding: 12px 20px;
+  border-radius: 10px; font-size: 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  display: none; align-items: center; gap: 8px;
+}
+.toast.show { display: flex; }
+.toast.ok  { background: #1a4731; border-left: 3px solid var(--green); }
+.toast.err { background: #4a1010; border-left: 3px solid var(--red); }
+
+/* Progress bar */
+.progress-wrap { background: #f0f2f5; border-radius: 4px; overflow: hidden; height: 8px; margin-top: 8px; }
+.progress-bar { height: 100%; background: var(--gold); transition: width 0.4s; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-page">
+  <div class="login-box">
+    <div class="login-logo">
+      <span class="crown">👑</span>
+      <h1>王者荣耀皮肤数据库</h1>
+      <p>后台管理系统</p>
+    </div>
+    <div class="form-group">
+      <label>用户名</label>
+      <input type="text" id="inp-username" placeholder="请输入用户名" autocomplete="username">
+    </div>
+    <div class="form-group">
+      <label>密码</label>
+      <input type="password" id="inp-password" placeholder="请输入密码" autocomplete="current-password"
+             onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="btn btn-primary" onclick="doLogin()">登 录</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="layout">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-logo">
+        <h2>👑 皮肤数据库</h2>
+        <p>后台管理系统</p>
+      </div>
+      <div class="sidebar-user">
+        <div class="user-avatar" id="user-avatar">A</div>
+        <div class="user-info">
+          <div class="name" id="user-name">—</div>
+          <div class="role" id="user-role">—</div>
+        </div>
+      </div>
+      <div class="sidebar-nav">
+        <div class="nav-item active" data-page="overview" onclick="navTo('overview',this)">
+          <span class="icon">📊</span> 数据概览
+        </div>
+        <div class="nav-item" data-page="skins" onclick="navTo('skins',this)">
+          <span class="icon">🎨</span> 皮肤数据
+        </div>
+        <div class="nav-item" data-page="import" onclick="navTo('import',this)">
+          <span class="icon">📥</span> Excel 导入
+        </div>
+        <div class="nav-item admin-only" data-page="users" onclick="navTo('users',this)">
+          <span class="icon">👥</span> 用户管理
+        </div>
+        <div class="nav-item admin-only" data-page="logs" onclick="navTo('logs',this)">
+          <span class="icon">📋</span> 操作日志
+        </div>
+      </div>
+      <div class="sidebar-bottom">
+        <button class="btn btn-outline btn-sm" onclick="doLogout()" style="width:100%">退出登录</button>
+      </div>
+    </div>
+
+    <!-- Main -->
+    <div class="main">
+
+      <!-- OVERVIEW -->
+      <div class="page active" id="page-overview">
+        <div class="page-header">
+          <div><div class="page-title">数据概览</div><div class="page-subtitle">数据库整体情况</div></div>
+        </div>
+        <div class="page-body">
+          <div class="stat-row">
+            <div class="stat-card"><div class="label">总记录数</div><div class="value" id="ov-total">—</div><div class="sub">条记录</div></div>
+            <div class="stat-card"><div class="label">英雄数量</div><div class="value" id="ov-heroes">—</div><div class="sub">位英雄</div></div>
+            <div class="stat-card"><div class="label">皮肤款数</div><div class="value" id="ov-skins">—</div><div class="sub">款皮肤</div></div>
+            <div class="stat-card"><div class="label">返场记录</div><div class="value" id="ov-returns">—</div><div class="sub">次返场</div></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">最近操作记录</span></div>
+            <div class="card-body" style="padding:0">
+              <table>
+                <thead><tr><th>时间</th><th>操作人</th><th>操作类型</th><th>详情</th></tr></thead>
+                <tbody id="recent-logs"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SKINS -->
+      <div class="page" id="page-skins">
+        <div class="page-header">
+          <div><div class="page-title">皮肤数据</div><div class="page-subtitle">查看和编辑皮肤记录</div></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-outline btn-sm" onclick="loadSkins()">刷新</button>
+          </div>
+        </div>
+        <div class="page-body">
+          <div class="batch-bar" id="batch-bar">
+            <span class="batch-count" id="batch-count">已选 0 条</span>
+            <select id="batch-field" class="filter-select" style="padding:5px 10px;font-size:12px">
+              <option value="">选择要批量修改的字段</option>
+              <option value="permanent">是否常驻</option>
+              <option value="type">类型（首发/返场）</option>
+              <option value="quality">皮肤品质</option>
+            </select>
+            <input id="batch-value" class="search-input" placeholder="新的值" style="width:160px;padding:5px 10px;font-size:12px">
+            <button class="btn btn-blue btn-sm" onclick="doBatchUpdate()">批量保存</button>
+            <button class="btn btn-outline btn-sm" onclick="clearSelection()">取消选择</button>
+          </div>
+
+          <div class="table-toolbar">
+            <input type="text" class="search-input" id="skin-search" placeholder="搜索皮肤名/英雄名..." oninput="debounceSearch()">
+            <select class="filter-select" id="skin-quality" onchange="loadSkins()">
+              <option value="">全部品质</option>
+              <option>史诗</option><option>传说</option><option>勇者</option>
+              <option>伴生</option><option>无双</option><option>荣耀典藏</option>
+              <option>珍品传说</option><option>珍品无双</option>
+            </select>
+            <select class="filter-select" id="skin-type" onchange="loadSkins()">
+              <option value="">全部类型</option>
+              <option>首发</option><option>返场</option>
+            </select>
+            <span style="color:var(--text3);font-size:12px;margin-left:auto" id="skin-total-label"></span>
+          </div>
+
+          <div class="data-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th class="check-col"><input type="checkbox" id="check-all" onchange="toggleAll(this)"></th>
+                  <th>日期</th>
+                  <th>皮肤名称</th>
+                  <th>品质</th>
+                  <th>归属英雄</th>
+                  <th>价格</th>
+                  <th>获取方式</th>
+                  <th>类型</th>
+                  <th>常驻</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="skin-tbody"></tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <div class="pg-info" id="skin-pg-info"></div>
+            <div class="pg-btns" id="skin-pg-btns"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- IMPORT -->
+      <div class="page" id="page-import">
+        <div class="page-header">
+          <div><div class="page-title">Excel 导入</div><div class="page-subtitle">上传 Excel 文件更新数据</div></div>
+        </div>
+        <div class="page-body">
+          <div class="card">
+            <div class="card-header"><span class="card-title">导入模式</span></div>
+            <div class="card-body">
+              <div class="mode-select">
+                <div class="mode-opt selected" id="mode-append" onclick="selectMode('append')">
+                  <h4>➕ 追加模式（推荐）</h4>
+                  <p>只导入 Excel 中新增的记录，已存在的跳过。<br>适合日常更新。</p>
+                </div>
+                <div class="mode-opt" id="mode-overwrite" onclick="selectMode('overwrite')">
+                  <h4>🔄 全量覆盖</h4>
+                  <p>先清空数据库所有记录，再重新导入。<br>适合数据修正后的全量重建。</p>
+                </div>
+              </div>
+              <div id="overwrite-warning" style="display:none;background:#fff5f5;border:1px solid #fecaca;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#c53030">
+                ⚠️ <b>全量覆盖将删除数据库中所有现有记录</b>，此操作不可撤销，请谨慎使用。
+              </div>
+              <div class="upload-zone" id="upload-zone"
+                   ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)"
+                   onclick="document.getElementById('file-input').click()">
+                <span class="icon">📂</span>
+                <p>点击选择文件，或将 Excel 文件拖拽到此处</p>
+                <small>支持 .xlsx 格式，与原始数据表格式保持一致</small>
+              </div>
+              <input type="file" id="file-input" accept=".xlsx" style="display:none" onchange="onFileSelect(event)">
+              <div id="file-selected" style="display:none;margin-top:12px;padding:12px 16px;background:#f0fff4;border:1px solid #c6f6d5;border-radius:8px;display:flex;align-items:center;gap:10px">
+                <span style="font-size:20px">📊</span>
+                <div>
+                  <div id="file-name" style="font-weight:600;font-size:14px"></div>
+                  <div id="file-size" style="font-size:12px;color:var(--text3)"></div>
+                </div>
+                <button class="btn btn-outline btn-sm" onclick="clearFile()" style="margin-left:auto">移除</button>
+              </div>
+              <div id="import-progress" style="display:none;margin-top:12px">
+                <div style="font-size:13px;color:var(--text2)" id="progress-text">准备中...</div>
+                <div class="progress-wrap"><div class="progress-bar" id="progress-bar" style="width:0%"></div></div>
+              </div>
+              <div class="import-log" id="import-log"></div>
+            </div>
+            <div style="padding:0 20px 20px;display:flex;gap:10px">
+              <button class="btn btn-primary" id="import-btn" onclick="doImport()" disabled>
+                开始导入
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- USERS -->
+      <div class="page admin-only" id="page-users">
+        <div class="page-header">
+          <div><div class="page-title">用户管理</div><div class="page-subtitle">管理后台访问账号</div></div>
+          <button class="btn btn-primary btn-sm" onclick="showCreateUser()">+ 新建用户</button>
+        </div>
+        <div class="page-body">
+          <div class="card">
+            <div class="card-body" style="padding:0">
+              <table>
+                <thead><tr><th>用户名</th><th>显示名称</th><th>角色</th><th>创建时间</th><th>操作</th></tr></thead>
+                <tbody id="user-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LOGS -->
+      <div class="page admin-only" id="page-logs">
+        <div class="page-header">
+          <div><div class="page-title">操作日志</div><div class="page-subtitle">所有后台操作的完整记录</div></div>
+        </div>
+        <div class="page-body">
+          <div class="card">
+            <div class="card-body" style="padding:0">
+              <table>
+                <thead><tr><th>时间</th><th>操作人</th><th>操作</th><th>记录ID</th><th>详情</th></tr></thead>
+                <tbody id="log-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /main -->
+  </div>
+</div>
+
+<!-- CREATE USER MODAL -->
+<div class="modal-bg" id="modal-user">
+  <div class="modal">
+    <h3>新建用户</h3>
+    <div class="form-group"><label>用户名</label><input type="text" id="nu-username" placeholder="登录用户名"></div>
+    <div class="form-group"><label>显示名称</label><input type="text" id="nu-display" placeholder="显示在界面上的名称"></div>
+    <div class="form-group"><label>初始密码</label><input type="password" id="nu-password" placeholder="至少6位"></div>
+    <div class="form-group">
+      <label>角色</label>
+      <select id="nu-role" class="filter-select" style="width:100%">
+        <option value="editor">编辑者（可查看/编辑数据，不能管理用户）</option>
+        <option value="admin">管理员（完整权限）</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="doCreateUser()">创建</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT SKIN MODAL -->
+<div class="modal-bg" id="modal-skin">
+  <div class="modal">
+    <h3 id="modal-skin-title">编辑皮肤记录</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group"><label>日期</label><input type="date" id="es-date"></div>
+      <div class="form-group"><label>皮肤名称</label><input type="text" id="es-name"></div>
+      <div class="form-group"><label>归属英雄</label><input type="text" id="es-hero"></div>
+      <div class="form-group">
+        <label>皮肤品质</label>
+        <select id="es-quality" class="filter-select" style="width:100%">
+          <option>伴生</option><option>勇者</option><option>史诗</option><option>传说</option>
+          <option>珍品传说</option><option>无双</option><option>珍品无双</option><option>荣耀典藏</option>
+        </select>
+      </div>
+      <div class="form-group"><label>皮肤标签</label><input type="text" id="es-tag"></div>
+      <div class="form-group"><label>价格</label><input type="text" id="es-price"></div>
+      <div class="form-group"><label>获取方式</label><input type="text" id="es-obtain"></div>
+      <div class="form-group">
+        <label>类型</label>
+        <select id="es-type" class="filter-select" style="width:100%">
+          <option>首发</option><option>返场</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>是否常驻</label>
+        <select id="es-permanent" class="filter-select" style="width:100%">
+          <option>否</option><option>是</option>
+        </select>
+      </div>
+    </div>
+    <input type="hidden" id="es-id">
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="doSaveSkin()">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Config ──────────────────────────────────────────────────
+const API = '/api/admin';  // Vercel serverless endpoint
+let token = localStorage.getItem('admin_token') || '';
+let currentUser = null;
+let skinPage = 1; const SKIN_PER_PAGE = 50;
+let selectedIds = new Set();
+let importMode = 'append';
+let importFile = null;
+let searchTimer = null;
+
+// ── Auth ─────────────────────────────────────────────────────
+async function doLogin() {
+  const username = document.getElementById('inp-username').value.trim();
+  const password = document.getElementById('inp-password').value;
+  if (!username || !password) return showErr('请填写用户名和密码');
+  const res = await api('POST', '/login', { username, password }, true);
+  if (res.error) return showErr(res.error);
+  token = res.token;
+  localStorage.setItem('admin_token', token);
+  currentUser = res.user;
+  enterApp();
+}
+function doLogout() {
+  token = ''; localStorage.removeItem('admin_token'); location.reload();
+}
+function showErr(msg) {
+  const el = document.getElementById('login-error');
+  el.textContent = msg; el.style.display = 'block';
+}
+async function enterApp() {
+  document.getElementById('login-page').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('user-name').textContent = currentUser.display_name || currentUser.username;
+  document.getElementById('user-role').textContent = currentUser.role === 'admin' ? '管理员' : '编辑者';
+  document.getElementById('user-avatar').textContent = (currentUser.display_name || currentUser.username)[0].toUpperCase();
+  // Show/hide admin-only elements
+  document.querySelectorAll('.admin-only').forEach(el => {
+    el.style.display = currentUser.role === 'admin' ? '' : 'none';
+  });
+  await loadOverview();
+}
+async function checkAuth() {
+  if (!token) return;
+  const res = await api('GET', '/me', null, true);
+  if (res.user) { currentUser = res.user; enterApp(); }
+}
+
+// ── Navigation ───────────────────────────────────────────────
+function navTo(page, el) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.getElementById('page-' + page).classList.add('active');
+  if (page === 'skins')    loadSkins();
+  if (page === 'users')    loadUsers();
+  if (page === 'logs')     loadLogs();
+  if (page === 'overview') loadOverview();
+}
+
+// ── Overview ─────────────────────────────────────────────────
+async function loadOverview() {
+  const res = await api('GET', '/skins?per_page=1');
+  if (res.total !== undefined) {
+    document.getElementById('ov-total').textContent = res.total.toLocaleString();
+  }
+  const logs = await api('GET', '/logs?per_page=5');
+  if (logs.logs) renderRecentLogs(logs.logs);
+  // Rough hero/skin counts via skins endpoint (cached in browser)
+}
+function renderRecentLogs(logs) {
+  document.getElementById('recent-logs').innerHTML = logs.map(l => `
+    <tr>
+      <td style="color:var(--text3);font-size:12px">${fmtTime(l.created_at)}</td>
+      <td>${l.operator}</td>
+      <td><span class="log-action log-${l.action}">${l.action}</span></td>
+      <td style="font-size:12px;color:var(--text3)">${JSON.stringify(l.detail||{}).slice(0,60)}…</td>
+    </tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:20px">暂无记录</td></tr>';
+}
+
+// ── Skins ─────────────────────────────────────────────────────
+async function loadSkins() {
+  const search  = document.getElementById('skin-search').value.trim();
+  const quality = document.getElementById('skin-quality').value;
+  const type    = document.getElementById('skin-type').value;
+  let url = `/skins?page=${skinPage}&per_page=${SKIN_PER_PAGE}`;
+  if (search)  url += `&search=${encodeURIComponent(search)}`;
+  if (quality) url += `&quality=${encodeURIComponent(quality)}`;
+  if (type)    url += `&type=${encodeURIComponent(type)}`;
+  const res = await api('GET', url);
+  if (!res.skins) return;
+  renderSkins(res.skins);
+  renderPagination(res.total, res.page, res.per_page);
+}
+function renderSkins(skins) {
+  document.getElementById('skin-tbody').innerHTML = skins.map(s => `
+    <tr id="row-${s.id}" class="${selectedIds.has(s.id)?'selected':''}">
+      <td><input type="checkbox" ${selectedIds.has(s.id)?'checked':''} onchange="toggleRow(${s.id},this)"></td>
+      <td style="color:var(--text3);font-size:12px;white-space:nowrap">${s.date}</td>
+      <td style="font-weight:600">${s.name}</td>
+      <td><span class="badge badge-${s.quality}">${s.quality}</span></td>
+      <td style="color:#3264c8">${s.hero}</td>
+      <td style="font-size:12px">${s.price||'-'}</td>
+      <td style="font-size:12px;color:var(--text3)">${s.obtain}</td>
+      <td><span class="badge badge-${s.type}">${s.type}</span></td>
+      <td><span class="badge badge-${s.permanent}">${s.permanent}</span></td>
+      <td>
+        <button class="btn btn-outline btn-sm" onclick="openEditSkin(${JSON.stringify(s).replace(/"/g,'&quot;')})">编辑</button>
+        <button class="btn btn-danger btn-sm" onclick="doDeleteSkin(${s.id},'${s.name}')">删除</button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--text3)">暂无数据</td></tr>';
+}
+function renderPagination(total, page, perPage) {
+  document.getElementById('skin-total-label').textContent = `共 ${total} 条`;
+  document.getElementById('skin-pg-info').textContent = `第 ${page} 页 / 共 ${Math.ceil(total/perPage)} 页`;
+  const totalPages = Math.ceil(total / perPage);
+  let btns = `<button class="pg-btn" onclick="goPage(${page-1})" ${page<=1?'disabled':''}>‹</button>`;
+  const s = Math.max(1,page-2), e = Math.min(totalPages,page+2);
+  if (s>1) btns += `<button class="pg-btn" onclick="goPage(1)">1</button>${s>2?'<span style="padding:4px;color:var(--text3)">…</span>':''}`;
+  for (let i=s;i<=e;i++) btns += `<button class="pg-btn${i===page?' active':''}" onclick="goPage(${i})">${i}</button>`;
+  if (e<totalPages) btns += `${e<totalPages-1?'<span style="padding:4px;color:var(--text3)">…</span>':''}<button class="pg-btn" onclick="goPage(${totalPages})">${totalPages}</button>`;
+  btns += `<button class="pg-btn" onclick="goPage(${page+1})" ${page>=totalPages?'disabled':''}>›</button>`;
+  document.getElementById('skin-pg-btns').innerHTML = btns;
+}
+function goPage(p) { skinPage = p; loadSkins(); }
+function debounceSearch() { clearTimeout(searchTimer); searchTimer = setTimeout(() => { skinPage=1; loadSkins(); }, 400); }
+
+// Edit skin
+function openEditSkin(s) {
+  document.getElementById('es-id').value = s.id;
+  document.getElementById('es-date').value = s.date;
+  document.getElementById('es-name').value = s.name;
+  document.getElementById('es-hero').value = s.hero;
+  document.getElementById('es-quality').value = s.quality;
+  document.getElementById('es-tag').value = s.tag||'';
+  document.getElementById('es-price').value = s.price||'';
+  document.getElementById('es-obtain').value = s.obtain||'';
+  document.getElementById('es-type').value = s.type;
+  document.getElementById('es-permanent').value = s.permanent;
+  document.getElementById('modal-skin').classList.add('show');
+}
+async function doSaveSkin() {
+  const id = document.getElementById('es-id').value;
+  const updates = {
+    date: document.getElementById('es-date').value,
+    name: document.getElementById('es-name').value,
+    hero: document.getElementById('es-hero').value,
+    quality: document.getElementById('es-quality').value,
+    tag: document.getElementById('es-tag').value,
+    price: document.getElementById('es-price').value,
+    obtain: document.getElementById('es-obtain').value,
+    type: document.getElementById('es-type').value,
+    permanent: document.getElementById('es-permanent').value,
+  };
+  const res = await api('PUT', `/skins/${id}`, updates);
+  if (res.error) return toast(res.error, 'err');
+  closeModal(); loadSkins(); toast('保存成功', 'ok');
+}
+async function doDeleteSkin(id, name) {
+  if (!confirm(`确认删除"${name}"这条记录？此操作不可撤销。`)) return;
+  const res = await api('DELETE', `/skins/${id}`);
+  if (res.error) return toast(res.error, 'err');
+  loadSkins(); toast('已删除', 'ok');
+}
+
+// Selection & batch
+function toggleRow(id, cb) {
+  if (cb.checked) selectedIds.add(id); else selectedIds.delete(id);
+  document.getElementById(`row-${id}`).classList.toggle('selected', cb.checked);
+  updateBatchBar();
+}
+function toggleAll(cb) {
+  document.querySelectorAll('#skin-tbody input[type=checkbox]').forEach(box => {
+    const id = parseInt(box.closest('tr').id.replace('row-',''));
+    box.checked = cb.checked;
+    if (cb.checked) selectedIds.add(id); else selectedIds.delete(id);
+    box.closest('tr').classList.toggle('selected', cb.checked);
+  });
+  updateBatchBar();
+}
+function updateBatchBar() {
+  const bar = document.getElementById('batch-bar');
+  const count = selectedIds.size;
+  bar.classList.toggle('show', count > 0);
+  document.getElementById('batch-count').textContent = `已选 ${count} 条`;
+}
+function clearSelection() {
+  selectedIds.clear();
+  document.querySelectorAll('#skin-tbody input[type=checkbox]').forEach(cb => cb.checked = false);
+  document.querySelectorAll('#skin-tbody tr').forEach(tr => tr.classList.remove('selected'));
+  document.getElementById('check-all').checked = false;
+  updateBatchBar();
+}
+async function doBatchUpdate() {
+  const field = document.getElementById('batch-field').value;
+  const value = document.getElementById('batch-value').value.trim();
+  if (!field) return toast('请选择要修改的字段', 'err');
+  if (!value) return toast('请填写新的值', 'err');
+  if (!confirm(`确认将 ${selectedIds.size} 条记录的「${field}」改为「${value}」？`)) return;
+  const res = await api('POST', '/skins/batch-update', { ids: [...selectedIds], updates: {[field]: value} });
+  if (res.error) return toast(res.error, 'err');
+  toast(`批量修改成功，共更新 ${res.updated} 条`, 'ok');
+  clearSelection(); loadSkins();
+}
+
+// ── Import ────────────────────────────────────────────────────
+function selectMode(m) {
+  importMode = m;
+  document.getElementById('mode-append').classList.toggle('selected', m==='append');
+  document.getElementById('mode-overwrite').classList.toggle('selected', m==='overwrite');
+  document.getElementById('overwrite-warning').style.display = m==='overwrite'?'block':'none';
+}
+function onDragOver(e) { e.preventDefault(); document.getElementById('upload-zone').classList.add('drag'); }
+function onDragLeave()  { document.getElementById('upload-zone').classList.remove('drag'); }
+function onDrop(e) { e.preventDefault(); onDragLeave(); if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]); }
+function onFileSelect(e) { if (e.target.files[0]) setFile(e.target.files[0]); }
+function setFile(file) {
+  importFile = file;
+  document.getElementById('upload-zone').style.display = 'none';
+  const sel = document.getElementById('file-selected');
+  sel.style.display = 'flex';
+  document.getElementById('file-name').textContent = file.name;
+  document.getElementById('file-size').textContent = (file.size/1024/1024).toFixed(1) + ' MB';
+  document.getElementById('import-btn').disabled = false;
+}
+function clearFile() {
+  importFile = null;
+  document.getElementById('upload-zone').style.display = 'block';
+  document.getElementById('file-selected').style.display = 'none';
+  document.getElementById('import-btn').disabled = true;
+  document.getElementById('file-input').value = '';
+  document.getElementById('import-log').style.display = 'none';
+}
+async function doImport() {
+  if (!importFile) return;
+  const btn = document.getElementById('import-btn');
+  btn.disabled = true; btn.textContent = '解析中…';
+  setProgress(10, '读取文件…');
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const b64 = btoa(String.fromCharCode(...new Uint8Array(e.target.result)));
+    setProgress(30, '上传到服务器…');
+    addLog('info', `开始${importMode==='append'?'追加':'全量覆盖'}导入…`);
+    const res = await api('POST', '/import', { file_b64: b64, mode: importMode });
+    setProgress(100, '完成');
+    btn.disabled = false; btn.textContent = '开始导入';
+    if (res.error) {
+      addLog('err', '导入失败：' + res.error);
+      toast('导入失败', 'err');
+    } else {
+      addLog('ok', `✅ 导入完成！新增 ${res.inserted} 条，跳过 ${res.skipped} 条，图片 ${res.images} 张`);
+      toast(`导入成功，新增 ${res.inserted} 条`, 'ok');
+    }
+  };
+  reader.readAsArrayBuffer(importFile);
+}
+function setProgress(pct, text) {
+  document.getElementById('import-progress').style.display = 'block';
+  document.getElementById('progress-text').textContent = text;
+  document.getElementById('progress-bar').style.width = pct + '%';
+}
+function addLog(type, text) {
+  const log = document.getElementById('import-log');
+  log.style.display = 'block';
+  log.innerHTML += `<div class="log-line ${type}">[${new Date().toLocaleTimeString()}] ${text}</div>`;
+  log.scrollTop = log.scrollHeight;
+}
+
+// ── Users ─────────────────────────────────────────────────────
+async function loadUsers() {
+  const res = await api('GET', '/users');
+  if (!res.users) return;
+  document.getElementById('user-tbody').innerHTML = res.users.map(u => `
+    <tr>
+      <td style="font-weight:600">${u.username}</td>
+      <td>${u.display_name||'—'}</td>
+      <td><span class="badge" style="background:${u.role==='admin'?'rgba(201,168,76,0.12)':'rgba(50,110,200,0.1)'};color:${u.role==='admin'?'#9a6a00':'#3264c8'};border:1px solid ${u.role==='admin'?'rgba(201,168,76,0.3)':'rgba(50,110,200,0.28)'}">${u.role==='admin'?'管理员':'编辑者'}</span></td>
+      <td style="color:var(--text3);font-size:12px">${fmtTime(u.created_at)}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="doDeleteUser(${u.id},'${u.username}')">删除</button></td>
+    </tr>`).join('');
+}
+function showCreateUser() { document.getElementById('modal-user').classList.add('show'); }
+async function doCreateUser() {
+  const username = document.getElementById('nu-username').value.trim();
+  const display  = document.getElementById('nu-display').value.trim();
+  const password = document.getElementById('nu-password').value;
+  const role     = document.getElementById('nu-role').value;
+  if (!username || !password) return toast('请填写用户名和密码', 'err');
+  if (password.length < 6)   return toast('密码至少6位', 'err');
+  const res = await api('POST', '/users', {username, display_name: display||username, password, role});
+  if (res.error) return toast(res.error, 'err');
+  closeModal(); loadUsers(); toast('用户创建成功', 'ok');
+}
+async function doDeleteUser(id, username) {
+  if (username === currentUser.username) return toast('不能删除自己的账号', 'err');
+  if (!confirm(`确认删除用户「${username}」？`)) return;
+  await api('DELETE', `/users/${id}`);
+  loadUsers(); toast('已删除', 'ok');
+}
+
+// ── Logs ──────────────────────────────────────────────────────
+async function loadLogs() {
+  const res = await api('GET', '/logs?per_page=50');
+  if (!res.logs) return;
+  document.getElementById('log-tbody').innerHTML = res.logs.map(l => `
+    <tr>
+      <td style="font-size:12px;color:var(--text3);white-space:nowrap">${fmtTime(l.created_at)}</td>
+      <td style="font-weight:500">${l.operator}</td>
+      <td><span class="log-action log-${l.action.includes('import')?'import':l.action.includes('delete')?'delete':l.action.includes('batch')?'batch':'update'}">${l.action}</span></td>
+      <td style="font-size:12px;color:var(--text3)">${l.target_id||'—'}</td>
+      <td style="font-size:12px;color:var(--text3);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${JSON.stringify(l.detail||{})}</td>
+    </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text3)">暂无日志</td></tr>';
+}
+
+// ── API helper ────────────────────────────────────────────────
+async function api(method, path, body, skipAuth = false) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (!skipAuth && token) headers['Authorization'] = 'Bearer ' + token;
+  try {
+    const res = await fetch(API + path, {
+      method, headers,
+      body: body ? JSON.stringify(body) : undefined
+    });
+    return await res.json();
+  } catch (e) {
+    return { error: '网络错误：' + e.message };
+  }
+}
+
+// ── Add logs endpoint call ────────────────────────────────────
+// (Extend API to support GET /logs — add to admin.py)
+
+// ── UI Helpers ────────────────────────────────────────────────
+function closeModal() {
+  document.querySelectorAll('.modal-bg').forEach(m => m.classList.remove('show'));
+}
+function toast(msg, type = 'ok') {
+  const el = document.getElementById('toast');
+  el.textContent = (type === 'ok' ? '✓ ' : '✕ ') + msg;
+  el.className = `toast show ${type}`;
+  setTimeout(() => el.className = 'toast', 3000);
+}
+function fmtTime(str) {
+  if (!str) return '—';
+  return new Date(str).toLocaleString('zh-CN', {month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+}
+
+// ── Init ─────────────────────────────────────────────────────
+document.addEventListener('click', e => {
+  if (e.target.classList.contains('modal-bg')) closeModal();
+});
+checkAuth();
+</script>
+</body>
+</html>
