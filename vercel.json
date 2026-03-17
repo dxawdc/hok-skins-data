@@ -1,12 +1,10 @@
 {
   "version": 2,
-  "builds": [
-    { "src": "api/*.py", "use": "@vercel/python" },
-    { "src": "public/**", "use": "@vercel/static" }
-  ],
-  "routes": [
-    { "src": "/api/admin(.*)", "dest": "/api/admin.py" },
-    { "src": "/admin(.*)", "dest": "/public/admin.html" },
-    { "src": "/(.*)", "dest": "/public/index.html" }
+  "rewrites": [
+    { "source": "/api/admin/(.*)", "destination": "/api/admin" },
+    { "source": "/api/admin",      "destination": "/api/admin" },
+    { "source": "/admin",          "destination": "/public/admin.html" },
+    { "source": "/admin/(.*)",     "destination": "/public/admin.html" },
+    { "source": "/(.*)",           "destination": "/public/index.html" }
   ]
 }
