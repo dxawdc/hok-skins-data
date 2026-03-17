@@ -76,7 +76,10 @@ module.exports = async function handler(req, res) {
   const h      = req.headers;
   const m      = req.method;
 
-  const send = r => res.status(r.statusCode).set('Content-Type','application/json').send(r.body);
+  const send = r => {
+    res.setHeader('Content-Type', 'application/json');
+    res.status(r.statusCode).end(r.body);
+  };
 
   // 登录
   if (path.endsWith('/login')  && m === 'POST')   return send(await doLogin(body));
