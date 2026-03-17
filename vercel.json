@@ -1,6 +1,16 @@
 {
   "version": 2,
   "routes": [
+    {
+      "src": "/api/admin(.*)",
+      "methods": ["OPTIONS"],
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS"
+      },
+      "continue": true
+    },
     { "src": "/api/admin(.*)", "dest": "/api/admin.js" },
     { "src": "/admin",         "dest": "/admin.html" },
     { "src": "/",              "dest": "/index.html" },
