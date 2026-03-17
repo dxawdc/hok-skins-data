@@ -66,14 +66,16 @@ async function log(client, operator, action, targetId, detail) {
 
 // ── 入口 ─────────────────────────────────────────────────────
 module.exports = async function handler(req, res) {
-  // CORS headers — 每个响应都带上，包括错误响应
+  // CORS — 必须在所有响应上设置，包括 OPTIONS 预检
   res.setHeader('Access-Control-Allow-Origin',  '*');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
 
-  // OPTIONS 预检请求直接返回 200，不走业务逻辑
+  // OPTIONS 预检：直接返回 204 No Content（比 200 更标准）
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    res.writeHead(204);
+    res.end();
+    return;
   }
 
   const body   = await readBody(req);
