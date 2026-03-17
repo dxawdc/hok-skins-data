@@ -118,7 +118,9 @@ async function doLogin({ username, password }) {
   const client = getClient();
   const { data, error } = await client.from('admin_users').select('*').eq('username', username).maybeSingle();
   if (error || !data) return fail('用户名或密码错误', 401);
-  const match = await bcrypt.compare(String(password), data.password_hash);
+  // pgcrypto 生成 $2a$，bcryptjs 期望 $2b$，算法相同转换前缀即可兼容
+  const hashForCompare = data.password_hash.replace(/^\$2a\$/, "$2b$");
+  const match = await bcrypt.compare(String(password), hashForCompare);
   if (!match) return fail('用户名或密码错误', 401);
   const token = jwt.sign(
     { username: data.username, display_name: data.display_name, role: data.role },
