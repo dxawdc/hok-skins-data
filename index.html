@@ -1249,8 +1249,9 @@ const Q_COLORS = {'史诗':'#b090d8','传说':'#d4a830','勇者':'#6ea4d8','伴�
 
 function renderStats() {
   const heroMap = buildHeroMap();
+  // 饼图只统计首发
   const qualityCounts = {};
-  RAW.forEach(r => { qualityCounts[r.quality]=(qualityCounts[r.quality]||0)+1; });
+  RAW.filter(r=>r.type==='首发').forEach(r => { qualityCounts[r.quality]=(qualityCounts[r.quality]||0)+1; });
   const heroCounts = {};
   Object.entries(heroMap).forEach(([h,d])=>heroCounts[h]=d.skins.size);
   const topHeroes = Object.entries(heroCounts).sort((a,b)=>b[1]-a[1]).slice(0,10);
@@ -1294,7 +1295,7 @@ function renderStats() {
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
       <div class="chart-section">
-        <h3>各品质皮肤分布 <span style="color:var(--text3);font-weight:400">· 点击查看皮肤列表</span></h3>
+        <h3>各品质皮肤分布（首发）<span style="color:var(--text3);font-weight:400">· 点击查看皮肤列表</span></h3>
         <div class="pie-chart-wrap">
           <div class="pie-svg-wrap">
             ${pieSvg}
@@ -1399,11 +1400,11 @@ function renderYearlyChart() {
   data.forEach(r => { if (yearData[r.date.slice(0,4)]) yearData[r.date.slice(0,4)][r.quality] = (yearData[r.date.slice(0,4)][r.quality]||0) + 1; });
 
   const maxTotal = Math.max(...years.map(y => Q_ORDER.reduce((s,q)=>s+(yearData[y][q]||0),0)));
-  const svgH = 200, barW = 36, gap = 14, labelH = 24, padL = 36, padR = 10;
+  const svgH = 280, barW = 38, gap = 14, labelH = 24, padL = 36, padR = 10;
   const chartW = years.length * (barW + gap) + padL + padR;
   const chartH = svgH + labelH;
 
-  let bars = '', xLabels = '', yGridLines = '';
+  let bars = '', xLabels = '', yGridLines = '', dataLabels = '';
   // Y轴网格
   for (let i=0;i<=4;i++) {
     const y = svgH - (i/4)*svgH;
@@ -1416,6 +1417,7 @@ function renderYearlyChart() {
     const x = padL + i * (barW + gap);
     let yOff = svgH;
     const isSelected = selectedMonthYear === y;
+    const yearTotal = Q_ORDER.reduce((s,q)=>s+(yearData[y][q]||0),0);
     Q_ORDER.forEach(q => {
       const count = yearData[y][q] || 0;
       if (!count) return;
@@ -1427,7 +1429,17 @@ function renderYearlyChart() {
         onclick="clickYearBar('${y}')"
         data-year="${y}" data-q="${q}" data-count="${count}">
         <title>${y} · ${q}: ${count}</title></rect>`;
+      // 仅在高度够的情况下显示段内数字
+      if (h >= 14) {
+        dataLabels += `<text x="${x+barW/2}" y="${yOff+h/2+4}" text-anchor="middle" font-size="9"
+          fill="rgba(255,255,255,0.9)" pointer-events="none">${count}</text>`;
+      }
     });
+    // 柱顶总数
+    if (yearTotal > 0) {
+      dataLabels += `<text x="${x+barW/2}" y="${svgH-(yearTotal/maxTotal)*svgH-4}"
+        text-anchor="middle" font-size="10" fill="var(--text2)" font-weight="600" pointer-events="none">${yearTotal}</text>`;
+    }
     if (isSelected) bars += `<rect x="${x-1}" y="0" width="${barW+2}" height="${svgH}" fill="none" stroke="var(--gold)" stroke-width="2" rx="2"/>`;
     xLabels += `<text x="${x+barW/2}" y="${svgH+16}" text-anchor="middle" font-size="11"
       fill="${isSelected?'var(--gold)':'var(--text2)'}" font-weight="${isSelected?'700':'400'}"
@@ -1445,7 +1457,7 @@ function renderYearlyChart() {
   document.getElementById('chart-yearly').innerHTML = `
     <div style="overflow-x:auto">
       <svg width="${Math.max(chartW,300)}" height="${chartH}" style="display:block">
-        ${yGridLines}${bars}${xLabels}
+        ${yGridLines}${bars}${dataLabels}${xLabels}
       </svg>
     </div>
     <svg width="${legendItems.length*90+10}" height="16" style="margin-top:10px;display:block">${legendSvg}</svg>`;
@@ -1476,10 +1488,10 @@ function renderMonthlyChart(year) {
   data.forEach(r => { const m = r.date.slice(5,7); if(monthData[m]) monthData[m][r.quality] = (monthData[m][r.quality]||0)+1; });
 
   const maxTotal = Math.max(...months.map(m => Q_ORDER.reduce((s,q)=>s+(monthData[m][q]||0),0)), 1);
-  const svgH = 160, barW = 32, gap = 10, labelH = 22, padL = 30;
+  const svgH = 240, barW = 34, gap = 10, labelH = 22, padL = 30;
   const chartW = months.length*(barW+gap)+padL+10;
 
-  let bars = '', xLabels = '', yGridLines = '';
+  let bars = '', xLabels = '', yGridLines = '', dataLabels = '';
   for (let i=0;i<=4;i++) {
     const y = svgH-(i/4)*svgH;
     yGridLines += `<line x1="${padL}" y1="${y}" x2="${chartW}" y2="${y}" stroke="var(--border)" stroke-width="1"/>`;
@@ -1488,6 +1500,7 @@ function renderMonthlyChart(year) {
   months.forEach((m, i) => {
     const x = padL + i*(barW+gap);
     let yOff = svgH;
+    const monthTotal = Q_ORDER.reduce((s,q)=>s+(monthData[m][q]||0),0);
     Q_ORDER.forEach(q => {
       const count = monthData[m][q]||0;
       if (!count) return;
@@ -1495,14 +1508,21 @@ function renderMonthlyChart(year) {
       yOff -= h;
       bars += `<rect x="${x}" y="${yOff}" width="${barW}" height="${h}" fill="${Q_COLORS[q]}" opacity="0.85" rx="1">
         <title>${year}-${m} · ${q}: ${count}</title></rect>`;
+      if (h >= 14) {
+        dataLabels += `<text x="${x+barW/2}" y="${yOff+h/2+4}" text-anchor="middle" font-size="9"
+          fill="rgba(255,255,255,0.9)" pointer-events="none">${count}</text>`;
+      }
     });
-    const total = Q_ORDER.reduce((s,q)=>s+(monthData[m][q]||0),0);
-    xLabels += `<text x="${x+barW/2}" y="${svgH+15}" text-anchor="middle" font-size="11" fill="${total?'var(--text2)':'var(--text3)'}">${parseInt(m)}月</text>`;
+    if (monthTotal > 0) {
+      dataLabels += `<text x="${x+barW/2}" y="${svgH-(monthTotal/maxTotal)*svgH-4}"
+        text-anchor="middle" font-size="10" fill="var(--text2)" font-weight="600" pointer-events="none">${monthTotal}</text>`;
+    }
+    xLabels += `<text x="${x+barW/2}" y="${svgH+15}" text-anchor="middle" font-size="11" fill="${monthTotal?'var(--text2)':'var(--text3)'}">${parseInt(m)}月</text>`;
   });
 
   document.getElementById('chart-monthly').innerHTML = `
     <div style="overflow-x:auto">
-      <svg width="${chartW}" height="${svgH+labelH}" style="display:block">${yGridLines}${bars}${xLabels}</svg>
+      <svg width="${chartW}" height="${svgH+labelH}" style="display:block">${yGridLines}${bars}${dataLabels}${xLabels}</svg>
     </div>`;
 }
 
@@ -1547,12 +1567,12 @@ function renderCompareChart() {
 
   const allVals = years.flatMap(y => months.map(m => yearMonthTotal[y][m]));
   const maxVal = Math.max(...allVals, 1);
-  const svgH = 180, padL = 34, padR = 14, padT = 10, labelH = 22;
-  const barGroupW = 28, barW = Math.max(4, Math.floor((barGroupW - 2) / years.length));
+  const svgH = 260, padL = 34, padR = 14, padT = 18, labelH = 22;
+  const barGroupW = 30, barW = Math.max(4, Math.floor((barGroupW - 2) / years.length));
   const gap = 18;
   const chartW = months.length * (barGroupW + gap) + padL + padR;
 
-  let bars = '', xLabels = '', yGrid = '', lines = {};
+  let bars = '', xLabels = '', yGrid = '', lines = {}, dataLabels = '';
   years.forEach(y => lines[y] = []);
 
   // Y轴
@@ -1572,13 +1592,12 @@ function renderCompareChart() {
       bars += `<rect x="${x}" y="${yPos}" width="${barW-1}" height="${barH}"
         fill="${YEAR_COLORS[yi]}" opacity="0.75" rx="1">
         <title>${y}年${parseInt(m)}月: ${count}</title></rect>`;
-      // 折线点（用柱中心）
       lines[y].push({ x: x + barW/2, y: yPos, count });
     });
     xLabels += `<text x="${groupX+barGroupW/2}" y="${padT+svgH+15}" text-anchor="middle" font-size="11" fill="var(--text2)">${parseInt(m)}月</text>`;
   });
 
-  // 折线
+  // 折线 + 折线点上的数据标签
   let lineSvg = '';
   years.forEach((y, yi) => {
     const pts = lines[y];
@@ -1586,6 +1605,12 @@ function renderCompareChart() {
     lineSvg += `<path d="${d}" fill="none" stroke="${YEAR_COLORS[yi]}" stroke-width="2" opacity="0.9"/>`;
     pts.forEach(p => {
       lineSvg += `<circle cx="${p.x}" cy="${p.y}" r="3" fill="${YEAR_COLORS[yi]}"><title>${y}: ${p.count}</title></circle>`;
+      if (p.count > 0) {
+        // 标签交错偏移避免重叠（奇偶年份上下分开）
+        const dy = yi % 2 === 0 ? -7 : 14;
+        dataLabels += `<text x="${p.x}" y="${p.y+dy}" text-anchor="middle" font-size="9"
+          fill="${YEAR_COLORS[yi]}" font-weight="600" pointer-events="none">${p.count}</text>`;
+      }
     });
   });
 
@@ -1599,7 +1624,7 @@ function renderCompareChart() {
   el.innerHTML = `
     <div style="overflow-x:auto">
       <svg width="${chartW}" height="${padT+svgH+labelH}" style="display:block">
-        ${yGrid}${bars}${lineSvg}${xLabels}
+        ${yGrid}${bars}${lineSvg}${dataLabels}${xLabels}
       </svg>
     </div>
     <svg width="${years.length*80+10}" height="16" style="margin-top:10px;display:block">${legendSvg}</svg>`;
