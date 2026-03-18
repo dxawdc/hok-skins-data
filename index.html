@@ -451,12 +451,15 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
   /* 筛选栏折叠：下拉选择器单独一行 */
   .filter-bar .filter-select { flex: 1; min-width: 0; font-size: 13px; padding: 7px 8px; }
 
-  /* 表格：手机端改为卡片列表形式 */
-  .table-container { padding: 0 0 12px; overflow-x: visible; }
-  .data-table { display: none; } /* 隐藏桌面表格 */
+/* 桌面：表格显示，卡片隐藏 */
+#mobile-list { display: none; }
+.data-table { display: table; }
 
-  /* 手机卡片列表 */
-  #mobile-list { display: block; padding: 8px 12px; }
+/* 手机端：卡片显示，表格隐藏 */
+@media (max-width: 899px) {
+  #mobile-list { display: block !important; padding: 8px 12px; }
+  .data-table   { display: none !important; }
+  .table-container { padding: 0; overflow-x: visible; }
   .mobile-skin-card {
     display: flex; align-items: center; gap: 10px;
     padding: 10px 12px; margin-bottom: 8px;
@@ -633,7 +636,7 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
       </table>
     </div>
     <!-- 手机端卡片列表（桌面隐藏） -->
-    <div id="mobile-list" style="display:none"></div>
+    <div id="mobile-list"></div>
     <div class="pagination">
       <div class="pagination-info" id="pg-info"></div>
       <div class="pagination-btns" id="pg-btns"></div>
