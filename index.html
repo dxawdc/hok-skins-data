@@ -1400,17 +1400,17 @@ function renderYearlyChart() {
   data.forEach(r => { if (yearData[r.date.slice(0,4)]) yearData[r.date.slice(0,4)][r.quality] = (yearData[r.date.slice(0,4)][r.quality]||0) + 1; });
 
   const maxTotal = Math.max(...years.map(y => Q_ORDER.reduce((s,q)=>s+(yearData[y][q]||0),0)));
-  const svgH = 280, barW = 38, gap = 14, labelH = 24, padL = 36, padR = 10;
+  const svgH = 280, barW = 38, gap = 14, labelH = 24, padL = 44, padR = 10;
   const chartW = years.length * (barW + gap) + padL + padR;
   const chartH = svgH + labelH;
 
   let bars = '', xLabels = '', yGridLines = '', dataLabels = '';
-  // Y轴网格
-  for (let i=0;i<=4;i++) {
-    const y = svgH - (i/4)*svgH;
-    const val = Math.round(i/4*maxTotal);
+  // Y轴网格（5条刻度线）
+  for (let i=0;i<=5;i++) {
+    const y = svgH - (i/5)*svgH;
+    const val = Math.round(i/5*maxTotal);
     yGridLines += `<line x1="${padL}" y1="${y}" x2="${chartW}" y2="${y}" stroke="var(--border)" stroke-width="1"/>`;
-    yGridLines += `<text x="${padL-4}" y="${y+4}" text-anchor="end" font-size="10" fill="var(--text3)">${val}</text>`;
+    yGridLines += `<text x="${padL-6}" y="${y+4}" text-anchor="end" font-size="10" fill="var(--text3)">${val}</text>`;
   }
 
   years.forEach((y, i) => {
@@ -1488,14 +1488,14 @@ function renderMonthlyChart(year) {
   data.forEach(r => { const m = r.date.slice(5,7); if(monthData[m]) monthData[m][r.quality] = (monthData[m][r.quality]||0)+1; });
 
   const maxTotal = Math.max(...months.map(m => Q_ORDER.reduce((s,q)=>s+(monthData[m][q]||0),0)), 1);
-  const svgH = 240, barW = 34, gap = 10, labelH = 22, padL = 30;
+  const svgH = 240, barW = 34, gap = 10, labelH = 22, padL = 44;
   const chartW = months.length*(barW+gap)+padL+10;
 
   let bars = '', xLabels = '', yGridLines = '', dataLabels = '';
-  for (let i=0;i<=4;i++) {
-    const y = svgH-(i/4)*svgH;
+  for (let i=0;i<=5;i++) {
+    const y = svgH-(i/5)*svgH;
     yGridLines += `<line x1="${padL}" y1="${y}" x2="${chartW}" y2="${y}" stroke="var(--border)" stroke-width="1"/>`;
-    yGridLines += `<text x="${padL-4}" y="${y+4}" text-anchor="end" font-size="10" fill="var(--text3)">${Math.round(i/4*maxTotal)}</text>`;
+    yGridLines += `<text x="${padL-6}" y="${y+4}" text-anchor="end" font-size="10" fill="var(--text3)">${Math.round(i/5*maxTotal)}</text>`;
   }
   months.forEach((m, i) => {
     const x = padL + i*(barW+gap);
@@ -1567,7 +1567,7 @@ function renderCompareChart() {
 
   const allVals = years.flatMap(y => months.map(m => yearMonthTotal[y][m]));
   const maxVal = Math.max(...allVals, 1);
-  const svgH = 260, padL = 34, padR = 14, padT = 18, labelH = 22;
+  const svgH = 260, padL = 44, padR = 14, padT = 18, labelH = 22;
   const barGroupW = 30, barW = Math.max(4, Math.floor((barGroupW - 2) / years.length));
   const gap = 18;
   const chartW = months.length * (barGroupW + gap) + padL + padR;
@@ -1576,10 +1576,10 @@ function renderCompareChart() {
   years.forEach(y => lines[y] = []);
 
   // Y轴
-  for (let i=0;i<=4;i++) {
-    const y = padT + svgH - (i/4)*svgH;
+  for (let i=0;i<=5;i++) {
+    const y = padT + svgH - (i/5)*svgH;
     yGrid += `<line x1="${padL}" y1="${y}" x2="${chartW}" y2="${y}" stroke="var(--border)" stroke-width="1"/>`;
-    yGrid += `<text x="${padL-4}" y="${y+4}" text-anchor="end" font-size="10" fill="var(--text3)">${Math.round(i/4*maxVal)}</text>`;
+    yGrid += `<text x="${padL-6}" y="${y+4}" text-anchor="end" font-size="10" fill="var(--text3)">${Math.round(i/5*maxVal)}</text>`;
   }
 
   months.forEach((m, mi) => {
