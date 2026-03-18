@@ -1010,6 +1010,7 @@ function renderTable() {
           ${tagSrc
             ? `<img src="${tagSrc}" style="height:16px;object-fit:contain;image-rendering:pixelated" alt="${r.tag}">`
             : `<span style="font-size:11px;color:var(--text3)">${r.tag}</span>`}
+          ${r.obtain ? `<span style="font-size:11px;color:var(--text3)">· ${r.obtain}</span>` : ''}
         </div>
       </div>
       <div class="mobile-skin-right">
