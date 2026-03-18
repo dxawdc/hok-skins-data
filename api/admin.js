@@ -111,6 +111,10 @@ module.exports = async function handler(req, res) {
   if (/\/skins\/\d+$/.test(path)     && m === 'PUT')    { const [u,e]=requireAuth(h); if(e) return send(e); return send(await updateSkin(path.split('/').pop(),body,u)); }
   // 删除皮肤
   if (/\/skins\/\d+$/.test(path)     && m === 'DELETE') { const [u,e]=requireAuth(h); if(e) return send(e); return send(await deleteSkin(path.split('/').pop(),u)); }
+  // 新增皮肤
+  if (path.endsWith('/skins') && m === 'POST') { const [u,e]=requireAuth(h); if(e) return send(e); return send(await insertSkin(body,u)); }
+  // 上传图片
+  if (path.endsWith('/images') && m === 'POST') { const [u,e]=requireAuth(h); if(e) return send(e); return send(await uploadImage(body,u)); }
   // 批量更新
   if (path.endsWith('/batch-update') && m === 'POST')   { const [u,e]=requireAuth(h); if(e) return send(e); return send(await batchUpdate(body,u)); }
   // Excel 导入
