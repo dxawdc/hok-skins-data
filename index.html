@@ -903,13 +903,20 @@ function showView(v, el, snavId) {
   document.querySelectorAll('.sidebar-nav-item').forEach(x=>x.classList.remove('active'));
   document.getElementById('view-'+v).classList.add('active');
   if (el) el.classList.add('active');
-  // Sync top tabs and sidebar
   const tabId = 'tab-'+v;
   const snavEl = document.getElementById('snav-'+(snavId||v));
   if (document.getElementById(tabId)) document.getElementById(tabId).classList.add('active');
   if (snavEl) snavEl.classList.add('active');
-  // Sync bottom nav
   setBottomNav(v);
+  // stats 页：容器变为可见后再初始化/resize ECharts
+  if (v === 'stats') {
+    setTimeout(() => {
+      Object.values(_charts).forEach(c => c && c.resize());
+      // 若图表还没渲染过（容器是空的），重新渲染
+      const yearly = document.getElementById('chart-yearly');
+      if (yearly && yearly.children.length === 0) renderTrendCharts();
+    }, 50);
+  }
 }
 function resetToHome() {
   showView('list', document.getElementById('tab-list'), 'list');
@@ -1253,7 +1260,13 @@ const _charts = {};
 function getChart(id) {
   const el = document.getElementById(id);
   if (!el) return null;
-  if (_charts[id]) { _charts[id].resize(); return _charts[id]; }
+  // 如果容器宽度为 0，销毁旧实例重新初始化
+  if (_charts[id]) {
+    if (el.offsetWidth > 0) { _charts[id].resize(); return _charts[id]; }
+    _charts[id].dispose();
+    delete _charts[id];
+  }
+  if (el.offsetWidth === 0) return null; // 容器不可见，跳过
   _charts[id] = echarts.init(el, null, { renderer: 'svg' });
   return _charts[id];
 }
@@ -1393,14 +1406,16 @@ function setTrendType(type) {
 }
 
 function renderTrendCharts() {
-  renderYearlyChart();
-  if (selectedMonthYear) renderMonthlyChart(selectedMonthYear);
-  else {
-    document.getElementById('chart-monthly-scroll').style.display = 'none';
-    document.getElementById('chart-monthly-title').innerHTML =
-      '月度品质分布 <span style="font-size:11px;color:var(--text3);font-weight:400">· 点击上方年份柱查看</span>';
-  }
-  renderCompareChart();
+  requestAnimationFrame(() => {
+    renderYearlyChart();
+    if (selectedMonthYear) renderMonthlyChart(selectedMonthYear);
+    else {
+      document.getElementById('chart-monthly-scroll').style.display = 'none';
+      document.getElementById('chart-monthly-title').innerHTML =
+        '月度品质分布 <span style="font-size:11px;color:var(--text3);font-weight:400">· 点击上方年份柱查看</span>';
+    }
+    renderCompareChart();
+  });
 }
 
 // ── 图表1：年度堆叠柱状图（ECharts）──────────────────────────
