@@ -1357,14 +1357,14 @@ function renderStats() {
           各年度品质分布
           <span style="font-size:11px;color:var(--text3);font-weight:400;margin-left:8px">· 点击年份柱查看月度详情</span>
         </div>
-        <div id="chart-yearly" style="width:100%;height:320px"></div>
+        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><div id="chart-yearly" style="min-width:700px;height:320px"></div></div>
       </div>
 
       <div style="margin-bottom:24px" id="chart-monthly-wrap">
         <div style="font-size:13px;color:var(--text2);font-weight:600;margin-bottom:8px" id="chart-monthly-title">
           月度品质分布 <span style="font-size:11px;color:var(--text3);font-weight:400">· 点击上方年份柱查看</span>
         </div>
-        <div id="chart-monthly" style="width:100%;height:300px;display:none"></div>
+        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;display:none" id="chart-monthly-scroll"><div id="chart-monthly" style="min-width:500px;height:300px"></div></div>
       </div>
 
       <div>
@@ -1373,7 +1373,7 @@ function renderStats() {
           <span style="font-size:11px;color:var(--text3);font-weight:400;margin-left:8px">· 最多选4年</span>
         </div>
         <div id="year-compare-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px"></div>
-        <div id="chart-compare" style="width:100%;height:320px"></div>
+        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><div id="chart-compare" style="min-width:600px;height:320px"></div></div>
       </div>
     </div>`;
 
@@ -1396,7 +1396,7 @@ function renderTrendCharts() {
   renderYearlyChart();
   if (selectedMonthYear) renderMonthlyChart(selectedMonthYear);
   else {
-    document.getElementById('chart-monthly').style.display = 'none';
+    document.getElementById('chart-monthly-scroll').style.display = 'none';
     document.getElementById('chart-monthly-title').innerHTML =
       '月度品质分布 <span style="font-size:11px;color:var(--text3);font-weight:400">· 点击上方年份柱查看</span>';
   }
@@ -1511,7 +1511,7 @@ function clickYearBar(year) {
       document.getElementById('chart-monthly-wrap').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }, 100);
   } else {
-    document.getElementById('chart-monthly').style.display = 'none';
+    document.getElementById('chart-monthly-scroll').style.display = 'none';
     document.getElementById('chart-monthly-title').innerHTML =
       '月度品质分布 <span style="font-size:11px;color:var(--text3);font-weight:400">· 点击上方年份柱查看</span>';
   }
@@ -1519,7 +1519,7 @@ function clickYearBar(year) {
 
 function renderMonthlyChart(year) {
   const monthEl = document.getElementById('chart-monthly');
-  monthEl.style.display = 'block';
+  document.getElementById('chart-monthly-scroll').style.display = 'block';
   document.getElementById('chart-monthly-title').innerHTML =
     `${year} 年月度品质分布 <span style="font-size:11px;color:var(--text3);font-weight:400">(${trendDataType})</span>
      <span style="font-size:11px;color:var(--gold);cursor:pointer;margin-left:8px" onclick="clickYearBar('${year}')">× 收起</span>`;
