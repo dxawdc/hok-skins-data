@@ -228,6 +228,17 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
 .modal .form-group { margin-bottom: 14px; }
 .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
 
+/* IMG UPLOAD BOX */
+.img-upload-box {
+  width: 100%; height: 80px; border: 2px dashed var(--border);
+  border-radius: 8px; cursor: pointer; display: flex;
+  align-items: center; justify-content: center;
+  transition: border-color 0.2s; background: var(--bg);
+  overflow: hidden; position: relative;
+}
+.img-upload-box:hover { border-color: var(--gold); }
+.img-upload-box.has-img { border-style: solid; border-color: var(--gold); }
+
 /* LOG TABLE */
 .log-action { font-size: 11px; padding: 2px 7px; border-radius: 4px; font-weight: 600; }
 .log-import { background: #ebf8ff; color: #2b6cb0; }
@@ -346,6 +357,7 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
           <div><div class="page-title">皮肤数据</div><div class="page-subtitle">查看和编辑皮肤记录</div></div>
           <div style="display:flex;gap:8px">
             <button class="btn btn-outline btn-sm" onclick="loadSkins()">刷新</button>
+            <button class="btn btn-primary btn-sm" onclick="openAddSkin()">+ 新增记录</button>
           </div>
         </div>
         <div class="page-body">
@@ -516,14 +528,14 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
   </div>
 </div>
 
-<!-- EDIT SKIN MODAL -->
+<!-- ADD/EDIT SKIN MODAL -->
 <div class="modal-bg" id="modal-skin">
-  <div class="modal">
+  <div class="modal" style="width:560px;max-width:96vw">
     <h3 id="modal-skin-title">编辑皮肤记录</h3>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
       <div class="form-group"><label>日期</label><input type="date" id="es-date"></div>
-      <div class="form-group"><label>皮肤名称</label><input type="text" id="es-name"></div>
-      <div class="form-group"><label>归属英雄</label><input type="text" id="es-hero"></div>
+      <div class="form-group"><label>皮肤名称</label><input type="text" id="es-name" placeholder="皮肤名称"></div>
+      <div class="form-group"><label>归属英雄</label><input type="text" id="es-hero" placeholder="英雄名称"></div>
       <div class="form-group">
         <label>皮肤品质</label>
         <select id="es-quality" class="filter-select" style="width:100%">
@@ -531,9 +543,12 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
           <option>珍品传说</option><option>无双</option><option>珍品无双</option><option>荣耀典藏</option>
         </select>
       </div>
-      <div class="form-group"><label>皮肤标签</label><input type="text" id="es-tag"></div>
-      <div class="form-group"><label>价格</label><input type="text" id="es-price"></div>
-      <div class="form-group"><label>获取方式</label><input type="text" id="es-obtain"></div>
+      <div class="form-group"><label>皮肤标签说明</label><input type="text" id="es-tag" placeholder="如：史诗限定"></div>
+      <div class="form-group"><label>价格</label><input type="text" id="es-price" placeholder="如：888"></div>
+      <div class="form-group"><label>获取方式</label><input type="text" id="es-obtain" placeholder="如：直售"></div>
+      <div class="form-group">
+        <label>英雄职业/分路</label><input type="text" id="es-job" placeholder="如：刺客（打野）">
+      </div>
       <div class="form-group">
         <label>类型</label>
         <select id="es-type" class="filter-select" style="width:100%">
@@ -547,10 +562,41 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
         </select>
       </div>
     </div>
+
+    <!-- 图片上传区 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px">
+      <div class="form-group">
+        <label>皮肤图片 <span style="color:var(--text3);font-weight:400">（可选）</span></label>
+        <div class="img-upload-box" id="skin-img-box" onclick="document.getElementById('skin-img-input').click()">
+          <img id="skin-img-preview" style="display:none;width:100%;height:100%;object-fit:contain;border-radius:6px">
+          <div id="skin-img-placeholder">
+            <div style="font-size:24px">🖼️</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:4px">点击上传</div>
+          </div>
+        </div>
+        <input type="file" id="skin-img-input" accept="image/*" style="display:none" onchange="previewImg('skin')">
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">建议尺寸 60×60，支持 PNG/JPG</div>
+      </div>
+      <div class="form-group">
+        <label>标签图片 <span style="color:var(--text3);font-weight:400">（可选）</span></label>
+        <div class="img-upload-box" id="tag-img-box" onclick="document.getElementById('tag-img-input').click()">
+          <img id="tag-img-preview" style="display:none;width:100%;height:100%;object-fit:contain;border-radius:6px">
+          <div id="tag-img-placeholder">
+            <div style="font-size:24px">🏷️</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:4px">点击上传</div>
+          </div>
+        </div>
+        <input type="file" id="tag-img-input" accept="image/*" style="display:none" onchange="previewImg('tag')">
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">建议尺寸 ~120×30，支持 PNG/JPG</div>
+      </div>
+    </div>
+
     <input type="hidden" id="es-id">
+    <input type="hidden" id="es-skin-img-id">
+    <input type="hidden" id="es-tag-img-id">
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal()">取消</button>
-      <button class="btn btn-primary" onclick="doSaveSkin()">保存</button>
+      <button class="btn btn-primary" id="es-save-btn" onclick="doSaveSkin()">保存</button>
     </div>
   </div>
 </div>
@@ -684,36 +730,142 @@ function renderPagination(total, page, perPage) {
 function goPage(p) { skinPage = p; loadSkins(); }
 function debounceSearch() { clearTimeout(searchTimer); searchTimer = setTimeout(() => { skinPage=1; loadSkins(); }, 400); }
 
-// Edit skin
+// ── Add / Edit Skin ───────────────────────────────────────────
+let pendingSkinImgB64 = null;  // 待上传的皮肤图片 base64
+let pendingTagImgB64  = null;  // 待上传的标签图片 base64
+
+function resetSkinModal() {
+  document.getElementById('es-id').value = '';
+  document.getElementById('es-skin-img-id').value = '';
+  document.getElementById('es-tag-img-id').value = '';
+  document.getElementById('es-date').value = '';
+  document.getElementById('es-name').value = '';
+  document.getElementById('es-hero').value = '';
+  document.getElementById('es-quality').value = '史诗';
+  document.getElementById('es-tag').value = '';
+  document.getElementById('es-price').value = '';
+  document.getElementById('es-obtain').value = '';
+  document.getElementById('es-job').value = '';
+  document.getElementById('es-type').value = '首发';
+  document.getElementById('es-permanent').value = '否';
+  // 重置图片预览
+  ['skin','tag'].forEach(t => {
+    document.getElementById(`${t}-img-preview`).style.display = 'none';
+    document.getElementById(`${t}-img-preview`).src = '';
+    document.getElementById(`${t}-img-placeholder`).style.display = '';
+    document.getElementById(`${t}-img-box`).classList.remove('has-img');
+    document.getElementById(`${t}-img-input`).value = '';
+  });
+  pendingSkinImgB64 = null;
+  pendingTagImgB64  = null;
+}
+
+function openAddSkin() {
+  resetSkinModal();
+  document.getElementById('modal-skin-title').textContent = '新增皮肤记录';
+  document.getElementById('es-save-btn').textContent = '新增';
+  document.getElementById('modal-skin').classList.add('show');
+}
+
 function openEditSkin(s) {
-  document.getElementById('es-id').value = s.id;
-  document.getElementById('es-date').value = s.date;
-  document.getElementById('es-name').value = s.name;
-  document.getElementById('es-hero').value = s.hero;
-  document.getElementById('es-quality').value = s.quality;
-  document.getElementById('es-tag').value = s.tag||'';
-  document.getElementById('es-price').value = s.price||'';
-  document.getElementById('es-obtain').value = s.obtain||'';
-  document.getElementById('es-type').value = s.type;
+  resetSkinModal();
+  document.getElementById('modal-skin-title').textContent = '编辑皮肤记录';
+  document.getElementById('es-save-btn').textContent = '保存';
+  document.getElementById('es-id').value        = s.id;
+  document.getElementById('es-skin-img-id').value = s.skin_img_id || '';
+  document.getElementById('es-tag-img-id').value  = s.tag_img_id  || '';
+  document.getElementById('es-date').value      = s.date;
+  document.getElementById('es-name').value      = s.name;
+  document.getElementById('es-hero').value      = s.hero;
+  document.getElementById('es-quality').value   = s.quality;
+  document.getElementById('es-tag').value       = s.tag   || '';
+  document.getElementById('es-price').value     = s.price || '';
+  document.getElementById('es-obtain').value    = s.obtain || '';
+  document.getElementById('es-job').value       = s.job   || '';
+  document.getElementById('es-type').value      = s.type;
   document.getElementById('es-permanent').value = s.permanent;
   document.getElementById('modal-skin').classList.add('show');
 }
+
+function previewImg(type) {
+  const input = document.getElementById(`${type}-img-input`);
+  const file  = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const b64 = e.target.result; // data:image/...;base64,...
+    document.getElementById(`${type}-img-preview`).src = b64;
+    document.getElementById(`${type}-img-preview`).style.display = 'block';
+    document.getElementById(`${type}-img-placeholder`).style.display = 'none';
+    document.getElementById(`${type}-img-box`).classList.add('has-img');
+    if (type === 'skin') pendingSkinImgB64 = b64;
+    else                 pendingTagImgB64  = b64;
+  };
+  reader.readAsDataURL(file);
+}
+
+// 上传图片到后端，返回 img_id
+async function uploadImg(b64, imgType) {
+  if (!b64) return null;
+  // 生成唯一 ID（时间戳+随机）
+  const imgId = Date.now().toString(16).toUpperCase() + Math.random().toString(16).slice(2,10).toUpperCase();
+  // 取出纯 base64 和 mime
+  const [meta, data] = b64.split(',');
+  const mime = meta.match(/:(.*?);/)[1];
+  const res = await api('POST', '/images', { img_id: imgId, img_type: imgType, data, mime_type: mime });
+  if (res.error) { toast('图片上传失败：' + res.error, 'err'); return null; }
+  return imgId;
+}
+
 async function doSaveSkin() {
   const id = document.getElementById('es-id').value;
-  const updates = {
-    date: document.getElementById('es-date').value,
-    name: document.getElementById('es-name').value,
-    hero: document.getElementById('es-hero').value,
-    quality: document.getElementById('es-quality').value,
-    tag: document.getElementById('es-tag').value,
-    price: document.getElementById('es-price').value,
-    obtain: document.getElementById('es-obtain').value,
-    type: document.getElementById('es-type').value,
-    permanent: document.getElementById('es-permanent').value,
-  };
-  const res = await api('PUT', `/skins/${id}`, updates);
-  if (res.error) return toast(res.error, 'err');
-  closeModal(); loadSkins(); toast('保存成功', 'ok');
+  const isAdd = !id;
+
+  const btn = document.getElementById('es-save-btn');
+  btn.disabled = true;
+  btn.textContent = '保存中…';
+
+  try {
+    // 上传新图片（如果有）
+    let skinImgId = document.getElementById('es-skin-img-id').value;
+    let tagImgId  = document.getElementById('es-tag-img-id').value;
+    if (pendingSkinImgB64) skinImgId = await uploadImg(pendingSkinImgB64, 'skin') || skinImgId;
+    if (pendingTagImgB64)  tagImgId  = await uploadImg(pendingTagImgB64,  'tag')  || tagImgId;
+
+    const data = {
+      date:        document.getElementById('es-date').value,
+      name:        document.getElementById('es-name').value.trim(),
+      hero:        document.getElementById('es-hero').value.trim(),
+      quality:     document.getElementById('es-quality').value,
+      tag:         document.getElementById('es-tag').value.trim(),
+      price:       document.getElementById('es-price').value.trim(),
+      obtain:      document.getElementById('es-obtain').value.trim(),
+      job:         document.getElementById('es-job').value.trim(),
+      type:        document.getElementById('es-type').value,
+      permanent:   document.getElementById('es-permanent').value,
+      skin_img_id: skinImgId,
+      tag_img_id:  tagImgId,
+    };
+
+    if (!data.date || !data.name || !data.hero) {
+      toast('日期、皮肤名称、归属英雄为必填项', 'err');
+      return;
+    }
+
+    let res;
+    if (isAdd) {
+      res = await api('POST', '/skins', data);
+    } else {
+      res = await api('PUT', `/skins/${id}`, data);
+    }
+    if (res.error) return toast(res.error, 'err');
+    closeModal();
+    loadSkins();
+    toast(isAdd ? '新增成功' : '保存成功', 'ok');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = id ? '保存' : '新增';
+  }
 }
 async function doDeleteSkin(id, name) {
   if (!confirm(`确认删除"${name}"这条记录？此操作不可撤销。`)) return;
