@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>王者荣耀皮肤数据库</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
 <style>
 /* ── THEME VARIABLES ── */
 :root {
@@ -1239,17 +1240,26 @@ function openSkinDetail(hero, skinName) {
 
 // ── Stats ──
 let activeQuality = null;
-let trendDataType = '首发'; // '首发' | '返场'
+let trendDataType = '首发';
 let selectedMonthYear = null;
 let compareYears = new Set();
 
-// 品质顺序和颜色（全局共用）
 const Q_ORDER  = ['伴生','勇者','史诗','传说','珍品传说','无双','珍品无双','荣耀典藏'];
 const Q_COLORS = {'史诗':'#b090d8','传说':'#d4a830','勇者':'#6ea4d8','伴生':'#50c090','无双':'#d07070','荣耀典藏':'#d4944a','珍品传说':'#c8a000','珍品无双':'#c04040'};
+const Q_COLORS_ARR = Q_ORDER.map(q => Q_COLORS[q]);
+
+// ECharts 实例缓存
+const _charts = {};
+function getChart(id) {
+  const el = document.getElementById(id);
+  if (!el) return null;
+  if (_charts[id]) { _charts[id].resize(); return _charts[id]; }
+  _charts[id] = echarts.init(el, null, { renderer: 'svg' });
+  return _charts[id];
+}
 
 function renderStats() {
   const heroMap = buildHeroMap();
-  // 饼图只统计首发
   const qualityCounts = {};
   RAW.filter(r=>r.type==='首发').forEach(r => { qualityCounts[r.quality]=(qualityCounts[r.quality]||0)+1; });
   const heroCounts = {};
@@ -1259,15 +1269,19 @@ function renderStats() {
   const total = Object.values(qualityCounts).reduce((a,b)=>a+b,0);
   const maxH = topHeroes[0]?.[1]||1;
 
-  // 饼图
-  const R = 100, cx = 120, cy = 120, innerR = 62;
+  // 饼图数据
   const qs = Q_ORDER.filter(q=>qualityCounts[q]);
+  const qColors = Q_COLORS;
+  const segments = qs.map(q => ({ q, count: qualityCounts[q], frac: qualityCounts[q]/total }));
+
+  // 饼图 SVG（保留原有交互）
+  const R = 100, cx = 120, cy = 120, innerR = 62;
   let cumAngle = -Math.PI/2;
-  const segments = qs.map(q => {
-    const frac = qualityCounts[q]/total;
+  const segs = segments.map(s => {
+    const frac = s.frac;
     const startAngle = cumAngle;
     cumAngle += frac * 2 * Math.PI;
-    return { q, count: qualityCounts[q], frac, startAngle, endAngle: cumAngle };
+    return { ...s, startAngle, endAngle: cumAngle };
   });
   function polar(angle, r) { return [cx + r*Math.cos(angle), cy + r*Math.sin(angle)]; }
   function segPath(s, r1, r2, gap=0.012) {
@@ -1277,8 +1291,8 @@ function renderStats() {
     return `M${ox1},${oy1} A${r1},${r1} 0 ${large},1 ${ox2},${oy2} L${ix1},${iy1} A${r2},${r2} 0 ${large},0 ${ix2},${iy2} Z`;
   }
   const pieSvg = `<svg width="240" height="240" viewBox="0 0 240 240">
-    ${segments.map(s=>`<path id="seg-${s.q}" class="pie-segment" d="${segPath(s,R,innerR)}"
-      fill="${Q_COLORS[s.q]}" opacity="0.85" onclick="selectQuality('${s.q}')" data-q="${s.q}">
+    ${segs.map(s=>`<path id="seg-${s.q}" class="pie-segment" d="${segPath(s,R,innerR)}"
+      fill="${qColors[s.q]}" opacity="0.85" onclick="selectQuality('${s.q}')" data-q="${s.q}">
       <title>${s.q}: ${s.count} (${(s.frac*100).toFixed(1)}%)</title></path>`).join('')}
   </svg>`;
 
@@ -1305,11 +1319,11 @@ function renderStats() {
             </div>
           </div>
           <div class="pie-legend" id="pie-legend">
-            ${segments.map(s=>`
+            ${segs.map(s=>`
               <div class="pie-legend-item" id="leg-${s.q}" onclick="selectQuality('${s.q}')">
-                <div class="pie-legend-dot" style="background:${Q_COLORS[s.q]}"></div>
+                <div class="pie-legend-dot" style="background:${qColors[s.q]}"></div>
                 <div class="pie-legend-name">${s.q}</div>
-                <div class="pie-legend-count" style="color:${Q_COLORS[s.q]}">${s.count}</div>
+                <div class="pie-legend-count" style="color:${qColors[s.q]}">${s.count}</div>
                 <div class="pie-legend-pct">${(s.frac*100).toFixed(1)}%</div>
               </div>`).join('')}
           </div>
@@ -1338,31 +1352,28 @@ function renderStats() {
         </div>
       </div>
 
-      <!-- 图表1：每年各品质堆叠柱状图 -->
       <div style="margin-bottom:24px">
-        <div style="font-size:13px;color:var(--text2);font-weight:600;margin-bottom:12px">
+        <div style="font-size:13px;color:var(--text2);font-weight:600;margin-bottom:8px">
           各年度品质分布
           <span style="font-size:11px;color:var(--text3);font-weight:400;margin-left:8px">· 点击年份柱查看月度详情</span>
         </div>
-        <div id="chart-yearly"></div>
+        <div id="chart-yearly" style="width:100%;height:320px"></div>
       </div>
 
-      <!-- 图表2：选中年份的月度品质堆叠柱状图 -->
       <div style="margin-bottom:24px" id="chart-monthly-wrap">
-        <div style="font-size:13px;color:var(--text2);font-weight:600;margin-bottom:12px" id="chart-monthly-title">
+        <div style="font-size:13px;color:var(--text2);font-weight:600;margin-bottom:8px" id="chart-monthly-title">
           月度品质分布 <span style="font-size:11px;color:var(--text3);font-weight:400">· 点击上方年份柱查看</span>
         </div>
-        <div id="chart-monthly"></div>
+        <div id="chart-monthly" style="width:100%;height:300px;display:none"></div>
       </div>
 
-      <!-- 图表3：多年对比 -->
       <div>
         <div style="font-size:13px;color:var(--text2);font-weight:600;margin-bottom:10px">
           多年月度投放量对比
           <span style="font-size:11px;color:var(--text3);font-weight:400;margin-left:8px">· 最多选4年</span>
         </div>
         <div id="year-compare-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px"></div>
-        <div id="chart-compare"></div>
+        <div id="chart-compare" style="width:100%;height:320px"></div>
       </div>
     </div>`;
 
@@ -1381,152 +1392,205 @@ function setTrendType(type) {
   renderTrendCharts();
 }
 
-// ── 渲染趋势图 ────────────────────────────────────────────────
 function renderTrendCharts() {
   renderYearlyChart();
   if (selectedMonthYear) renderMonthlyChart(selectedMonthYear);
-  else document.getElementById('chart-monthly').innerHTML = '';
+  else {
+    document.getElementById('chart-monthly').style.display = 'none';
+    document.getElementById('chart-monthly-title').innerHTML =
+      '月度品质分布 <span style="font-size:11px;color:var(--text3);font-weight:400">· 点击上方年份柱查看</span>';
+  }
   renderCompareChart();
 }
 
-// ── 图表1：年度堆叠柱状图 ─────────────────────────────────────
+// ── 图表1：年度堆叠柱状图（ECharts）──────────────────────────
 function renderYearlyChart() {
   const data = RAW.filter(r => r.type === trendDataType);
   const years = [...new Set(data.map(r=>r.date.slice(0,4)))].sort();
-
-  // 每年各品质数量
   const yearData = {};
   years.forEach(y => { yearData[y] = {}; Q_ORDER.forEach(q => yearData[y][q] = 0); });
-  data.forEach(r => { if (yearData[r.date.slice(0,4)]) yearData[r.date.slice(0,4)][r.quality] = (yearData[r.date.slice(0,4)][r.quality]||0) + 1; });
+  data.forEach(r => { if (yearData[r.date.slice(0,4)]) yearData[r.date.slice(0,4)][r.quality]++; });
 
-  const maxTotal = Math.max(...years.map(y => Q_ORDER.reduce((s,q)=>s+(yearData[y][q]||0),0)));
-  const svgH = 280, barW = 38, gap = 14, labelH = 24, padL = 44, padR = 10;
-  const chartW = years.length * (barW + gap) + padL + padR;
-  const chartH = svgH + labelH;
+  const chart = getChart('chart-yearly');
+  if (!chart) return;
 
-  let bars = '', xLabels = '', yGridLines = '', dataLabels = '';
-  // Y轴网格（5条刻度线）
-  for (let i=0;i<=5;i++) {
-    const y = svgH - (i/5)*svgH;
-    const val = Math.round(i/5*maxTotal);
-    yGridLines += `<line x1="${padL}" y1="${y}" x2="${chartW}" y2="${y}" stroke="var(--border)" stroke-width="1"/>`;
-    yGridLines += `<text x="${padL-6}" y="${y+4}" text-anchor="end" font-size="10" fill="var(--text3)">${val}</text>`;
-  }
+  const series = Q_ORDER.map((q, qi) => ({
+    name: q,
+    type: 'bar',
+    stack: 'total',
+    color: Q_COLORS[q],
+    emphasis: { focus: 'series' },
+    label: {
+      show: true,
+      formatter: p => p.value > 0 ? p.value : '',
+      fontSize: 10,
+      color: 'rgba(255,255,255,0.9)',
+    },
+    data: years.map(y => yearData[y][q] || 0),
+  }));
 
-  years.forEach((y, i) => {
-    const x = padL + i * (barW + gap);
-    let yOff = svgH;
-    const isSelected = selectedMonthYear === y;
-    const yearTotal = Q_ORDER.reduce((s,q)=>s+(yearData[y][q]||0),0);
-    Q_ORDER.forEach(q => {
-      const count = yearData[y][q] || 0;
-      if (!count) return;
-      const h = (count / maxTotal) * svgH;
-      yOff -= h;
-      bars += `<rect x="${x}" y="${yOff}" width="${barW}" height="${h}"
-        fill="${Q_COLORS[q]}" opacity="${isSelected?'1':'0.82'}"
-        rx="1" style="cursor:pointer"
-        onclick="clickYearBar('${y}')"
-        data-year="${y}" data-q="${q}" data-count="${count}">
-        <title>${y} · ${q}: ${count}</title></rect>`;
-      // 仅在高度够的情况下显示段内数字
-      if (h >= 14) {
-        dataLabels += `<text x="${x+barW/2}" y="${yOff+h/2+4}" text-anchor="middle" font-size="9"
-          fill="rgba(255,255,255,0.9)" pointer-events="none">${count}</text>`;
-      }
-    });
-    // 柱顶总数
-    if (yearTotal > 0) {
-      dataLabels += `<text x="${x+barW/2}" y="${svgH-(yearTotal/maxTotal)*svgH-4}"
-        text-anchor="middle" font-size="10" fill="var(--text2)" font-weight="600" pointer-events="none">${yearTotal}</text>`;
-    }
-    if (isSelected) bars += `<rect x="${x-1}" y="0" width="${barW+2}" height="${svgH}" fill="none" stroke="var(--gold)" stroke-width="2" rx="2"/>`;
-    xLabels += `<text x="${x+barW/2}" y="${svgH+16}" text-anchor="middle" font-size="11"
-      fill="${isSelected?'var(--gold)':'var(--text2)'}" font-weight="${isSelected?'700':'400'}"
-      style="cursor:pointer" onclick="clickYearBar('${y}')">${y}</text>`;
+  // 添加总数标签 series（透明柱，只显示标签）
+  const totals = years.map(y => Q_ORDER.reduce((s,q)=>s+(yearData[y][q]||0),0));
+  series.push({
+    name: '总计',
+    type: 'bar',
+    stack: 'total',
+    color: 'transparent',
+    emphasis: { disabled: true },
+    label: {
+      show: true,
+      position: 'top',
+      formatter: p => p.value > 0 ? '' : '',
+      fontSize: 11,
+      fontWeight: 'bold',
+      color: 'var(--text2)',
+    },
+    data: totals.map(() => 0),
+    tooltip: { show: false },
   });
 
-  // 品质图例
-  const legendItems = Q_ORDER.filter(q => years.some(y=>yearData[y][q]>0));
-  const legendSvg = legendItems.map((q,i) =>
-    `<g transform="translate(${i*90},0)">
-      <rect width="10" height="10" fill="${Q_COLORS[q]}" rx="2"/>
-      <text x="14" y="9" font-size="11" fill="var(--text2)">${q}</text>
-    </g>`).join('');
+  // 在 top series 上显示 stack 总数
+  series[Q_ORDER.length - 1].label = {
+    show: false,
+  };
 
-  document.getElementById('chart-yearly').innerHTML = `
-    <div style="overflow-x:auto">
-      <svg width="${Math.max(chartW,300)}" height="${chartH}" style="display:block">
-        ${yGridLines}${bars}${dataLabels}${xLabels}
-      </svg>
-    </div>
-    <svg width="${legendItems.length*90+10}" height="16" style="margin-top:10px;display:block">${legendSvg}</svg>`;
+  const option = {
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      formatter: params => {
+        const year = params[0].axisValue;
+        let html = `<b>${year}年</b><br/>`;
+        let total = 0;
+        params.filter(p=>p.seriesName!=='总计'&&p.value>0).forEach(p => {
+          html += `<span style="display:inline-block;width:10px;height:10px;background:${p.color};border-radius:2px;margin-right:5px"></span>${p.seriesName}: <b>${p.value}</b><br/>`;
+          total += p.value;
+        });
+        html += `<hr style="margin:4px 0;border-color:rgba(255,255,255,0.2)">合计: <b>${total}</b>`;
+        return html;
+      }
+    },
+    legend: {
+      data: Q_ORDER,
+      bottom: 0,
+      textStyle: { fontSize: 11, color: 'var(--text2)' },
+      itemWidth: 12, itemHeight: 10,
+    },
+    grid: { left: 50, right: 20, top: 30, bottom: 60, containLabel: false },
+    xAxis: {
+      type: 'category',
+      data: years,
+      axisLabel: { fontSize: 11, color: 'var(--text2)', interval: 0 },
+      axisLine: { lineStyle: { color: 'var(--border)' } },
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { fontSize: 10, color: 'var(--text3)' },
+      splitLine: { lineStyle: { color: 'var(--border)' } },
+    },
+    series,
+  };
+
+  chart.setOption(option, true);
+
+  // 点击柱子查看月度详情
+  chart.off('click');
+  chart.on('click', params => {
+    const year = params.name || params.axisValue;
+    if (year) clickYearBar(year);
+  });
 }
 
-// ── 图表2：月度堆叠柱状图 ─────────────────────────────────────
+// ── 图表2：月度堆叠柱状图（ECharts）─────────────────────────
 function clickYearBar(year) {
   selectedMonthYear = selectedMonthYear === year ? null : year;
-  renderYearlyChart(); // 重绘以更新高亮
   if (selectedMonthYear) {
     renderMonthlyChart(selectedMonthYear);
-    document.getElementById('chart-monthly-wrap').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    setTimeout(() => {
+      document.getElementById('chart-monthly-wrap').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 100);
   } else {
-    document.getElementById('chart-monthly').innerHTML = '';
-    document.getElementById('chart-monthly-title').innerHTML = '月度品质分布 <span style="font-size:11px;color:var(--text3);font-weight:400">· 点击上方年份柱查看</span>';
+    document.getElementById('chart-monthly').style.display = 'none';
+    document.getElementById('chart-monthly-title').innerHTML =
+      '月度品质分布 <span style="font-size:11px;color:var(--text3);font-weight:400">· 点击上方年份柱查看</span>';
   }
 }
 
 function renderMonthlyChart(year) {
+  const monthEl = document.getElementById('chart-monthly');
+  monthEl.style.display = 'block';
   document.getElementById('chart-monthly-title').innerHTML =
-    `${year} 年月度品质分布 <span style="font-size:11px;color:var(--text3);font-weight:400;margin-left:6px">(${trendDataType})</span>
-     <span style="font-size:11px;color:var(--text3);cursor:pointer;margin-left:8px" onclick="clickYearBar('${year}')">× 收起</span>`;
+    `${year} 年月度品质分布 <span style="font-size:11px;color:var(--text3);font-weight:400">(${trendDataType})</span>
+     <span style="font-size:11px;color:var(--gold);cursor:pointer;margin-left:8px" onclick="clickYearBar('${year}')">× 收起</span>`;
 
   const data = RAW.filter(r => r.type === trendDataType && r.date.slice(0,4) === year);
   const months = ['01','02','03','04','05','06','07','08','09','10','11','12'];
+  const monthNames = months.map(m => parseInt(m)+'月');
   const monthData = {};
   months.forEach(m => { monthData[m] = {}; Q_ORDER.forEach(q => monthData[m][q] = 0); });
-  data.forEach(r => { const m = r.date.slice(5,7); if(monthData[m]) monthData[m][r.quality] = (monthData[m][r.quality]||0)+1; });
+  data.forEach(r => { const m = r.date.slice(5,7); if(monthData[m]) monthData[m][r.quality]++; });
 
-  const maxTotal = Math.max(...months.map(m => Q_ORDER.reduce((s,q)=>s+(monthData[m][q]||0),0)), 1);
-  const svgH = 240, barW = 34, gap = 10, labelH = 22, padL = 44;
-  const chartW = months.length*(barW+gap)+padL+10;
+  const chart = getChart('chart-monthly');
+  if (!chart) return;
 
-  let bars = '', xLabels = '', yGridLines = '', dataLabels = '';
-  for (let i=0;i<=5;i++) {
-    const y = svgH-(i/5)*svgH;
-    yGridLines += `<line x1="${padL}" y1="${y}" x2="${chartW}" y2="${y}" stroke="var(--border)" stroke-width="1"/>`;
-    yGridLines += `<text x="${padL-6}" y="${y+4}" text-anchor="end" font-size="10" fill="var(--text3)">${Math.round(i/5*maxTotal)}</text>`;
-  }
-  months.forEach((m, i) => {
-    const x = padL + i*(barW+gap);
-    let yOff = svgH;
-    const monthTotal = Q_ORDER.reduce((s,q)=>s+(monthData[m][q]||0),0);
-    Q_ORDER.forEach(q => {
-      const count = monthData[m][q]||0;
-      if (!count) return;
-      const h = (count/maxTotal)*svgH;
-      yOff -= h;
-      bars += `<rect x="${x}" y="${yOff}" width="${barW}" height="${h}" fill="${Q_COLORS[q]}" opacity="0.85" rx="1">
-        <title>${year}-${m} · ${q}: ${count}</title></rect>`;
-      if (h >= 14) {
-        dataLabels += `<text x="${x+barW/2}" y="${yOff+h/2+4}" text-anchor="middle" font-size="9"
-          fill="rgba(255,255,255,0.9)" pointer-events="none">${count}</text>`;
+  const series = Q_ORDER.map(q => ({
+    name: q,
+    type: 'bar',
+    stack: 'total',
+    color: Q_COLORS[q],
+    emphasis: { focus: 'series' },
+    label: {
+      show: true,
+      formatter: p => p.value > 0 ? p.value : '',
+      fontSize: 10,
+      color: 'rgba(255,255,255,0.9)',
+    },
+    data: months.map(m => monthData[m][q] || 0),
+  }));
+
+  const option = {
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      formatter: params => {
+        const mon = params[0].axisValue;
+        let html = `<b>${year}年${mon}</b><br/>`;
+        let total = 0;
+        params.filter(p=>p.value>0).forEach(p => {
+          html += `<span style="display:inline-block;width:10px;height:10px;background:${p.color};border-radius:2px;margin-right:5px"></span>${p.seriesName}: <b>${p.value}</b><br/>`;
+          total += p.value;
+        });
+        html += `<hr style="margin:4px 0;border-color:rgba(255,255,255,0.2)">合计: <b>${total}</b>`;
+        return html;
       }
-    });
-    if (monthTotal > 0) {
-      dataLabels += `<text x="${x+barW/2}" y="${svgH-(monthTotal/maxTotal)*svgH-4}"
-        text-anchor="middle" font-size="10" fill="var(--text2)" font-weight="600" pointer-events="none">${monthTotal}</text>`;
-    }
-    xLabels += `<text x="${x+barW/2}" y="${svgH+15}" text-anchor="middle" font-size="11" fill="${monthTotal?'var(--text2)':'var(--text3)'}">${parseInt(m)}月</text>`;
-  });
+    },
+    legend: {
+      data: Q_ORDER,
+      bottom: 0,
+      textStyle: { fontSize: 11, color: 'var(--text2)' },
+      itemWidth: 12, itemHeight: 10,
+    },
+    grid: { left: 50, right: 20, top: 30, bottom: 60, containLabel: false },
+    xAxis: {
+      type: 'category',
+      data: monthNames,
+      axisLabel: { fontSize: 11, color: 'var(--text2)', interval: 0 },
+      axisLine: { lineStyle: { color: 'var(--border)' } },
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { fontSize: 10, color: 'var(--text3)' },
+      splitLine: { lineStyle: { color: 'var(--border)' } },
+    },
+    series,
+  };
 
-  document.getElementById('chart-monthly').innerHTML = `
-    <div style="overflow-x:auto">
-      <svg width="${chartW}" height="${svgH+labelH}" style="display:block">${yGridLines}${bars}${dataLabels}${xLabels}</svg>
-    </div>`;
+  chart.setOption(option, true);
 }
 
-// ── 图表3：多年对比折线+柱图 ─────────────────────────────────
+// ── 图表3：多年对比（ECharts 折线+柱图）──────────────────────
 function renderYearCompareChips() {
   const years = [...new Set(RAW.map(r=>r.date.slice(0,4)))].sort();
   document.getElementById('year-compare-chips').innerHTML = years.map(y => `
@@ -1547,16 +1611,25 @@ function toggleCompareYear(year) {
 
 function renderCompareChart() {
   const el = document.getElementById('chart-compare');
+  const chart = getChart('chart-compare');
+  if (!chart) return;
+
   if (compareYears.size === 0) {
-    el.innerHTML = '<div style="text-align:center;color:var(--text3);padding:24px;font-size:13px">请在上方选择年份进行对比（最多4年）</div>';
+    chart.setOption({
+      graphic: [{
+        type: 'text',
+        left: 'center', top: 'middle',
+        style: { text: '请在上方选择年份进行对比（最多4年）', fontSize: 13, fill: 'var(--text3)' }
+      }]
+    }, true);
     return;
   }
 
+  const YEAR_COLORS = ['#c9a84c','#6ea4d8','#50c090','#d07070'];
   const years = [...compareYears].sort();
   const months = ['01','02','03','04','05','06','07','08','09','10','11','12'];
-  const YEAR_COLORS = ['#c9a84c','#6ea4d8','#50c090','#d07070'];
+  const monthNames = months.map(m => parseInt(m)+'月');
 
-  // 每年每月总数
   const yearMonthTotal = {};
   years.forEach(y => {
     yearMonthTotal[y] = {};
@@ -1565,71 +1638,57 @@ function renderCompareChart() {
       .forEach(r => { const m=r.date.slice(5,7); if(yearMonthTotal[y][m]!==undefined) yearMonthTotal[y][m]++; });
   });
 
-  const allVals = years.flatMap(y => months.map(m => yearMonthTotal[y][m]));
-  const maxVal = Math.max(...allVals, 1);
-  const svgH = 260, padL = 44, padR = 14, padT = 18, labelH = 22;
-  const barGroupW = 30, barW = Math.max(4, Math.floor((barGroupW - 2) / years.length));
-  const gap = 18;
-  const chartW = months.length * (barGroupW + gap) + padL + padR;
+  const series = years.map((y, yi) => ({
+    name: y + '年',
+    type: 'line',
+    smooth: true,
+    color: YEAR_COLORS[yi],
+    symbol: 'circle',
+    symbolSize: 6,
+    lineStyle: { width: 2 },
+    label: {
+      show: true,
+      formatter: p => p.value > 0 ? p.value : '',
+      fontSize: 10,
+      position: yi % 2 === 0 ? 'top' : 'bottom',
+    },
+    data: months.map(m => yearMonthTotal[y][m]),
+  }));
 
-  let bars = '', xLabels = '', yGrid = '', lines = {}, dataLabels = '';
-  years.forEach(y => lines[y] = []);
-
-  // Y轴
-  for (let i=0;i<=5;i++) {
-    const y = padT + svgH - (i/5)*svgH;
-    yGrid += `<line x1="${padL}" y1="${y}" x2="${chartW}" y2="${y}" stroke="var(--border)" stroke-width="1"/>`;
-    yGrid += `<text x="${padL-6}" y="${y+4}" text-anchor="end" font-size="10" fill="var(--text3)">${Math.round(i/5*maxVal)}</text>`;
-  }
-
-  months.forEach((m, mi) => {
-    const groupX = padL + mi*(barGroupW+gap);
-    years.forEach((y, yi) => {
-      const count = yearMonthTotal[y][m];
-      const barH = (count/maxVal)*svgH;
-      const x = groupX + yi*barW;
-      const yPos = padT + svgH - barH;
-      bars += `<rect x="${x}" y="${yPos}" width="${barW-1}" height="${barH}"
-        fill="${YEAR_COLORS[yi]}" opacity="0.75" rx="1">
-        <title>${y}年${parseInt(m)}月: ${count}</title></rect>`;
-      lines[y].push({ x: x + barW/2, y: yPos, count });
-    });
-    xLabels += `<text x="${groupX+barGroupW/2}" y="${padT+svgH+15}" text-anchor="middle" font-size="11" fill="var(--text2)">${parseInt(m)}月</text>`;
-  });
-
-  // 折线 + 折线点上的数据标签
-  let lineSvg = '';
-  years.forEach((y, yi) => {
-    const pts = lines[y];
-    const d = pts.map((p,i)=>`${i===0?'M':'L'}${p.x},${p.y}`).join(' ');
-    lineSvg += `<path d="${d}" fill="none" stroke="${YEAR_COLORS[yi]}" stroke-width="2" opacity="0.9"/>`;
-    pts.forEach(p => {
-      lineSvg += `<circle cx="${p.x}" cy="${p.y}" r="3" fill="${YEAR_COLORS[yi]}"><title>${y}: ${p.count}</title></circle>`;
-      if (p.count > 0) {
-        // 标签交错偏移避免重叠（奇偶年份上下分开）
-        const dy = yi % 2 === 0 ? -7 : 14;
-        dataLabels += `<text x="${p.x}" y="${p.y+dy}" text-anchor="middle" font-size="9"
-          fill="${YEAR_COLORS[yi]}" font-weight="600" pointer-events="none">${p.count}</text>`;
+  const option = {
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      formatter: params => {
+        let html = `<b>${params[0].axisValue}</b><br/>`;
+        params.forEach(p => {
+          html += `<span style="display:inline-block;width:10px;height:10px;background:${p.color};border-radius:50%;margin-right:5px"></span>${p.seriesName}: <b>${p.value}</b><br/>`;
+        });
+        return html;
       }
-    });
-  });
+    },
+    legend: {
+      data: years.map(y=>y+'年'),
+      bottom: 0,
+      textStyle: { fontSize: 12, color: 'var(--text2)' },
+    },
+    grid: { left: 50, right: 20, top: 30, bottom: 50, containLabel: false },
+    xAxis: {
+      type: 'category',
+      data: monthNames,
+      axisLabel: { fontSize: 11, color: 'var(--text2)', interval: 0 },
+      axisLine: { lineStyle: { color: 'var(--border)' } },
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { fontSize: 10, color: 'var(--text3)' },
+      splitLine: { lineStyle: { color: 'var(--border)' } },
+    },
+    series,
+  };
 
-  // 图例
-  const legendSvg = years.map((y,i) =>
-    `<g transform="translate(${i*80},0)">
-      <rect width="12" height="12" fill="${YEAR_COLORS[i]}" rx="2" opacity="0.85"/>
-      <text x="16" y="10" font-size="12" fill="var(--text2)" font-weight="600">${y}</text>
-    </g>`).join('');
-
-  el.innerHTML = `
-    <div style="overflow-x:auto">
-      <svg width="${chartW}" height="${padT+svgH+labelH}" style="display:block">
-        ${yGrid}${bars}${lineSvg}${dataLabels}${xLabels}
-      </svg>
-    </div>
-    <svg width="${years.length*80+10}" height="16" style="margin-top:10px;display:block">${legendSvg}</svg>`;
+  chart.setOption(option, true);
 }
-
 
 function selectQuality(q) {
   const qColors = Q_COLORS;
