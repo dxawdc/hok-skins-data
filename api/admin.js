@@ -211,6 +211,29 @@ async function batchUpdate({ ids, updates }, user) {
   return ok({ updated: data?.length || 0 });
 }
 
+// ── 新增皮肤 ─────────────────────────────────────────────────
+async function insertSkin(data, user) {
+  const ALLOWED = new Set(['date','name','quality','tag','hero','job','price','obtain','type','permanent','skin_img_id','tag_img_id']);
+  const clean = Object.fromEntries(Object.entries(data||{}).filter(([k]) => ALLOWED.has(k)));
+  if (!clean.date || !clean.name || !clean.hero) return fail('日期、皮肤名称、归属英雄为必填项');
+  const client = getClient();
+  const { data: inserted, error } = await client.from('skins').insert(clean).select().maybeSingle();
+  if (error) return fail(error.message);
+  await log(client, user.username, 'insert', inserted?.id || null, { name: clean.name, hero: clean.hero });
+  return ok({ skin: inserted });
+}
+
+// ── 上传图片 ─────────────────────────────────────────────────
+async function uploadImage({ img_id, img_type, data, mime_type }, user) {
+  if (!img_id || !data || !mime_type) return fail('缺少必要字段');
+  if (!['skin','tag'].includes(img_type)) return fail('img_type 只能是 skin 或 tag');
+  const client = getClient();
+  const { error } = await client.from('images')
+    .upsert({ img_id, img_type, data, mime_type }, { onConflict: 'img_id' });
+  if (error) return fail(error.message);
+  return ok({ img_id });
+}
+
 // ── 日志 ─────────────────────────────────────────────────────
 async function listLogs(params) {
   const perPage = parseInt(params.per_page || '50');
