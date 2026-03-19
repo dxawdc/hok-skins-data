@@ -361,39 +361,43 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
 }
 
 /* RANKING */
-.ranking-wrap { padding: 24px 28px; max-width: 1200px; }
+.ranking-wrap { padding: 24px 28px; }
 .ranking-title { font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 6px; display: flex; align-items: center; gap: 10px; }
-.ranking-sub { font-size: 13px; color: var(--text3); margin-bottom: 20px; }
+.ranking-sub { font-size: 12px; color: var(--text3); margin-bottom: 16px; }
 .ranking-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-.ranking-table { width: 100%; border-collapse: collapse; font-size: 13px; white-space: nowrap; }
+.ranking-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .ranking-table th {
-  padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 600;
-  color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px;
-  border-bottom: 2px solid var(--border); background: var(--bg2); position: sticky; top: 0;
+  padding: 8px 8px; text-align: left; font-size: 11px; font-weight: 600;
+  color: var(--text3); border-bottom: 2px solid var(--border);
+  background: var(--bg2); white-space: nowrap;
 }
-.ranking-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.ranking-table td { padding: 6px 8px; border-bottom: 1px solid var(--border); vertical-align: middle; }
 .ranking-table tr:hover td { background: var(--table-hover); }
-.rank-num {
-  font-size: 15px; font-weight: 900; min-width: 36px; text-align: center;
-}
+/* 固定列 */
+.ranking-rank-th, .ranking-rank-td { width: 48px; text-align: center; }
+.ranking-hero-th, .ranking-hero-td { width: 72px; }
+.ranking-count-th, .ranking-count-td { width: 44px; text-align: center; font-weight: 700; color: var(--gold); }
+.ranking-col-th { width: 110px; min-width: 110px; }
+.ranking-skin-td, .ranking-empty-td { width: 110px; min-width: 110px; }
+.rank-num { font-size: 14px; font-weight: 900; }
 .rank-1 { color: #f5a623; }
 .rank-2 { color: #9b9b9b; }
 .rank-3 { color: #c4873a; }
 .rank-other { color: var(--text3); font-size: 13px; }
-.ranking-hero-name { font-weight: 700; color: var(--gold-light); cursor: pointer; }
+.ranking-hero-name { font-weight: 700; color: var(--gold-light); cursor: pointer; font-size: 13px; }
 .ranking-hero-name:hover { color: var(--gold); text-decoration: underline; }
-.ranking-skin-cell { display: flex; align-items: center; gap: 6px; min-width: 120px; cursor: pointer; }
+.ranking-skin-cell { display: flex; align-items: center; gap: 5px; cursor: pointer; }
 .ranking-skin-cell:hover .ranking-skin-name { color: var(--gold); }
 .ranking-skin-thumb {
-  width: 32px; height: 32px; border-radius: 6px; flex-shrink: 0;
+  width: 28px; height: 28px; border-radius: 5px; flex-shrink: 0;
   background: var(--bg4); display: flex; align-items: center; justify-content: center;
-  font-size: 14px; overflow: hidden;
+  font-size: 12px; overflow: hidden;
 }
 .ranking-skin-thumb img { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
-.ranking-skin-name { font-size: 12px; color: var(--text2); max-width: 90px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ranking-skin-info { min-width: 0; }
+.ranking-skin-name { font-size: 11px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 68px; }
 .ranking-skin-date { font-size: 10px; color: var(--text3); }
-.ranking-empty-cell { color: var(--text3); font-size: 12px; opacity: 0.4; }
-.ranking-filter-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+.ranking-empty-cell { color: var(--text3); font-size: 12px; opacity: 0.3; }
 @media (max-width: 899px) {
   .ranking-wrap { padding: 12px; }
   .ranking-title { font-size: 17px; }
@@ -1277,7 +1281,7 @@ function openHeroDetail(hero) {
   let daysSince = '';
   if (latestFirstDate) {
     const diff = Math.floor((Date.now() - new Date(latestFirstDate).getTime()) / 86400000);
-    daysSince = diff === 0 ? '今天首发' : `距最近一次首发已过去 <b style="color:var(--gold)">${diff}</b> 天`;
+    daysSince = diff === 0 ? '今天新皮上线' : `距最近一个新皮上线已过去 <b style="color:var(--gold)">${diff}</b> 天`;
   }
 
   const wrap = document.getElementById('hero-detail-wrap');
@@ -1924,41 +1928,64 @@ function openHeroFromStats(hero) {
 }
 
 // ── Ranking ──────────────────────────────────────────────────
+let rankingPage = 1;
+const RANKING_PAGE_SIZE = 20;
+let rankingRows = [];
+
 function renderRanking() {
   const heroMap = buildHeroMap();
 
-  // 按皮肤总数排名，每个英雄的皮肤按首发日期排序
-  const rows = Object.entries(heroMap)
+  rankingRows = Object.entries(heroMap)
     .map(([hero, data]) => {
       const skins = [...data.skins.values()].sort((a, b) => {
         const da = (a.records.find(r=>r.type==='首发')||a.records[0])?.date || '';
         const db = (b.records.find(r=>r.type==='首发')||b.records[0])?.date || '';
-        return da > db ? 1 : da < db ? -1 : 0; // 盘点表从早到晚
+        return da > db ? 1 : da < db ? -1 : 0;
       });
+      skins.forEach(s => s.hero = hero);
       return { hero, count: skins.length, skins };
     })
     .sort((a, b) => b.count - a.count);
 
-  // 最多展示多少列皮肤（取最多款皮肤数，但最多20列避免太宽）
-  const maxCols = Math.min(20, rows[0]?.count || 0);
+  // 固定最多显示12列，避免过宽
+  const MAX_COLS = 12;
 
-  const rankNumHtml = (i) => {
-    if (i === 0) return `<span class="rank-num rank-1">🥇</span>`;
-    if (i === 1) return `<span class="rank-num rank-2">🥈</span>`;
-    if (i === 2) return `<span class="rank-num rank-3">🥉</span>`;
-    return `<span class="rank-num rank-other">${i+1}</span>`;
+  document.getElementById('ranking-content').innerHTML = `
+    <div class="ranking-wrap">
+      <div class="ranking-title">🏆 皮肤盘点</div>
+      <div class="ranking-sub">按英雄皮肤总数排名 · 皮肤按首发时间由早到晚排列 · 点击皮肤可查看详情（展示前 ${MAX_COLS} 款，更多请点英雄名查看）</div>
+      <div class="ranking-table-wrap" id="ranking-table-wrap"></div>
+      <div class="pagination" id="ranking-pagination"></div>
+    </div>`;
+
+  rankingPage = 1;
+  renderRankingPage();
+}
+
+function renderRankingPage() {
+  const MAX_COLS = 12;
+  const total = rankingRows.length;
+  const totalPages = Math.ceil(total / RANKING_PAGE_SIZE);
+  const start = (rankingPage - 1) * RANKING_PAGE_SIZE;
+  const pageRows = rankingRows.slice(start, start + RANKING_PAGE_SIZE);
+
+  const rankNumHtml = (globalIdx) => {
+    if (globalIdx === 0) return `<span class="rank-num rank-1">🥇</span>`;
+    if (globalIdx === 1) return `<span class="rank-num rank-2">🥈</span>`;
+    if (globalIdx === 2) return `<span class="rank-num rank-3">🥉</span>`;
+    return `<span class="rank-num rank-other">${globalIdx+1}</span>`;
   };
 
   const skinCellHtml = (skin) => {
-    if (!skin) return `<td><span class="ranking-empty-cell">—</span></td>`;
+    if (!skin) return `<td class="ranking-empty-td"><span class="ranking-empty-cell">—</span></td>`;
     const firstRec = skin.records.find(r=>r.type==='首发') || skin.records[0];
     const imgSrc = getSkinImg(skin.si);
-    return `<td>
+    return `<td class="ranking-skin-td">
       <div class="ranking-skin-cell" onclick="goSkinDetail('${esc(skin.hero||'')}','${esc(skin.name)}')">
         <div class="ranking-skin-thumb">
           ${imgSrc ? `<img src="${imgSrc}" loading="lazy" alt="">` : qualityEmoji(skin.quality)}
         </div>
-        <div>
+        <div class="ranking-skin-info">
           <div class="ranking-skin-name" title="${skin.name}">${skin.name}</div>
           <div class="ranking-skin-date">${firstRec?.date?.slice(0,7)||''}</div>
         </div>
@@ -1966,40 +1993,52 @@ function renderRanking() {
     </td>`;
   };
 
-  // 给每个 skin 附上 hero 信息（供 goSkinDetail 使用）
-  rows.forEach(row => row.skins.forEach(s => s.hero = row.hero));
+  const colHeaders = Array.from({length: MAX_COLS}, (_, i) =>
+    `<th class="ranking-col-th">第${i+1}款</th>`).join('');
 
-  const colHeaders = Array.from({length: maxCols}, (_, i) =>
-    `<th style="min-width:140px">第 ${i+1} 款</th>`).join('');
-
-  const tableRows = rows.map((row, i) => `
-    <tr>
-      <td style="text-align:center;padding:8px 10px">${rankNumHtml(i)}</td>
-      <td style="padding:8px 14px">
+  const tableRows = pageRows.map((row, i) => {
+    const globalIdx = start + i;
+    return `<tr>
+      <td class="ranking-rank-td">${rankNumHtml(globalIdx)}</td>
+      <td class="ranking-hero-td">
         <span class="ranking-hero-name" onclick="showView('heroes',null,'heroes');setTimeout(()=>openHeroDetail('${esc(row.hero)}'),50)">${row.hero}</span>
       </td>
-      <td style="text-align:center;font-weight:700;color:var(--gold);padding:8px 10px">${row.count}</td>
-      ${Array.from({length: maxCols}, (_, ci) => skinCellHtml(row.skins[ci])).join('')}
-    </tr>`).join('');
+      <td class="ranking-count-td">${row.count}</td>
+      ${Array.from({length: MAX_COLS}, (_, ci) => skinCellHtml(row.skins[ci])).join('')}
+    </tr>`;
+  }).join('');
 
-  document.getElementById('ranking-content').innerHTML = `
-    <div class="ranking-wrap">
-      <div class="ranking-title">🏆 皮肤盘点</div>
-      <div class="ranking-sub">按英雄皮肤总数排名 · 皮肤按首发时间由早到晚排列 · 点击皮肤可查看详情</div>
-      <div class="ranking-table-wrap">
-        <table class="ranking-table">
-          <thead>
-            <tr>
-              <th style="min-width:50px">排名</th>
-              <th style="min-width:80px">英雄</th>
-              <th style="min-width:50px">总数</th>
-              ${colHeaders}
-            </tr>
-          </thead>
-          <tbody>${tableRows}</tbody>
-        </table>
-      </div>
-    </div>`;
+  // 分页按钮
+  let pgBtns = `<button class="pg-btn" onclick="goRankingPage(${rankingPage-1})" ${rankingPage<=1?'disabled':''}>‹</button>`;
+  const rs = Math.max(1, rankingPage-2), re = Math.min(totalPages, rankingPage+2);
+  if (rs > 1) pgBtns += `<button class="pg-btn" onclick="goRankingPage(1)">1</button>${rs>2?'<span style="padding:4px;color:var(--text3)">…</span>':''}`;
+  for (let i=rs; i<=re; i++) pgBtns += `<button class="pg-btn${i===rankingPage?' active':''}" onclick="goRankingPage(${i})">${i}</button>`;
+  if (re < totalPages) pgBtns += `${re<totalPages-1?'<span style="padding:4px;color:var(--text3)">…</span>':''}<button class="pg-btn" onclick="goRankingPage(${totalPages})">${totalPages}</button>`;
+  pgBtns += `<button class="pg-btn" onclick="goRankingPage(${rankingPage+1})" ${rankingPage>=totalPages?'disabled':''}>›</button>`;
+
+  document.getElementById('ranking-table-wrap').innerHTML = `
+    <table class="ranking-table">
+      <thead><tr>
+        <th class="ranking-rank-th">排名</th>
+        <th class="ranking-hero-th">英雄</th>
+        <th class="ranking-count-th">总数</th>
+        ${colHeaders}
+      </tr></thead>
+      <tbody>${tableRows}</tbody>
+    </table>`;
+
+  document.getElementById('ranking-pagination').innerHTML = `
+    <div class="pagination-info">共 ${total} 位英雄 · 第 ${rankingPage}/${totalPages} 页</div>
+    <div class="pagination-btns">${pgBtns}</div>`;
+}
+
+function goRankingPage(p) {
+  const total = rankingRows.length;
+  const totalPages = Math.ceil(total / RANKING_PAGE_SIZE);
+  if (p < 1 || p > totalPages) return;
+  rankingPage = p;
+  renderRankingPage();
+  document.getElementById('ranking-content').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // ── Helpers ──
