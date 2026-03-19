@@ -107,16 +107,16 @@ module.exports = async function handler(req, res) {
   }
   // 皮肤列表
   if (path.endsWith('/skins')        && m === 'GET')    { const [u,e]=requireAuth(h); if(e) return send(e); return send(await listSkins(qs)); }
+  // 新增皮肤
+  if (path.endsWith('/skins')        && m === 'POST')   { const [u,e]=requireAuth(h); if(e) return send(e); return send(await insertSkin(body,u)); }
   // 更新皮肤
   if (/\/skins\/\d+$/.test(path)     && m === 'PUT')    { const [u,e]=requireAuth(h); if(e) return send(e); return send(await updateSkin(path.split('/').pop(),body,u)); }
   // 删除皮肤
   if (/\/skins\/\d+$/.test(path)     && m === 'DELETE') { const [u,e]=requireAuth(h); if(e) return send(e); return send(await deleteSkin(path.split('/').pop(),u)); }
-  // 新增皮肤
-  if (path.endsWith('/skins') && m === 'POST') { const [u,e]=requireAuth(h); if(e) return send(e); return send(await insertSkin(body,u)); }
-  // 上传图片
-  if (path.endsWith('/images') && m === 'POST') { const [u,e]=requireAuth(h); if(e) return send(e); return send(await uploadImage(body,u)); }
   // 批量更新
   if (path.endsWith('/batch-update') && m === 'POST')   { const [u,e]=requireAuth(h); if(e) return send(e); return send(await batchUpdate(body,u)); }
+  // 上传图片
+  if (path.endsWith('/images')       && m === 'POST')   { const [u,e]=requireAuth(h); if(e) return send(e); return send(await uploadImage(body,u)); }
   // Excel 导入
   if (path.endsWith('/import')       && m === 'POST')   { const [u,e]=requireAuth(h); if(e) return send(e); return send(await doImport(body,u)); }
   // 日志
@@ -183,7 +183,7 @@ async function listSkins(params) {
   return ok({ skins: data || [], total: count || 0, page, per_page: perPage });
 }
 async function updateSkin(id, updates, user) {
-  const ALLOWED = new Set(['date','name','quality','tag','hero','job','price','obtain','type','permanent']);
+  const ALLOWED = new Set(['date','name','quality','tag','hero','job','price','obtain','type','permanent','skin_img_id','tag_img_id']);
   const clean = Object.fromEntries(Object.entries(updates).filter(([k]) => ALLOWED.has(k)));
   if (!Object.keys(clean).length) return fail('没有可更新的字段');
   const client = getClient();
@@ -213,29 +213,6 @@ async function batchUpdate({ ids, updates }, user) {
   if (error) return fail(error.message);
   await log(client, user.username, 'batch_update', null, { ids, updates: clean });
   return ok({ updated: data?.length || 0 });
-}
-
-// ── 新增皮肤 ─────────────────────────────────────────────────
-async function insertSkin(data, user) {
-  const ALLOWED = new Set(['date','name','quality','tag','hero','job','price','obtain','type','permanent','skin_img_id','tag_img_id']);
-  const clean = Object.fromEntries(Object.entries(data||{}).filter(([k]) => ALLOWED.has(k)));
-  if (!clean.date || !clean.name || !clean.hero) return fail('日期、皮肤名称、归属英雄为必填项');
-  const client = getClient();
-  const { data: inserted, error } = await client.from('skins').insert(clean).select().maybeSingle();
-  if (error) return fail(error.message);
-  await log(client, user.username, 'insert', inserted?.id || null, { name: clean.name, hero: clean.hero });
-  return ok({ skin: inserted });
-}
-
-// ── 上传图片 ─────────────────────────────────────────────────
-async function uploadImage({ img_id, img_type, data, mime_type }, user) {
-  if (!img_id || !data || !mime_type) return fail('缺少必要字段');
-  if (!['skin','tag'].includes(img_type)) return fail('img_type 只能是 skin 或 tag');
-  const client = getClient();
-  const { error } = await client.from('images')
-    .upsert({ img_id, img_type, data, mime_type }, { onConflict: 'img_id' });
-  if (error) return fail(error.message);
-  return ok({ img_id });
 }
 
 // ── 日志 ─────────────────────────────────────────────────────
