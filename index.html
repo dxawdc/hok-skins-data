@@ -1030,16 +1030,44 @@ function renderTable() {
 
   document.getElementById('pg-info').textContent = `共 ${total} 条 · 第 ${start+1}–${end} 条`;
 
-  // 预加载当前页图片并刷新
+  // 预加载当前页图片，加载完后整体重新渲染卡片（避免局部 DOM 替换导致布局错乱）
   const visibleIds = rows.flatMap(r => [r.si, r.qi]).filter(Boolean);
   preloadImgs(visibleIds).then(() => {
+    // 刷新桌面缩略图
     rows.forEach(r => {
       if (r.si && IMG_CACHE[r.si]) {
         document.querySelectorAll(`.thumb-img[data-si="${r.si}"]`).forEach(img => { img.src = IMG_CACHE[r.si]; });
       }
     });
-    // 刷新手机卡片缩略图
-    if (isMobile()) renderTable._refreshMobile(rows);
+    // 手机端：图片加载完后重渲染整个卡片列表
+    if (isMobile()) {
+      document.getElementById('mobile-list').innerHTML = rows.map(r => {
+        const thumbSrc = getSkinImg(r.si);
+        const tagSrc   = getQualityImg(r.qi);
+        return `<div class="mobile-skin-card" onclick="goSkinDetail('${esc(r.hero)}','${esc(r.name)}')">
+          <div class="mobile-skin-thumb">
+            ${thumbSrc ? `<img src="${thumbSrc}" loading="lazy" alt="">` : qualityEmoji(r.quality)}
+          </div>
+          <div class="mobile-skin-info">
+            <div class="mobile-skin-name">${r.name}</div>
+            <div class="mobile-skin-meta">
+              <span class="mobile-skin-hero">${r.hero}</span>
+              <span class="mobile-skin-date">${r.date}</span>
+            </div>
+            <div class="mobile-skin-meta" style="margin-top:3px">
+              ${tagSrc
+                ? `<img src="${tagSrc}" style="height:16px;object-fit:contain;image-rendering:pixelated" alt="${r.tag}">`
+                : `<span style="font-size:11px;color:var(--text3)">${r.tag}</span>`}
+              ${r.obtain ? `<span style="font-size:11px;color:var(--text3)">· ${r.obtain}</span>` : ''}
+            </div>
+          </div>
+          <div class="mobile-skin-right">
+            <span class="badge badge-${r.quality}" style="font-size:11px">${r.quality}</span>
+            <span class="badge badge-${r.type}" style="font-size:11px">${r.type}</span>
+          </div>
+        </div>`;
+      }).join('');
+    }
   });
 
   const totalPages = Math.ceil(total/PAGE_SIZE);
@@ -1053,23 +1081,6 @@ function renderTable() {
   pgs.innerHTML = btns;
 }
 // 图片加载完后局部刷新手机卡片缩略图
-renderTable._refreshMobile = function(rows) {
-  const cards = document.querySelectorAll('.mobile-skin-card');
-  rows.forEach((r, i) => {
-    if (!cards[i]) return;
-    const thumb = cards[i].querySelector('.mobile-skin-thumb');
-    if (r.si && IMG_CACHE[r.si] && thumb && !thumb.querySelector('img')) {
-      thumb.innerHTML = `<img src="${IMG_CACHE[r.si]}" loading="lazy" alt="">`;
-    }
-    if (r.qi && IMG_CACHE[r.qi]) {
-      const tagEl = cards[i].querySelector('.mobile-skin-meta:last-child');
-      if (tagEl && !tagEl.querySelector('img')) {
-        tagEl.innerHTML = `<img src="${IMG_CACHE[r.qi]}" style="height:16px;object-fit:contain;image-rendering:pixelated" alt="${r.tag}">`;
-      }
-    }
-  });
-};
-
 // ── 底部导航同步 ──────────────────────────────────────────────
 function setBottomNav(v) {
   document.querySelectorAll('.bottom-nav-item').forEach(el => {
@@ -1328,7 +1339,7 @@ function renderStats() {
             ${pieSvg}
             <div class="pie-center-label">
               <div class="pie-center-total" id="pie-center-num">${total}</div>
-              <div class="pie-center-sub" id="pie-center-txt">条记录</div>
+              <div class="pie-center-sub" id="pie-center-txt">首发记录</div>
             </div>
           </div>
           <div class="pie-legend" id="pie-legend">
@@ -1709,19 +1720,19 @@ function selectQuality(q) {
   const qColors = Q_COLORS;
 
   if (activeQuality === q) {
-    // Deselect
     activeQuality = null;
     document.querySelectorAll('.pie-segment').forEach(el => el.classList.remove('dimmed'));
     document.querySelectorAll('.pie-legend-item').forEach(el => el.classList.remove('active'));
     document.getElementById('quality-skin-panel').innerHTML = '';
-    document.getElementById('pie-center-num').textContent = RAW.length;
-    document.getElementById('pie-center-txt').textContent = '条记录';
+    // 恢复为首发总数
+    const firstTotal = RAW.filter(r=>r.type==='首发').length;
+    document.getElementById('pie-center-num').textContent = firstTotal;
+    document.getElementById('pie-center-txt').textContent = '首发记录';
     return;
   }
 
   activeQuality = q;
 
-  // Dim other segments
   document.querySelectorAll('.pie-segment').forEach(el => {
     el.classList.toggle('dimmed', el.dataset.q !== q);
   });
@@ -1729,9 +1740,8 @@ function selectQuality(q) {
     el.classList.toggle('active', el.id === 'leg-'+q);
   });
 
-  // Update center label
-  const qRecords = RAW.filter(r=>r.type==='首发' && r.quality===q);
-  const count = RAW.filter(r=>r.quality===q).length;
+  // 只统计首发
+  const count = RAW.filter(r=>r.type==='首发' && r.quality===q).length;
   document.getElementById('pie-center-num').textContent = count;
   document.getElementById('pie-center-txt').textContent = q;
 
