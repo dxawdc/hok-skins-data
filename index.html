@@ -565,6 +565,7 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
 
   /* 统计图表双栏变单栏 */
   .stats-wrap > div[style*="grid-template-columns:1fr 1fr"] { grid-template-columns: 1fr !important; }
+  .stats-wrap > div[style*="grid-template-columns:1fr 1fr 1fr"] { grid-template-columns: 1fr !important; }
 
   /* 饼图：纵向排列 */
   .pie-chart-wrap { flex-direction: column; align-items: flex-start; gap: 14px; }
@@ -1425,6 +1426,36 @@ function getChart(id) {
   return _charts[id];
 }
 
+// ── 新皮空窗期 TOP10 图表 ────────────────────────────────────
+function buildDaysSinceChart(heroMap) {
+  const today = Date.now();
+  const herodays = Object.entries(heroMap).map(([hero, data]) => {
+    // 找该英雄最近一次首发日期
+    let latestDate = '';
+    data.skins.forEach(skin => {
+      const fr = skin.records.find(r=>r.type==='首发') || skin.records[0];
+      if (fr && fr.date > latestDate) latestDate = fr.date;
+    });
+    const days = latestDate
+      ? Math.floor((today - new Date(latestDate).getTime()) / 86400000)
+      : 9999;
+    return { hero, days, latestDate };
+  }).sort((a, b) => b.days - a.days).slice(0, 10);
+
+  const maxDays = herodays[0]?.days || 1;
+  return `<div class="bar-chart">
+    ${herodays.map(({hero, days, latestDate}) => `
+      <div class="bar-row">
+        <div class="bar-label" style="color:var(--gold-light);cursor:pointer" onclick="openHeroFromStats('${esc(hero)}')">${hero}</div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${Math.round(days/maxDays*100)}%;background:rgba(176,144,216,0.15);border-left:3px solid #b090d8;color:#b090d8">
+            ${days}天
+          </div>
+        </div>
+      </div>`).join('')}
+  </div>`;
+}
+
 function renderStats() {
   const heroMap = buildHeroMap();
   const qualityCounts = {};
@@ -1469,12 +1500,11 @@ function renderStats() {
       <div class="stat-card"><div class="stat-label">总记录数</div><div class="stat-value">${RAW.length.toLocaleString()}</div><div class="stat-sub">含首发与返场</div></div>
       <div class="stat-card"><div class="stat-label">英雄数量</div><div class="stat-value">${Object.keys(heroMap).length}</div><div class="stat-sub">已收录英雄</div></div>
       <div class="stat-card"><div class="stat-label">皮肤款数</div><div class="stat-value">${totalSkins}</div><div class="stat-sub">唯一皮肤（英雄+名称）</div></div>
-      <div class="stat-card"><div class="stat-label">首发上线</div><div class="stat-value">${RAW.filter(r=>r.type==='首发').length}</div><div class="stat-sub">次首发记录</div></div>
       <div class="stat-card"><div class="stat-label">返场次数</div><div class="stat-value">${RAW.filter(r=>r.type==='返场').length}</div><div class="stat-sub">次返场记录</div></div>
       <div class="stat-card"><div class="stat-label">常驻皮肤</div><div class="stat-value">${new Set(RAW.filter(r=>r.permanent==='是').map(r=>r.hero+'|'+r.name)).size}</div><div class="stat-sub">款常驻皮肤</div></div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px">
       <div class="chart-section">
         <h3>各品质皮肤分布（首发）<span style="color:var(--text3);font-weight:400">· 点击查看皮肤列表</span></h3>
         <div class="pie-chart-wrap">
@@ -1506,6 +1536,10 @@ function renderStats() {
               <div class="bar-track"><div class="bar-fill" style="width:${Math.round(c/maxH*100)}%;background:rgba(201,168,76,0.12);border-left:3px solid var(--gold);color:var(--gold)">${c}</div></div>
             </div>`).join('')}
         </div>
+      </div>
+      <div class="chart-section">
+        <h3>新皮空窗期 TOP 10 英雄 <span style="color:var(--text3);font-weight:400;font-size:11px">· 距最近新皮上线天数</span></h3>
+        ${buildDaysSinceChart(heroMap)}
       </div>
     </div>
 
@@ -1947,13 +1981,12 @@ function renderRanking() {
     })
     .sort((a, b) => b.count - a.count);
 
-  // 固定最多显示12列，避免过宽
-  const MAX_COLS = 12;
-
+  // 动态列数：当前页最多的皮肤数（不超过当前页行里的最大值）
+  // 全局最大列数由第一名决定，但每页只渲染该页实际需要的列数
   document.getElementById('ranking-content').innerHTML = `
     <div class="ranking-wrap">
       <div class="ranking-title">🏆 皮肤盘点</div>
-      <div class="ranking-sub">按英雄皮肤总数排名 · 皮肤按首发时间由早到晚排列 · 点击皮肤可查看详情（展示前 ${MAX_COLS} 款，更多请点英雄名查看）</div>
+      <div class="ranking-sub">按英雄皮肤总数排名 · 皮肤按首发时间由早到晚排列 · 点击皮肤可查看详情</div>
       <div class="ranking-table-wrap" id="ranking-table-wrap"></div>
       <div class="pagination" id="ranking-pagination"></div>
     </div>`;
@@ -1963,11 +1996,12 @@ function renderRanking() {
 }
 
 function renderRankingPage() {
-  const MAX_COLS = 12;
   const total = rankingRows.length;
   const totalPages = Math.ceil(total / RANKING_PAGE_SIZE);
   const start = (rankingPage - 1) * RANKING_PAGE_SIZE;
   const pageRows = rankingRows.slice(start, start + RANKING_PAGE_SIZE);
+  // 动态列数：当前页中皮肤最多的英雄决定该页列数
+  const MAX_COLS = Math.max(...pageRows.map(r => r.count), 0);
 
   const rankNumHtml = (globalIdx) => {
     if (globalIdx === 0) return `<span class="rank-num rank-1">🥇</span>`;
