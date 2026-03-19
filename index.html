@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>王者荣耀皮肤数据库</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
 <style>
 /* ── THEME VARIABLES ── */
 :root {
@@ -372,25 +371,8 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
 .empty-state { text-align: center; padding: 60px 20px; color: var(--text3); }
 .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
 
-/* BOTTOM NAV BAR（手机端） */
-.bottom-nav {
-  display: none;
-  position: fixed; bottom: 0; left: 0; right: 0; z-index: 90;
-  background: var(--bg2); border-top: 1px solid var(--border);
-  padding: 8px 0 max(8px, env(safe-area-inset-bottom));
-  flex-direction: row;
-}
-.bottom-nav-item {
-  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
-  cursor: pointer; padding: 4px 0; color: var(--text3); transition: color 0.2s;
-  font-size: 11px; font-weight: 500;
-}
-.bottom-nav-item .bn-icon { font-size: 20px; line-height: 1; }
-.bottom-nav-item.active { color: var(--gold); }
-.bottom-nav-item:active { opacity: 0.7; }
-
 /* DESKTOP LAYOUT: fixed sidebar */
-@media (min-width: 900px) {
+@media (min-width: 1100px) {
   .app-layout { display: flex; height: calc(100vh - 64px); overflow: hidden; }
   .sidebar {
     width: 220px; flex-shrink: 0;
@@ -406,143 +388,29 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
   .sidebar-nav-item:hover { background: var(--bg4); color: var(--text); }
   .sidebar-nav-item.active { background: rgba(201,168,76,0.12); color: var(--gold); }
   .main-content { flex: 1; overflow-y: auto; }
+  /* Hide top nav tabs on desktop, use sidebar instead */
   .nav-tabs { display: none; }
   .header { padding: 0 28px; }
+  /* Wider content areas */
   .stats-wrap { max-width: none; padding: 28px 32px; }
   .hero-grid { padding: 20px 28px; }
   .hero-skins-grid { padding: 20px 28px; }
 }
 
-/* ── 手机端全面优化 ── */
-@media (max-width: 899px) {
+/* RESPONSIVE mobile */
+@media (max-width: 640px) {
   html { font-size: 14px; }
-
-  /* Header */
-  .header { padding: 0 14px; gap: 8px; height: 52px; }
-  .header-logo { font-size: 15px; }
-  .header-logo span { display: none; }
-  .header-stats { display: none; }
-  .header-right { margin-left: auto; }
-  /* 刷新按钮手机端只显示图标 */
-  .refresh-label { display: none; }
-  /* 主题按钮在手机上只显示图标 */
-  .theme-btn { padding: 3px 6px; font-size: 13px; }
-  .theme-btn span { display: none; }
-
-  /* 侧边栏隐藏 */
-  .sidebar { display: none !important; }
-
-  /* 底部导航显示 */
-  .bottom-nav { display: flex; }
-
-  /* 主内容区底部留出 bottom nav 高度 */
-  .main-content { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
-  .app-layout { display: block; }
-
-  /* 顶部 nav tabs 显示（桌面隐藏） */
-  .nav-tabs { display: flex !important; }
-  /* 手机上顶部也有 nav，但主要用底部的 */
-  .nav-tabs { display: none !important; }
-
-  /* Filter bar */
-  .filter-bar { padding: 10px 12px; gap: 7px; }
-  .search-box { min-width: 0; max-width: none; flex: 1; }
-  .search-box input { font-size: 14px; padding: 8px 10px 8px 32px; }
-  .filter-chips { gap: 5px; }
-  .chip { padding: 5px 10px; font-size: 12px; }
-
-  /* 筛选栏折叠：下拉选择器单独一行 */
-  .filter-bar .filter-select { flex: 1; min-width: 0; font-size: 13px; padding: 7px 8px; }
-
-/* 桌面：表格显示，卡片隐藏 */
-#mobile-list { display: none; }
-.data-table { display: table; }
-
-/* 手机端：卡片显示，表格隐藏 */
-@media (max-width: 899px) {
-  #mobile-list { display: block !important; padding: 8px 12px; }
-  .data-table   { display: none !important; }
-  .table-container { padding: 0; overflow-x: visible; }
-  .mobile-skin-card {
-    display: flex; align-items: center; gap: 10px;
-    padding: 10px 12px; margin-bottom: 8px;
-    background: var(--bg3); border: 1px solid var(--border);
-    border-radius: 10px; cursor: pointer; transition: all 0.18s;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .mobile-skin-card:active { background: var(--bg4); transform: scale(0.99); }
-  .mobile-skin-thumb {
-    width: 44px; height: 44px; border-radius: 8px;
-    background: var(--bg4); flex-shrink: 0; overflow: hidden;
-    display: flex; align-items: center; justify-content: center; font-size: 20px;
-  }
-  .mobile-skin-thumb img { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
-  .mobile-skin-info { flex: 1; min-width: 0; }
-  .mobile-skin-name { font-size: 14px; font-weight: 700; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .mobile-skin-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-  .mobile-skin-hero { font-size: 12px; color: var(--gold-light); }
-  .mobile-skin-date { font-size: 11px; color: var(--text3); }
-  .mobile-skin-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
-
-  /* 分页简化 */
-  .pagination { padding: 10px 12px; flex-wrap: wrap; gap: 6px; }
-  .pg-btn { padding: 6px 10px; min-width: 36px; text-align: center; }
-
-  /* 英雄网格 */
-  .hero-grid { padding: 10px 12px; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .hero-card { padding: 12px 8px; }
-  .hero-name { font-size: 13px; }
-  .hero-skin-count b { font-size: 15px; }
-
-  /* 英雄皮肤卡片 */
-  .hero-skins-grid { padding: 10px 12px; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-  .skin-card-body { padding: 8px; }
-  .skin-card-name { font-size: 13px; }
-
-  /* 英雄详情 */
-  .hero-detail-header { padding: 14px 14px; }
-  .hero-detail-title { font-size: 22px; }
-  .hero-detail-meta { gap: 10px; font-size: 13px; }
-
-  /* 皮肤详情 */
-  .skin-detail-wrap { padding: 12px; }
+  .header { padding: 0 14px; gap: 10px; height: 56px; }
+  .header-logo { font-size: 16px; }
+  .filter-bar { padding: 10px 14px; }
+  .table-container { padding: 0 14px 12px; }
+  .hero-grid { padding: 12px 14px; grid-template-columns: repeat(auto-fill, minmax(120px,1fr)); gap: 9px; }
+  .hero-skins-grid { padding: 12px 14px; grid-template-columns: repeat(2, 1fr); gap: 9px; }
   .skin-detail-top { flex-direction: column; }
-  .skin-detail-img-wrap { width: 100%; height: 160px; min-height: unset; }
-  .skin-detail-info { padding: 14px; }
-  .skin-detail-name { font-size: 20px; }
-  .skin-detail-attrs { grid-template-columns: 1fr 1fr; gap: 8px; }
-  .skin-timeline { padding: 14px; }
-  .timeline-date { min-width: 76px; font-size: 12px; }
-  .timeline-label { font-size: 12px; }
-  .timeline-obtain { font-size: 11px; }
-
-  /* 统计页 */
-  .stats-wrap { padding: 14px 12px; }
-  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 14px; }
-  .stat-card { padding: 12px 14px; }
-  .stat-card .stat-value { font-size: 24px; }
-
-  /* 统计图表双栏变单栏 */
-  .stats-wrap > div[style*="grid-template-columns:1fr 1fr"] { grid-template-columns: 1fr !important; }
-
-  /* 饼图：纵向排列 */
-  .pie-chart-wrap { flex-direction: column; align-items: flex-start; gap: 14px; }
-  .pie-svg-wrap svg { width: 180px; height: 180px; }
-  .pie-center-total { font-size: 18px; }
-  .pie-legend { width: 100%; }
-  .pie-legend-item { padding: 5px 8px; }
-  .pie-legend-name { font-size: 13px; }
-  .pie-legend-count { font-size: 13px; }
-
-  /* 统计图表双栏变单栏 */
-  .chart-section { padding: 14px; }
-  .chart-section h3 { font-size: 13px; margin-bottom: 12px; }
-
-  /* 趋势分析图：保持横向滚动 */
-  #chart-yearly, #chart-monthly, #chart-compare { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-
-  /* 面包屑 */
-  .breadcrumb { font-size: 12px; }
+  .skin-detail-img-wrap { width: 100%; height: 180px; }
+  .header-stats { display: none; }
+  .pagination { padding: 10px 14px; }
+  .skin-detail-wrap { padding: 16px; }
 }
 </style>
 </head>
@@ -568,14 +436,6 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
         <div><b id="hd-heroes">0</b> 位英雄</div>
         <div><b id="hd-skins">0</b> 款皮肤</div>
       </div>
-      <button id="refresh-btn" onclick="refreshData()" title="刷新数据" style="
-        background:none;border:1px solid var(--border);border-radius:6px;
-        color:var(--text3);cursor:pointer;font-size:13px;padding:4px 8px;
-        transition:all 0.2s;display:flex;align-items:center;gap:4px;
-      " onmouseover="this.style.color='var(--gold)';this.style.borderColor='var(--gold)'"
-         onmouseout="this.style.color='var(--text3)';this.style.borderColor='var(--border)'">
-        🔄 <span class="refresh-label">刷新</span>
-      </button>
       <div class="theme-toggle">
         <div class="theme-btn" data-t="light" onclick="setTheme('light',this)">☀️ 白天</div>
         <div class="theme-btn active" data-t="dark" onclick="setTheme('dark',this)">🌙 黑夜</div>
@@ -646,8 +506,6 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
         <tbody id="table-body"></tbody>
       </table>
     </div>
-    <!-- 手机端卡片列表（桌面隐藏） -->
-    <div id="mobile-list"></div>
     <div class="pagination">
       <div class="pagination-info" id="pg-info"></div>
       <div class="pagination-btns" id="pg-btns"></div>
@@ -692,19 +550,6 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
 
     </div><!-- /main-content -->
   </div><!-- /app-layout -->
-
-  <!-- 手机底部导航 -->
-  <nav class="bottom-nav" id="bottom-nav">
-    <div class="bottom-nav-item active" id="bnav-list" onclick="showView('list',null,'list');setBottomNav('list')">
-      <span class="bn-icon">📋</span>数据明细
-    </div>
-    <div class="bottom-nav-item" id="bnav-heroes" onclick="showView('heroes',null,'heroes');setBottomNav('heroes')">
-      <span class="bn-icon">🎭</span>英雄皮肤
-    </div>
-    <div class="bottom-nav-item" id="bnav-stats" onclick="showView('stats',null,'stats');setBottomNav('stats')">
-      <span class="bn-icon">📊</span>统计
-    </div>
-  </nav>
 </div><!-- /app -->
 
 <script>
@@ -876,7 +721,7 @@ window.onload = async () => {
     buildHeroSelect();
     filterList();
     renderHeroGrid();
-    renderStats(); // 只构建 HTML 骨架，ECharts 在切换到统计页时懒渲染
+    renderStats();
 
     const total = RAW.length.toLocaleString();
     const heroes = new Set(RAW.map(r=>r.hero)).size;
@@ -901,68 +746,6 @@ window.onload = async () => {
   }
 };
 
-// ── 数据刷新 ──────────────────────────────────────────────────
-async function refreshData() {
-  const btn = document.getElementById('refresh-btn');
-  btn.disabled = true;
-  btn.innerHTML = '⏳ <span class="refresh-label">刷新中…</span>';
-
-  try {
-    // 清空图片缓存（强制重新拉取）
-    Object.keys(IMG_CACHE).forEach(k => delete IMG_CACHE[k]);
-
-    // 重新拉取皮肤数据
-    RAW = await fetchAllSkins();
-
-    // 重新预加载当前页图片
-    const firstPageIds = RAW.slice(0, 100).flatMap(r => [r.si, r.qi]).filter(Boolean);
-    await preloadImgs(firstPageIds);
-
-    // 重置筛选/翻页状态
-    page = 1;
-    filtered = [...RAW];
-
-    // 重新渲染
-    buildHeroSelect();
-    filterList();
-    renderHeroGrid();
-    renderStats();
-
-    // 更新头部统计数字
-    const total = RAW.length.toLocaleString();
-    const heroes = new Set(RAW.map(r=>r.hero)).size;
-    const skinSet = new Set(RAW.map(r=>r.hero+'|'+r.name)).size;
-    ['hd-total','sb-total'].forEach(id => document.getElementById(id).textContent = total);
-    ['hd-heroes','sb-heroes'].forEach(id => document.getElementById(id).textContent = heroes);
-    ['hd-skins','sb-skins'].forEach(id => document.getElementById(id).textContent = skinSet);
-
-    // 后台静默加载剩余图片
-    preloadImgs(RAW.slice(100).flatMap(r => [r.si, r.qi]).filter(Boolean));
-
-    btn.innerHTML = '✅ <span class="refresh-label">完成</span>';
-    setTimeout(() => {
-      btn.innerHTML = '🔄 <span class="refresh-label">刷新</span>';
-      btn.disabled = false;
-    }, 1500);
-
-  } catch (e) {
-    console.error('Refresh error:', e);
-    btn.innerHTML = '❌ <span class="refresh-label">失败</span>';
-    setTimeout(() => {
-      btn.innerHTML = '🔄 <span class="refresh-label">刷新</span>';
-      btn.disabled = false;
-    }, 2000);
-  }
-}
-
-// 监听后台操作通知（后台保存成功后写入 localStorage，前台自动刷新）
-window.addEventListener('storage', e => {
-  if (e.key === 'skin_db_updated') {
-    console.log('检测到后台数据更新，自动刷新…');
-    refreshData();
-  }
-});
-
 function buildHeroSelect() {
   const heroes = [...new Set(RAW.map(r=>r.hero))].sort();
   const sel = document.getElementById('f-hero');
@@ -975,20 +758,11 @@ function showView(v, el, snavId) {
   document.querySelectorAll('.sidebar-nav-item').forEach(x=>x.classList.remove('active'));
   document.getElementById('view-'+v).classList.add('active');
   if (el) el.classList.add('active');
+  // Sync top tabs and sidebar
   const tabId = 'tab-'+v;
   const snavEl = document.getElementById('snav-'+(snavId||v));
   if (document.getElementById(tabId)) document.getElementById(tabId).classList.add('active');
   if (snavEl) snavEl.classList.add('active');
-  setBottomNav(v);
-  // stats 页：容器变为可见后再初始化/resize ECharts
-  if (v === 'stats') {
-    setTimeout(() => {
-      Object.values(_charts).forEach(c => c && c.resize());
-      // 若图表还没渲染过（容器是空的），重新渲染
-      const yearly = document.getElementById('chart-yearly');
-      if (yearly && yearly.children.length === 0) renderTrendCharts();
-    }, 50);
-  }
 }
 function resetToHome() {
   showView('list', document.getElementById('tab-list'), 'list');
@@ -1046,14 +820,10 @@ function tagImgHtml(qi, tag, quality) {
   return `<span style="font-size:11px;color:var(--text3)">${tag}</span>`;
 }
 
-function isMobile() { return window.innerWidth < 900; }
-
 function renderTable() {
   const total = filtered.length;
   const start = (page-1)*PAGE_SIZE, end = Math.min(start+PAGE_SIZE, total);
   const rows = filtered.slice(start, end);
-
-  // ── 桌面表格 ──
   document.getElementById('table-body').innerHTML = rows.map(r => `
     <tr class="clickable" onclick="goSkinDetail('${esc(r.hero)}','${esc(r.name)}')">
       <td class="thumb-cell">${thumbHtml(r.si, r.quality)}</td>
@@ -1070,82 +840,17 @@ function renderTable() {
       <td><span class="badge badge-${r.permanent}" style="font-size:10px">${r.permanent}</span></td>
     </tr>
   `).join('');
-
-  // ── 手机卡片列表（仅手机端渲染）──
-  const mobileEl = document.getElementById('mobile-list');
-  if (isMobile()) {
-    mobileEl.innerHTML = rows.map(r => {
-      const thumbSrc = getSkinImg(r.si);
-      const tagSrc   = getQualityImg(r.qi);
-      return `<div class="mobile-skin-card" onclick="goSkinDetail('${esc(r.hero)}','${esc(r.name)}')">
-        <div class="mobile-skin-thumb">
-          ${thumbSrc ? `<img src="${thumbSrc}" loading="lazy" alt="">` : qualityEmoji(r.quality)}
-        </div>
-        <div class="mobile-skin-info">
-          <div class="mobile-skin-name">${r.name}</div>
-          <div class="mobile-skin-meta">
-            <span class="mobile-skin-hero">${r.hero}</span>
-            <span class="mobile-skin-date">${r.date}</span>
-          </div>
-          <div class="mobile-skin-meta" style="margin-top:3px">
-            ${tagSrc
-              ? `<img src="${tagSrc}" style="height:16px;object-fit:contain;image-rendering:pixelated" alt="${r.tag}">`
-              : `<span style="font-size:11px;color:var(--text3)">${r.tag}</span>`}
-            ${r.obtain ? `<span style="font-size:11px;color:var(--text3)">· ${r.obtain}</span>` : ''}
-          </div>
-        </div>
-        <div class="mobile-skin-right">
-          <span class="badge badge-${r.quality}" style="font-size:11px">${r.quality}</span>
-          <span class="badge badge-${r.type}" style="font-size:11px">${r.type}</span>
-        </div>
-      </div>`;
-    }).join('');
-  } else {
-    mobileEl.innerHTML = ''; // PC端清空，防止残留
-  }
-
   document.getElementById('pg-info').textContent = `共 ${total} 条 · 第 ${start+1}–${end} 条`;
-
-  // 预加载当前页图片，加载完后整体重新渲染卡片（避免局部 DOM 替换导致布局错乱）
+  // 预加载当前页图片
   const visibleIds = rows.flatMap(r => [r.si, r.qi]).filter(Boolean);
   preloadImgs(visibleIds).then(() => {
-    // 刷新桌面缩略图
+    // 图片加载完后刷新当前页缩略图
     rows.forEach(r => {
       if (r.si && IMG_CACHE[r.si]) {
         document.querySelectorAll(`.thumb-img[data-si="${r.si}"]`).forEach(img => { img.src = IMG_CACHE[r.si]; });
       }
     });
-    // 手机端：图片加载完后重渲染整个卡片列表
-    if (isMobile()) {
-      document.getElementById('mobile-list').innerHTML = rows.map(r => {
-        const thumbSrc = getSkinImg(r.si);
-        const tagSrc   = getQualityImg(r.qi);
-        return `<div class="mobile-skin-card" onclick="goSkinDetail('${esc(r.hero)}','${esc(r.name)}')">
-          <div class="mobile-skin-thumb">
-            ${thumbSrc ? `<img src="${thumbSrc}" loading="lazy" alt="">` : qualityEmoji(r.quality)}
-          </div>
-          <div class="mobile-skin-info">
-            <div class="mobile-skin-name">${r.name}</div>
-            <div class="mobile-skin-meta">
-              <span class="mobile-skin-hero">${r.hero}</span>
-              <span class="mobile-skin-date">${r.date}</span>
-            </div>
-            <div class="mobile-skin-meta" style="margin-top:3px">
-              ${tagSrc
-                ? `<img src="${tagSrc}" style="height:16px;object-fit:contain;image-rendering:pixelated" alt="${r.tag}">`
-                : `<span style="font-size:11px;color:var(--text3)">${r.tag}</span>`}
-              ${r.obtain ? `<span style="font-size:11px;color:var(--text3)">· ${r.obtain}</span>` : ''}
-            </div>
-          </div>
-          <div class="mobile-skin-right">
-            <span class="badge badge-${r.quality}" style="font-size:11px">${r.quality}</span>
-            <span class="badge badge-${r.type}" style="font-size:11px">${r.type}</span>
-          </div>
-        </div>`;
-      }).join('');
-    }
   });
-
   const totalPages = Math.ceil(total/PAGE_SIZE);
   const pgs = document.getElementById('pg-btns');
   let btns = `<button class="pg-btn" onclick="goPage(${page-1})" ${page<=1?'disabled':''}>‹</button>`;
@@ -1155,13 +860,6 @@ function renderTable() {
   if (re<totalPages) btns += `${re<totalPages-1?'<span style="padding:4px;color:var(--text3)">…</span>':''}<button class="pg-btn" onclick="goPage(${totalPages})">${totalPages}</button>`;
   btns += `<button class="pg-btn" onclick="goPage(${page+1})" ${page>=totalPages?'disabled':''}>›</button>`;
   pgs.innerHTML = btns;
-}
-// 图片加载完后局部刷新手机卡片缩略图
-// ── 底部导航同步 ──────────────────────────────────────────────
-function setBottomNav(v) {
-  document.querySelectorAll('.bottom-nav-item').forEach(el => {
-    el.classList.toggle('active', el.id === 'bnav-' + v);
-  });
 }
 function goPage(p) { const t = Math.ceil(filtered.length/PAGE_SIZE); if(p<1||p>t) return; page=p; renderTable(); }
 
@@ -1334,33 +1032,18 @@ function openSkinDetail(hero, skinName) {
 
 // ── Stats ──
 let activeQuality = null;
-let trendDataType = '首发';
+let trendDataType = '首发'; // '首发' | '返场'
 let selectedMonthYear = null;
 let compareYears = new Set();
 
+// 品质顺序和颜色（全局共用）
 const Q_ORDER  = ['伴生','勇者','史诗','传说','珍品传说','无双','珍品无双','荣耀典藏'];
 const Q_COLORS = {'史诗':'#b090d8','传说':'#d4a830','勇者':'#6ea4d8','伴生':'#50c090','无双':'#d07070','荣耀典藏':'#d4944a','珍品传说':'#c8a000','珍品无双':'#c04040'};
-
-// ECharts 实例缓存
-const _charts = {};
-function getChart(id) {
-  const el = document.getElementById(id);
-  if (!el) return null;
-  // 如果容器宽度为 0，销毁旧实例重新初始化
-  if (_charts[id]) {
-    if (el.offsetWidth > 0) { _charts[id].resize(); return _charts[id]; }
-    _charts[id].dispose();
-    delete _charts[id];
-  }
-  if (el.offsetWidth === 0) return null; // 容器不可见，跳过
-  _charts[id] = echarts.init(el, null, { renderer: 'svg' });
-  return _charts[id];
-}
 
 function renderStats() {
   const heroMap = buildHeroMap();
   const qualityCounts = {};
-  RAW.filter(r=>r.type==='首发').forEach(r => { qualityCounts[r.quality]=(qualityCounts[r.quality]||0)+1; });
+  RAW.forEach(r => { qualityCounts[r.quality]=(qualityCounts[r.quality]||0)+1; });
   const heroCounts = {};
   Object.entries(heroMap).forEach(([h,d])=>heroCounts[h]=d.skins.size);
   const topHeroes = Object.entries(heroCounts).sort((a,b)=>b[1]-a[1]).slice(0,10);
@@ -1368,19 +1051,15 @@ function renderStats() {
   const total = Object.values(qualityCounts).reduce((a,b)=>a+b,0);
   const maxH = topHeroes[0]?.[1]||1;
 
-  // 饼图数据
-  const qs = Q_ORDER.filter(q=>qualityCounts[q]);
-  const qColors = Q_COLORS;
-  const segments = qs.map(q => ({ q, count: qualityCounts[q], frac: qualityCounts[q]/total }));
-
-  // 饼图 SVG（保留原有交互）
+  // 饼图
   const R = 100, cx = 120, cy = 120, innerR = 62;
+  const qs = Q_ORDER.filter(q=>qualityCounts[q]);
   let cumAngle = -Math.PI/2;
-  const segs = segments.map(s => {
-    const frac = s.frac;
+  const segments = qs.map(q => {
+    const frac = qualityCounts[q]/total;
     const startAngle = cumAngle;
     cumAngle += frac * 2 * Math.PI;
-    return { ...s, startAngle, endAngle: cumAngle };
+    return { q, count: qualityCounts[q], frac, startAngle, endAngle: cumAngle };
   });
   function polar(angle, r) { return [cx + r*Math.cos(angle), cy + r*Math.sin(angle)]; }
   function segPath(s, r1, r2, gap=0.012) {
@@ -1390,8 +1069,8 @@ function renderStats() {
     return `M${ox1},${oy1} A${r1},${r1} 0 ${large},1 ${ox2},${oy2} L${ix1},${iy1} A${r2},${r2} 0 ${large},0 ${ix2},${iy2} Z`;
   }
   const pieSvg = `<svg width="240" height="240" viewBox="0 0 240 240">
-    ${segs.map(s=>`<path id="seg-${s.q}" class="pie-segment" d="${segPath(s,R,innerR)}"
-      fill="${qColors[s.q]}" opacity="0.85" onclick="selectQuality('${s.q}')" data-q="${s.q}">
+    ${segments.map(s=>`<path id="seg-${s.q}" class="pie-segment" d="${segPath(s,R,innerR)}"
+      fill="${Q_COLORS[s.q]}" opacity="0.85" onclick="selectQuality('${s.q}')" data-q="${s.q}">
       <title>${s.q}: ${s.count} (${(s.frac*100).toFixed(1)}%)</title></path>`).join('')}
   </svg>`;
 
@@ -1408,21 +1087,21 @@ function renderStats() {
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
       <div class="chart-section">
-        <h3>各品质皮肤分布（首发）<span style="color:var(--text3);font-weight:400">· 点击查看皮肤列表</span></h3>
+        <h3>各品质皮肤分布 <span style="color:var(--text3);font-weight:400">· 点击查看皮肤列表</span></h3>
         <div class="pie-chart-wrap">
           <div class="pie-svg-wrap">
             ${pieSvg}
             <div class="pie-center-label">
               <div class="pie-center-total" id="pie-center-num">${total}</div>
-              <div class="pie-center-sub" id="pie-center-txt">首发记录</div>
+              <div class="pie-center-sub" id="pie-center-txt">条记录</div>
             </div>
           </div>
           <div class="pie-legend" id="pie-legend">
-            ${segs.map(s=>`
+            ${segments.map(s=>`
               <div class="pie-legend-item" id="leg-${s.q}" onclick="selectQuality('${s.q}')">
-                <div class="pie-legend-dot" style="background:${qColors[s.q]}"></div>
+                <div class="pie-legend-dot" style="background:${Q_COLORS[s.q]}"></div>
                 <div class="pie-legend-name">${s.q}</div>
-                <div class="pie-legend-count" style="color:${qColors[s.q]}">${s.count}</div>
+                <div class="pie-legend-count" style="color:${Q_COLORS[s.q]}">${s.count}</div>
                 <div class="pie-legend-pct">${(s.frac*100).toFixed(1)}%</div>
               </div>`).join('')}
           </div>
@@ -1451,28 +1130,31 @@ function renderStats() {
         </div>
       </div>
 
+      <!-- 图表1：每年各品质堆叠柱状图 -->
       <div style="margin-bottom:24px">
-        <div style="font-size:13px;color:var(--text2);font-weight:600;margin-bottom:8px">
+        <div style="font-size:13px;color:var(--text2);font-weight:600;margin-bottom:12px">
           各年度品质分布
           <span style="font-size:11px;color:var(--text3);font-weight:400;margin-left:8px">· 点击年份柱查看月度详情</span>
         </div>
-        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><div id="chart-yearly" style="min-width:700px;height:320px"></div></div>
+        <div id="chart-yearly"></div>
       </div>
 
+      <!-- 图表2：选中年份的月度品质堆叠柱状图 -->
       <div style="margin-bottom:24px" id="chart-monthly-wrap">
-        <div style="font-size:13px;color:var(--text2);font-weight:600;margin-bottom:8px" id="chart-monthly-title">
+        <div style="font-size:13px;color:var(--text2);font-weight:600;margin-bottom:12px" id="chart-monthly-title">
           月度品质分布 <span style="font-size:11px;color:var(--text3);font-weight:400">· 点击上方年份柱查看</span>
         </div>
-        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;display:none" id="chart-monthly-scroll"><div id="chart-monthly" style="min-width:500px;height:300px"></div></div>
+        <div id="chart-monthly"></div>
       </div>
 
+      <!-- 图表3：多年对比 -->
       <div>
         <div style="font-size:13px;color:var(--text2);font-weight:600;margin-bottom:10px">
           多年月度投放量对比
           <span style="font-size:11px;color:var(--text3);font-weight:400;margin-left:8px">· 最多选4年</span>
         </div>
         <div id="year-compare-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px"></div>
-        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><div id="chart-compare" style="min-width:600px;height:320px"></div></div>
+        <div id="chart-compare"></div>
       </div>
     </div>`;
 
@@ -1484,207 +1166,140 @@ function renderStats() {
 // ── 趋势数据切换 ──────────────────────────────────────────────
 function setTrendType(type) {
   trendDataType = type;
-  // 切换数据类型时关闭月度详情，避免标题与数据不一致
   selectedMonthYear = null;
-  document.getElementById('chart-monthly-scroll').style.display = 'none';
-  document.getElementById('chart-monthly-title').innerHTML =
-    '月度品质分布 <span style="font-size:11px;color:var(--text3);font-weight:400">· 点击上方年份柱查看</span>';
   document.querySelectorAll('.filter-chips .chip[onclick*="setTrendType"]').forEach(c => {
     c.classList.toggle('active', c.textContent.includes(type));
   });
   renderTrendCharts();
 }
 
+// ── 渲染趋势图 ────────────────────────────────────────────────
 function renderTrendCharts() {
-  requestAnimationFrame(() => {
-    renderYearlyChart();
-    if (selectedMonthYear) renderMonthlyChart(selectedMonthYear);
-    else {
-      document.getElementById('chart-monthly-scroll').style.display = 'none';
-      document.getElementById('chart-monthly-title').innerHTML =
-        '月度品质分布 <span style="font-size:11px;color:var(--text3);font-weight:400">· 点击上方年份柱查看</span>';
-    }
-    renderCompareChart();
-  });
+  renderYearlyChart();
+  if (selectedMonthYear) renderMonthlyChart(selectedMonthYear);
+  else document.getElementById('chart-monthly').innerHTML = '';
+  renderCompareChart();
 }
 
-// ── 图表1：年度堆叠柱状图（ECharts）──────────────────────────
+// ── 图表1：年度堆叠柱状图 ─────────────────────────────────────
 function renderYearlyChart() {
   const data = RAW.filter(r => r.type === trendDataType);
   const years = [...new Set(data.map(r=>r.date.slice(0,4)))].sort();
+
+  // 每年各品质数量
   const yearData = {};
   years.forEach(y => { yearData[y] = {}; Q_ORDER.forEach(q => yearData[y][q] = 0); });
-  data.forEach(r => { if (yearData[r.date.slice(0,4)]) yearData[r.date.slice(0,4)][r.quality]++; });
+  data.forEach(r => { if (yearData[r.date.slice(0,4)]) yearData[r.date.slice(0,4)][r.quality] = (yearData[r.date.slice(0,4)][r.quality]||0) + 1; });
 
-  const chart = getChart('chart-yearly');
-  if (!chart) return;
+  const maxTotal = Math.max(...years.map(y => Q_ORDER.reduce((s,q)=>s+(yearData[y][q]||0),0)));
+  const svgH = 200, barW = 36, gap = 14, labelH = 24, padL = 36, padR = 10;
+  const chartW = years.length * (barW + gap) + padL + padR;
+  const chartH = svgH + labelH;
 
-  const series = Q_ORDER.map((q, qi) => {
-    const isLast = qi === Q_ORDER.length - 1;
-    return {
-      name: q,
-      type: 'bar',
-      stack: 'total',
-      color: Q_COLORS[q],
-      emphasis: { focus: 'series' },
-      label: {
-        show: true,
-        formatter: p => p.value > 0 ? p.value : '',
-        fontSize: 10,
-        color: 'rgba(255,255,255,0.9)',
-        // 最后一个 series 额外在顶部显示堆叠总数
-        ...(isLast ? {
-          position: 'top',
-          formatter: p => {
-            const year = years[p.dataIndex];
-            const total = Q_ORDER.reduce((s,q)=>s+(yearData[year][q]||0),0);
-            return total > 0 ? total : '';
-          },
-          color: 'var(--text2)',
-          fontSize: 11,
-          fontWeight: 'bold',
-        } : {}),
-      },
-      data: years.map(y => yearData[y][q] || 0),
-    };
+  let bars = '', xLabels = '', yGridLines = '';
+  // Y轴网格
+  for (let i=0;i<=4;i++) {
+    const y = svgH - (i/4)*svgH;
+    const val = Math.round(i/4*maxTotal);
+    yGridLines += `<line x1="${padL}" y1="${y}" x2="${chartW}" y2="${y}" stroke="var(--border)" stroke-width="1"/>`;
+    yGridLines += `<text x="${padL-4}" y="${y+4}" text-anchor="end" font-size="10" fill="var(--text3)">${val}</text>`;
+  }
+
+  years.forEach((y, i) => {
+    const x = padL + i * (barW + gap);
+    let yOff = svgH;
+    const isSelected = selectedMonthYear === y;
+    Q_ORDER.forEach(q => {
+      const count = yearData[y][q] || 0;
+      if (!count) return;
+      const h = (count / maxTotal) * svgH;
+      yOff -= h;
+      bars += `<rect x="${x}" y="${yOff}" width="${barW}" height="${h}"
+        fill="${Q_COLORS[q]}" opacity="${isSelected?'1':'0.82'}"
+        rx="1" style="cursor:pointer"
+        onclick="clickYearBar('${y}')"
+        data-year="${y}" data-q="${q}" data-count="${count}">
+        <title>${y} · ${q}: ${count}</title></rect>`;
+    });
+    if (isSelected) bars += `<rect x="${x-1}" y="0" width="${barW+2}" height="${svgH}" fill="none" stroke="var(--gold)" stroke-width="2" rx="2"/>`;
+    xLabels += `<text x="${x+barW/2}" y="${svgH+16}" text-anchor="middle" font-size="11"
+      fill="${isSelected?'var(--gold)':'var(--text2)'}" font-weight="${isSelected?'700':'400'}"
+      style="cursor:pointer" onclick="clickYearBar('${y}')">${y}</text>`;
   });
 
-  const option = {
-    backgroundColor: 'transparent',
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: { type: 'shadow' },
-      formatter: params => {
-        const year = params[0].axisValue;
-        let html = `<b>${year}年</b><br/>`;
-        let total = 0;
-        params.filter(p=>p.seriesName!=='总计'&&p.value>0).forEach(p => {
-          html += `<span style="display:inline-block;width:10px;height:10px;background:${p.color};border-radius:2px;margin-right:5px"></span>${p.seriesName}: <b>${p.value}</b><br/>`;
-          total += p.value;
-        });
-        html += `<hr style="margin:4px 0;border-color:rgba(255,255,255,0.2)">合计: <b>${total}</b>`;
-        return html;
-      }
-    },
-    legend: {
-      data: Q_ORDER,
-      bottom: 0,
-      textStyle: { fontSize: 11, color: 'var(--text2)' },
-      itemWidth: 12, itemHeight: 10,
-    },
-    grid: { left: 50, right: 20, top: 30, bottom: 60, containLabel: false },
-    xAxis: {
-      type: 'category',
-      data: years,
-      axisLabel: { fontSize: 11, color: 'var(--text2)', interval: 0 },
-      axisLine: { lineStyle: { color: 'var(--border)' } },
-    },
-    yAxis: {
-      type: 'value',
-      axisLabel: { fontSize: 10, color: 'var(--text3)' },
-      splitLine: { lineStyle: { color: 'var(--border)' } },
-    },
-    series,
-  };
+  // 品质图例
+  const legendItems = Q_ORDER.filter(q => years.some(y=>yearData[y][q]>0));
+  const legendSvg = legendItems.map((q,i) =>
+    `<g transform="translate(${i*90},0)">
+      <rect width="10" height="10" fill="${Q_COLORS[q]}" rx="2"/>
+      <text x="14" y="9" font-size="11" fill="var(--text2)">${q}</text>
+    </g>`).join('');
 
-  chart.setOption(option, true);
-
-  // 点击柱子查看月度详情
-  chart.off('click');
-  chart.on('click', params => {
-    const year = params.name || params.axisValue;
-    if (year) clickYearBar(year);
-  });
+  document.getElementById('chart-yearly').innerHTML = `
+    <div style="overflow-x:auto">
+      <svg width="${Math.max(chartW,300)}" height="${chartH}" style="display:block">
+        ${yGridLines}${bars}${xLabels}
+      </svg>
+    </div>
+    <svg width="${legendItems.length*90+10}" height="16" style="margin-top:10px;display:block">${legendSvg}</svg>`;
 }
 
-// ── 图表2：月度堆叠柱状图（ECharts）─────────────────────────
+// ── 图表2：月度堆叠柱状图 ─────────────────────────────────────
 function clickYearBar(year) {
   selectedMonthYear = selectedMonthYear === year ? null : year;
+  renderYearlyChart(); // 重绘以更新高亮
   if (selectedMonthYear) {
     renderMonthlyChart(selectedMonthYear);
-    setTimeout(() => {
-      document.getElementById('chart-monthly-wrap').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }, 100);
+    document.getElementById('chart-monthly-wrap').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   } else {
-    document.getElementById('chart-monthly-scroll').style.display = 'none';
-    document.getElementById('chart-monthly-title').innerHTML =
-      '月度品质分布 <span style="font-size:11px;color:var(--text3);font-weight:400">· 点击上方年份柱查看</span>';
+    document.getElementById('chart-monthly').innerHTML = '';
+    document.getElementById('chart-monthly-title').innerHTML = '月度品质分布 <span style="font-size:11px;color:var(--text3);font-weight:400">· 点击上方年份柱查看</span>';
   }
 }
 
 function renderMonthlyChart(year) {
-  document.getElementById('chart-monthly-scroll').style.display = 'block';
   document.getElementById('chart-monthly-title').innerHTML =
-    `${year} 年月度品质分布 <span style="font-size:11px;color:var(--text3);font-weight:400">(${trendDataType})</span>
-     <span style="font-size:11px;color:var(--gold);cursor:pointer;margin-left:8px" onclick="clickYearBar('${year}')">× 收起</span>`;
+    `${year} 年月度品质分布 <span style="font-size:11px;color:var(--text3);font-weight:400;margin-left:6px">(${trendDataType})</span>
+     <span style="font-size:11px;color:var(--text3);cursor:pointer;margin-left:8px" onclick="clickYearBar('${year}')">× 收起</span>`;
 
   const data = RAW.filter(r => r.type === trendDataType && r.date.slice(0,4) === year);
   const months = ['01','02','03','04','05','06','07','08','09','10','11','12'];
-  const monthNames = months.map(m => parseInt(m)+'月');
   const monthData = {};
   months.forEach(m => { monthData[m] = {}; Q_ORDER.forEach(q => monthData[m][q] = 0); });
-  data.forEach(r => { const m = r.date.slice(5,7); if(monthData[m]) monthData[m][r.quality]++; });
+  data.forEach(r => { const m = r.date.slice(5,7); if(monthData[m]) monthData[m][r.quality] = (monthData[m][r.quality]||0)+1; });
 
-  const chart = getChart('chart-monthly');
-  if (!chart) return;
+  const maxTotal = Math.max(...months.map(m => Q_ORDER.reduce((s,q)=>s+(monthData[m][q]||0),0)), 1);
+  const svgH = 160, barW = 32, gap = 10, labelH = 22, padL = 30;
+  const chartW = months.length*(barW+gap)+padL+10;
 
-  const series = Q_ORDER.map(q => ({
-    name: q,
-    type: 'bar',
-    stack: 'total',
-    color: Q_COLORS[q],
-    emphasis: { focus: 'series' },
-    label: {
-      show: true,
-      formatter: p => p.value > 0 ? p.value : '',
-      fontSize: 10,
-      color: 'rgba(255,255,255,0.9)',
-    },
-    data: months.map(m => monthData[m][q] || 0),
-  }));
+  let bars = '', xLabels = '', yGridLines = '';
+  for (let i=0;i<=4;i++) {
+    const y = svgH-(i/4)*svgH;
+    yGridLines += `<line x1="${padL}" y1="${y}" x2="${chartW}" y2="${y}" stroke="var(--border)" stroke-width="1"/>`;
+    yGridLines += `<text x="${padL-4}" y="${y+4}" text-anchor="end" font-size="10" fill="var(--text3)">${Math.round(i/4*maxTotal)}</text>`;
+  }
+  months.forEach((m, i) => {
+    const x = padL + i*(barW+gap);
+    let yOff = svgH;
+    Q_ORDER.forEach(q => {
+      const count = monthData[m][q]||0;
+      if (!count) return;
+      const h = (count/maxTotal)*svgH;
+      yOff -= h;
+      bars += `<rect x="${x}" y="${yOff}" width="${barW}" height="${h}" fill="${Q_COLORS[q]}" opacity="0.85" rx="1">
+        <title>${year}-${m} · ${q}: ${count}</title></rect>`;
+    });
+    const total = Q_ORDER.reduce((s,q)=>s+(monthData[m][q]||0),0);
+    xLabels += `<text x="${x+barW/2}" y="${svgH+15}" text-anchor="middle" font-size="11" fill="${total?'var(--text2)':'var(--text3)'}">${parseInt(m)}月</text>`;
+  });
 
-  const option = {
-    backgroundColor: 'transparent',
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: { type: 'shadow' },
-      formatter: params => {
-        const mon = params[0].axisValue;
-        let html = `<b>${year}年${mon}</b><br/>`;
-        let total = 0;
-        params.filter(p=>p.value>0).forEach(p => {
-          html += `<span style="display:inline-block;width:10px;height:10px;background:${p.color};border-radius:2px;margin-right:5px"></span>${p.seriesName}: <b>${p.value}</b><br/>`;
-          total += p.value;
-        });
-        html += `<hr style="margin:4px 0;border-color:rgba(255,255,255,0.2)">合计: <b>${total}</b>`;
-        return html;
-      }
-    },
-    legend: {
-      data: Q_ORDER,
-      bottom: 0,
-      textStyle: { fontSize: 11, color: 'var(--text2)' },
-      itemWidth: 12, itemHeight: 10,
-    },
-    grid: { left: 50, right: 20, top: 30, bottom: 60, containLabel: false },
-    xAxis: {
-      type: 'category',
-      data: monthNames,
-      axisLabel: { fontSize: 11, color: 'var(--text2)', interval: 0 },
-      axisLine: { lineStyle: { color: 'var(--border)' } },
-    },
-    yAxis: {
-      type: 'value',
-      axisLabel: { fontSize: 10, color: 'var(--text3)' },
-      splitLine: { lineStyle: { color: 'var(--border)' } },
-    },
-    series,
-  };
-
-  chart.setOption(option, true);
+  document.getElementById('chart-monthly').innerHTML = `
+    <div style="overflow-x:auto">
+      <svg width="${chartW}" height="${svgH+labelH}" style="display:block">${yGridLines}${bars}${xLabels}</svg>
+    </div>`;
 }
 
-// ── 图表3：多年对比（ECharts 折线+柱图）──────────────────────
+// ── 图表3：多年对比折线+柱图 ─────────────────────────────────
 function renderYearCompareChips() {
   const years = [...new Set(RAW.map(r=>r.date.slice(0,4)))].sort();
   document.getElementById('year-compare-chips').innerHTML = years.map(y => `
@@ -1705,25 +1320,16 @@ function toggleCompareYear(year) {
 
 function renderCompareChart() {
   const el = document.getElementById('chart-compare');
-  const chart = getChart('chart-compare');
-  if (!chart) return;
-
   if (compareYears.size === 0) {
-    chart.setOption({
-      graphic: [{
-        type: 'text',
-        left: 'center', top: 'middle',
-        style: { text: '请在上方选择年份进行对比（最多4年）', fontSize: 13, fill: 'var(--text3)' }
-      }]
-    }, true);
+    el.innerHTML = '<div style="text-align:center;color:var(--text3);padding:24px;font-size:13px">请在上方选择年份进行对比（最多4年）</div>';
     return;
   }
 
-  const YEAR_COLORS = ['#c9a84c','#6ea4d8','#50c090','#d07070'];
   const years = [...compareYears].sort();
   const months = ['01','02','03','04','05','06','07','08','09','10','11','12'];
-  const monthNames = months.map(m => parseInt(m)+'月');
+  const YEAR_COLORS = ['#c9a84c','#6ea4d8','#50c090','#d07070'];
 
+  // 每年每月总数
   const yearMonthTotal = {};
   years.forEach(y => {
     yearMonthTotal[y] = {};
@@ -1732,75 +1338,84 @@ function renderCompareChart() {
       .forEach(r => { const m=r.date.slice(5,7); if(yearMonthTotal[y][m]!==undefined) yearMonthTotal[y][m]++; });
   });
 
-  const series = years.map((y, yi) => ({
-    name: y + '年',
-    type: 'line',
-    smooth: true,
-    color: YEAR_COLORS[yi],
-    symbol: 'circle',
-    symbolSize: 6,
-    lineStyle: { width: 2 },
-    label: {
-      show: true,
-      formatter: p => p.value > 0 ? p.value : '',
-      fontSize: 10,
-      position: yi % 2 === 0 ? 'top' : 'bottom',
-    },
-    data: months.map(m => yearMonthTotal[y][m]),
-  }));
+  const allVals = years.flatMap(y => months.map(m => yearMonthTotal[y][m]));
+  const maxVal = Math.max(...allVals, 1);
+  const svgH = 180, padL = 34, padR = 14, padT = 10, labelH = 22;
+  const barGroupW = 28, barW = Math.max(4, Math.floor((barGroupW - 2) / years.length));
+  const gap = 18;
+  const chartW = months.length * (barGroupW + gap) + padL + padR;
 
-  const option = {
-    backgroundColor: 'transparent',
-    tooltip: {
-      trigger: 'axis',
-      formatter: params => {
-        let html = `<b>${params[0].axisValue}</b><br/>`;
-        params.forEach(p => {
-          html += `<span style="display:inline-block;width:10px;height:10px;background:${p.color};border-radius:50%;margin-right:5px"></span>${p.seriesName}: <b>${p.value}</b><br/>`;
-        });
-        return html;
-      }
-    },
-    legend: {
-      data: years.map(y=>y+'年'),
-      bottom: 0,
-      textStyle: { fontSize: 12, color: 'var(--text2)' },
-    },
-    grid: { left: 50, right: 20, top: 30, bottom: 50, containLabel: false },
-    xAxis: {
-      type: 'category',
-      data: monthNames,
-      axisLabel: { fontSize: 11, color: 'var(--text2)', interval: 0 },
-      axisLine: { lineStyle: { color: 'var(--border)' } },
-    },
-    yAxis: {
-      type: 'value',
-      axisLabel: { fontSize: 10, color: 'var(--text3)' },
-      splitLine: { lineStyle: { color: 'var(--border)' } },
-    },
-    series,
-  };
+  let bars = '', xLabels = '', yGrid = '', lines = {};
+  years.forEach(y => lines[y] = []);
 
-  chart.setOption(option, true);
+  // Y轴
+  for (let i=0;i<=4;i++) {
+    const y = padT + svgH - (i/4)*svgH;
+    yGrid += `<line x1="${padL}" y1="${y}" x2="${chartW}" y2="${y}" stroke="var(--border)" stroke-width="1"/>`;
+    yGrid += `<text x="${padL-4}" y="${y+4}" text-anchor="end" font-size="10" fill="var(--text3)">${Math.round(i/4*maxVal)}</text>`;
+  }
+
+  months.forEach((m, mi) => {
+    const groupX = padL + mi*(barGroupW+gap);
+    years.forEach((y, yi) => {
+      const count = yearMonthTotal[y][m];
+      const barH = (count/maxVal)*svgH;
+      const x = groupX + yi*barW;
+      const yPos = padT + svgH - barH;
+      bars += `<rect x="${x}" y="${yPos}" width="${barW-1}" height="${barH}"
+        fill="${YEAR_COLORS[yi]}" opacity="0.75" rx="1">
+        <title>${y}年${parseInt(m)}月: ${count}</title></rect>`;
+      // 折线点（用柱中心）
+      lines[y].push({ x: x + barW/2, y: yPos, count });
+    });
+    xLabels += `<text x="${groupX+barGroupW/2}" y="${padT+svgH+15}" text-anchor="middle" font-size="11" fill="var(--text2)">${parseInt(m)}月</text>`;
+  });
+
+  // 折线
+  let lineSvg = '';
+  years.forEach((y, yi) => {
+    const pts = lines[y];
+    const d = pts.map((p,i)=>`${i===0?'M':'L'}${p.x},${p.y}`).join(' ');
+    lineSvg += `<path d="${d}" fill="none" stroke="${YEAR_COLORS[yi]}" stroke-width="2" opacity="0.9"/>`;
+    pts.forEach(p => {
+      lineSvg += `<circle cx="${p.x}" cy="${p.y}" r="3" fill="${YEAR_COLORS[yi]}"><title>${y}: ${p.count}</title></circle>`;
+    });
+  });
+
+  // 图例
+  const legendSvg = years.map((y,i) =>
+    `<g transform="translate(${i*80},0)">
+      <rect width="12" height="12" fill="${YEAR_COLORS[i]}" rx="2" opacity="0.85"/>
+      <text x="16" y="10" font-size="12" fill="var(--text2)" font-weight="600">${y}</text>
+    </g>`).join('');
+
+  el.innerHTML = `
+    <div style="overflow-x:auto">
+      <svg width="${chartW}" height="${padT+svgH+labelH}" style="display:block">
+        ${yGrid}${bars}${lineSvg}${xLabels}
+      </svg>
+    </div>
+    <svg width="${years.length*80+10}" height="16" style="margin-top:10px;display:block">${legendSvg}</svg>`;
 }
+
 
 function selectQuality(q) {
   const qColors = Q_COLORS;
 
   if (activeQuality === q) {
+    // Deselect
     activeQuality = null;
     document.querySelectorAll('.pie-segment').forEach(el => el.classList.remove('dimmed'));
     document.querySelectorAll('.pie-legend-item').forEach(el => el.classList.remove('active'));
     document.getElementById('quality-skin-panel').innerHTML = '';
-    // 恢复为首发总数
-    const firstTotal = RAW.filter(r=>r.type==='首发').length;
-    document.getElementById('pie-center-num').textContent = firstTotal;
-    document.getElementById('pie-center-txt').textContent = '首发记录';
+    document.getElementById('pie-center-num').textContent = RAW.length;
+    document.getElementById('pie-center-txt').textContent = '条记录';
     return;
   }
 
   activeQuality = q;
 
+  // Dim other segments
   document.querySelectorAll('.pie-segment').forEach(el => {
     el.classList.toggle('dimmed', el.dataset.q !== q);
   });
@@ -1808,16 +1423,18 @@ function selectQuality(q) {
     el.classList.toggle('active', el.id === 'leg-'+q);
   });
 
-  // 只统计首发
-  const count = RAW.filter(r=>r.type==='首发' && r.quality===q).length;
+  // Update center label
+  const qRecords = RAW.filter(r=>r.type==='首发' && r.quality===q);
+  const count = RAW.filter(r=>r.quality===q).length;
   document.getElementById('pie-center-num').textContent = count;
   document.getElementById('pie-center-txt').textContent = q;
 
-  // 只展示首发记录中该品质的唯一皮肤（按英雄+名称去重）
+  // Build unique skins for this quality (by hero+name, 首发 only)
   const skinMap = new Map();
-  RAW.filter(r => r.quality === q && r.type === '首发').forEach(r => {
-    const key = r.hero + '|' + r.name;
+  RAW.filter(r=>r.quality===q).forEach(r => {
+    const key = r.hero+'|'+r.name;
     if (!skinMap.has(key)) skinMap.set(key, r);
+    else if (r.type==='首发') skinMap.set(key, {...skinMap.get(key), ...r});
   });
   const skins = [...skinMap.values()];
 
