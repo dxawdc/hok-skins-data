@@ -423,6 +423,8 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
   .header-logo span { display: none; }
   .header-stats { display: none; }
   .header-right { margin-left: auto; }
+  /* 刷新按钮手机端只显示图标 */
+  .refresh-label { display: none; }
   /* 主题按钮在手机上只显示图标 */
   .theme-btn { padding: 3px 6px; font-size: 13px; }
   .theme-btn span { display: none; }
@@ -566,6 +568,14 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
         <div><b id="hd-heroes">0</b> 位英雄</div>
         <div><b id="hd-skins">0</b> 款皮肤</div>
       </div>
+      <button id="refresh-btn" onclick="refreshData()" title="刷新数据" style="
+        background:none;border:1px solid var(--border);border-radius:6px;
+        color:var(--text3);cursor:pointer;font-size:13px;padding:4px 8px;
+        transition:all 0.2s;display:flex;align-items:center;gap:4px;
+      " onmouseover="this.style.color='var(--gold)';this.style.borderColor='var(--gold)'"
+         onmouseout="this.style.color='var(--text3)';this.style.borderColor='var(--border)'">
+        🔄 <span class="refresh-label">刷新</span>
+      </button>
       <div class="theme-toggle">
         <div class="theme-btn" data-t="light" onclick="setTheme('light',this)">☀️ 白天</div>
         <div class="theme-btn active" data-t="dark" onclick="setTheme('dark',this)">🌙 黑夜</div>
@@ -890,6 +900,68 @@ window.onload = async () => {
     console.error('Init error:', e);
   }
 };
+
+// ── 数据刷新 ──────────────────────────────────────────────────
+async function refreshData() {
+  const btn = document.getElementById('refresh-btn');
+  btn.disabled = true;
+  btn.innerHTML = '⏳ <span class="refresh-label">刷新中…</span>';
+
+  try {
+    // 清空图片缓存（强制重新拉取）
+    Object.keys(IMG_CACHE).forEach(k => delete IMG_CACHE[k]);
+
+    // 重新拉取皮肤数据
+    RAW = await fetchAllSkins();
+
+    // 重新预加载当前页图片
+    const firstPageIds = RAW.slice(0, 100).flatMap(r => [r.si, r.qi]).filter(Boolean);
+    await preloadImgs(firstPageIds);
+
+    // 重置筛选/翻页状态
+    page = 1;
+    filtered = [...RAW];
+
+    // 重新渲染
+    buildHeroSelect();
+    filterList();
+    renderHeroGrid();
+    renderStats();
+
+    // 更新头部统计数字
+    const total = RAW.length.toLocaleString();
+    const heroes = new Set(RAW.map(r=>r.hero)).size;
+    const skinSet = new Set(RAW.map(r=>r.hero+'|'+r.name)).size;
+    ['hd-total','sb-total'].forEach(id => document.getElementById(id).textContent = total);
+    ['hd-heroes','sb-heroes'].forEach(id => document.getElementById(id).textContent = heroes);
+    ['hd-skins','sb-skins'].forEach(id => document.getElementById(id).textContent = skinSet);
+
+    // 后台静默加载剩余图片
+    preloadImgs(RAW.slice(100).flatMap(r => [r.si, r.qi]).filter(Boolean));
+
+    btn.innerHTML = '✅ <span class="refresh-label">完成</span>';
+    setTimeout(() => {
+      btn.innerHTML = '🔄 <span class="refresh-label">刷新</span>';
+      btn.disabled = false;
+    }, 1500);
+
+  } catch (e) {
+    console.error('Refresh error:', e);
+    btn.innerHTML = '❌ <span class="refresh-label">失败</span>';
+    setTimeout(() => {
+      btn.innerHTML = '🔄 <span class="refresh-label">刷新</span>';
+      btn.disabled = false;
+    }, 2000);
+  }
+}
+
+// 监听后台操作通知（后台保存成功后写入 localStorage，前台自动刷新）
+window.addEventListener('storage', e => {
+  if (e.key === 'skin_db_updated') {
+    console.log('检测到后台数据更新，自动刷新…');
+    refreshData();
+  }
+});
 
 function buildHeroSelect() {
   const heroes = [...new Set(RAW.map(r=>r.hero))].sort();

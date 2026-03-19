@@ -1050,6 +1050,10 @@ function toast(msg, type = 'ok') {
   el.textContent = (type === 'ok' ? '✓ ' : '✕ ') + msg;
   el.className = `toast show ${type}`;
   setTimeout(() => el.className = 'toast', 3000);
+  // 数据变更时通知前台页面自动刷新
+  if (type === 'ok' && (msg.includes('保存') || msg.includes('新增') || msg.includes('删除') || msg.includes('导入') || msg.includes('修改'))) {
+    localStorage.setItem('skin_db_updated', Date.now().toString());
+  }
 }
 function fmtTime(str) {
   if (!str) return '—';
