@@ -1654,18 +1654,15 @@ function renderYearlyChart() {
   const option = {
     backgroundColor: 'transparent',
     tooltip: {
-      trigger: 'axis',
-      axisPointer: { type: 'shadow' },
-      formatter: params => {
-        const year = params[0].axisValue;
-        let html = `<b>${year}年</b><br/>`;
-        let total = 0;
-        params.filter(p=>p.seriesName!=='总计'&&p.value>0).forEach(p => {
-          html += `<span style="display:inline-block;width:10px;height:10px;background:${p.color};border-radius:2px;margin-right:5px"></span>${p.seriesName}: <b>${p.value}</b><br/>`;
-          total += p.value;
-        });
-        html += `<hr style="margin:4px 0;border-color:rgba(255,255,255,0.2)">合计: <b>${total}</b>`;
-        return html;
+      trigger: 'item',
+      formatter: p => {
+        if (!p.value) return '';
+        const year = p.name || p.axisValue;
+        const yearTotal = Q_ORDER.reduce((s,q)=>s+(yearData[year][q]||0),0);
+        return `<b>${year}年</b><br/>
+          <span style="display:inline-block;width:10px;height:10px;background:${p.color};border-radius:2px;margin-right:5px"></span>
+          ${p.seriesName}: <b>${p.value}</b><br/>
+          <span style="color:rgba(255,255,255,0.5);font-size:11px">年度合计: ${yearTotal}</span>`;
       }
     },
     legend: {
@@ -1748,18 +1745,16 @@ function renderMonthlyChart(year) {
   const option = {
     backgroundColor: 'transparent',
     tooltip: {
-      trigger: 'axis',
-      axisPointer: { type: 'shadow' },
-      formatter: params => {
-        const mon = params[0].axisValue;
-        let html = `<b>${year}年${mon}</b><br/>`;
-        let total = 0;
-        params.filter(p=>p.value>0).forEach(p => {
-          html += `<span style="display:inline-block;width:10px;height:10px;background:${p.color};border-radius:2px;margin-right:5px"></span>${p.seriesName}: <b>${p.value}</b><br/>`;
-          total += p.value;
-        });
-        html += `<hr style="margin:4px 0;border-color:rgba(255,255,255,0.2)">合计: <b>${total}</b>`;
-        return html;
+      trigger: 'item',
+      formatter: p => {
+        if (!p.value) return '';
+        const mi = p.dataIndex; // 0-11
+        const mon = months[mi]; // '01'-'12'
+        const monthTotal = Q_ORDER.reduce((s,q)=>s+(monthData[mon][q]||0),0);
+        return `<b>${year}年${parseInt(mon)}月</b><br/>
+          <span style="display:inline-block;width:10px;height:10px;background:${p.color};border-radius:2px;margin-right:5px"></span>
+          ${p.seriesName}: <b>${p.value}</b><br/>
+          <span style="color:rgba(255,255,255,0.5);font-size:11px">月度合计: ${monthTotal}</span>`;
       }
     },
     legend: {
