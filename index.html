@@ -1621,8 +1621,8 @@ function renderYearlyChart() {
   const chart = getChart('chart-yearly');
   if (!chart) return;
 
-  const series = Q_ORDER.map((q, qi) => {
-    const isLast = qi === Q_ORDER.length - 1;
+  // 1. 正常遍历所有品质，不再针对最后一个做特殊覆盖
+  const series = Q_ORDER.map((q) => {
     return {
       name: q,
       type: 'bar',
@@ -1634,21 +1634,30 @@ function renderYearlyChart() {
         formatter: p => p.value > 0 ? p.value : '',
         fontSize: 10,
         color: 'rgba(255,255,255,0.9)',
-        // 最后一个 series 额外在顶部显示堆叠总数
-        ...(isLast ? {
-          position: 'top',
-          formatter: p => {
-            const year = years[p.dataIndex];
-            const total = Q_ORDER.reduce((s,q)=>s+(yearData[year][q]||0),0);
-            return total > 0 ? total : '';
-          },
-          color: 'var(--text2)',
-          fontSize: 11,
-          fontWeight: 'bold',
-        } : {}),
       },
       data: years.map(y => yearData[y][q] || 0),
     };
+  });
+
+  // 2. 额外追加一个“隐藏”系列，利用其堆叠特性在最顶部悬浮显示总计
+  series.push({
+    name: '年度总计',
+    type: 'bar',
+    stack: 'total',
+    tooltip: { show: false }, // 不需要 tooltip
+    label: {
+      show: true,
+      position: 'top',
+      formatter: p => {
+        const year = years[p.dataIndex];
+        const total = Q_ORDER.reduce((s, q) => s + (yearData[year][q] || 0), 0);
+        return total > 0 ? total : '';
+      },
+      color: 'var(--text2)',
+      fontSize: 11,
+      fontWeight: 'bold',
+    },
+    data: years.map(() => 0) // 高度为 0，不影响视觉和原始数据
   });
 
   const option = {
@@ -1741,7 +1750,27 @@ function renderMonthlyChart(year) {
     },
     data: months.map(m => monthData[m][q] || 0),
   }));
-
+  // 追加一个“隐藏”系列，利用其堆叠特性在最顶部显示月度总计
+  series.push({
+    name: '月度总计',
+    type: 'bar',
+    stack: 'total',
+    tooltip: { show: false }, // 不需要 tooltip
+    label: {
+      show: true,
+      position: 'top',
+      formatter: p => {
+        const mi = p.dataIndex; // 0-11 对应月份索引
+        const mon = months[mi]; // '01'-'12'
+        const monthTotal = Q_ORDER.reduce((s, q) => s + (monthData[mon][q] || 0), 0);
+        return monthTotal > 0 ? monthTotal : '';
+      },
+      color: 'var(--text2)',
+      fontSize: 11,
+      fontWeight: 'bold',
+    },
+    data: months.map(() => 0) // 数据为 0，仅作为顶部标签占位
+  });
   const option = {
     backgroundColor: 'transparent',
     tooltip: {
