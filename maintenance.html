@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>维护中 — 王者荣耀皮肤数据库</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@700;900&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --gold:       #c9a84c;
+  --gold-light: #e8c97a;
+  --gold-dark:  #8b6914;
+  --gold-glow:  rgba(201,168,76,0.18);
+  --bg:         #07070e;
+  --bg2:        #0e0e1a;
+  --text:       #e8e0d0;
+  --text2:      #a09880;
+  --text3:      #5a5240;
+  --border:     rgba(201,168,76,0.18);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans SC', sans-serif;
+  overflow: hidden;
+}
+
+/* ── 星空背景 ── */
+.stars {
+  position: fixed; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(201,168,76,0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 30% at 80% 80%, rgba(123,94,167,0.06) 0%, transparent 60%);
+}
+.stars::before, .stars::after {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    radial-gradient(1px 1px at 15% 20%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 35% 45%, rgba(255,255,255,0.3) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 55% 15%, rgba(255,255,255,0.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 72% 60%, rgba(255,255,255,0.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 88% 30%, rgba(255,255,255,0.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 10% 75%, rgba(255,255,255,0.4) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 28% 85%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 65% 90%, rgba(255,255,255,0.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 92% 78%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(2px 2px at 48% 55%, rgba(201,168,76,0.4) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 20% 40%, rgba(201,168,76,0.25) 0%, transparent 100%),
+    radial-gradient(1px 1px at 78% 12%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 5% 55%, rgba(255,255,255,0.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 42% 8%, rgba(255,255,255,0.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 95% 50%, rgba(255,255,255,0.3) 0%, transparent 100%);
+}
+.stars::after {
+  background-image:
+    radial-gradient(1px 1px at 22% 10%, rgba(255,255,255,0.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 60% 35%, rgba(255,255,255,0.35) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 82% 55%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 40% 70%, rgba(255,255,255,0.3) 0%, transparent 100%),
+    radial-gradient(2px 2px at 70% 80%, rgba(201,168,76,0.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 12% 92%, rgba(255,255,255,0.4) 0%, transparent 100%);
+  animation: twinkle 6s ease-in-out infinite alternate;
+}
+@keyframes twinkle {
+  0%   { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+/* ── 装饰线条 ── */
+.deco-line {
+  position: fixed;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  height: 1px;
+  opacity: 0.25;
+}
+.deco-line.top    { top: 0; left: 0; right: 0; }
+.deco-line.bottom { bottom: 0; left: 0; right: 0; }
+
+.deco-line-v {
+  position: fixed;
+  background: linear-gradient(180deg, transparent, var(--gold), transparent);
+  width: 1px;
+  opacity: 0.15;
+  top: 0; bottom: 0;
+}
+.deco-line-v.left  { left: 60px; }
+.deco-line-v.right { right: 60px; }
+
+/* ── 角落装饰 ── */
+.corner {
+  position: fixed;
+  width: 40px; height: 40px;
+  border-color: var(--gold);
+  border-style: solid;
+  opacity: 0.4;
+}
+.corner.tl { top: 20px;    left: 20px;    border-width: 1px 0 0 1px; }
+.corner.tr { top: 20px;    right: 20px;   border-width: 1px 1px 0 0; }
+.corner.bl { bottom: 20px; left: 20px;    border-width: 0 0 1px 1px; }
+.corner.br { bottom: 20px; right: 20px;   border-width: 0 1px 1px 0; }
+
+/* ── 主容器 ── */
+.wrap {
+  position: relative; z-index: 10;
+  height: 100vh;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 24px;
+  gap: 0;
+  animation: fadeUp 1.2s cubic-bezier(.2,.8,.3,1) both;
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── 顶部标记 ── */
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 20px;
+  animation: fadeUp 1.2s 0.1s cubic-bezier(.2,.8,.3,1) both;
+}
+
+/* ── 标题 ── */
+.main-title {
+  font-family: 'Noto Serif SC', serif;
+  font-weight: 900;
+  font-size: clamp(36px, 7vw, 72px);
+  line-height: 1.05;
+  text-align: center;
+  background: linear-gradient(160deg, var(--gold-light) 0%, var(--gold) 40%, var(--gold-dark) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
+  filter: drop-shadow(0 0 30px rgba(201,168,76,0.25));
+  animation: fadeUp 1.2s 0.15s cubic-bezier(.2,.8,.3,1) both;
+}
+
+.sub-title {
+  font-size: clamp(12px, 2vw, 15px);
+  letter-spacing: 3px;
+  color: var(--text3);
+  text-align: center;
+  margin-bottom: 44px;
+  animation: fadeUp 1.2s 0.2s cubic-bezier(.2,.8,.3,1) both;
+}
+
+/* ── 分隔线 ── */
+.divider {
+  display: flex; align-items: center; gap: 14px;
+  width: 100%; max-width: 380px;
+  margin-bottom: 44px;
+  animation: fadeUp 1.2s 0.25s cubic-bezier(.2,.8,.3,1) both;
+}
+.divider-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  opacity: 0.4;
+}
+.divider-diamond {
+  width: 6px; height: 6px;
+  background: var(--gold);
+  transform: rotate(45deg);
+  opacity: 0.7;
+}
+
+/* ── 状态提示 ── */
+.status-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 20px;
+  border: 1px solid var(--border);
+  border-radius: 40px;
+  background: rgba(201,168,76,0.05);
+  font-size: 13px;
+  color: var(--text2);
+  margin-bottom: 44px;
+  animation: fadeUp 1.2s 0.3s cubic-bezier(.2,.8,.3,1) both;
+}
+.status-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--gold);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.7); }
+}
+
+/* ── 倒计时 ── */
+.countdown-wrap {
+  display: flex; gap: clamp(12px, 3vw, 28px);
+  margin-bottom: 44px;
+  animation: fadeUp 1.2s 0.35s cubic-bezier(.2,.8,.3,1) both;
+}
+.countdown-item {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  min-width: clamp(64px, 10vw, 90px);
+}
+.countdown-num {
+  font-family: 'Noto Serif SC', serif;
+  font-weight: 700;
+  font-size: clamp(32px, 6vw, 56px);
+  line-height: 1;
+  color: var(--gold-light);
+  position: relative;
+  width: 100%;
+  text-align: center;
+  background: linear-gradient(180deg, var(--bg2) 0%, var(--bg) 100%);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 8px;
+}
+.countdown-num::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  top: 50%; height: 1px;
+  background: var(--border);
+}
+.countdown-label {
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--text3);
+}
+.countdown-sep {
+  font-family: 'Noto Serif SC', serif;
+  font-size: clamp(28px, 5vw, 44px);
+  color: var(--gold-dark);
+  align-self: flex-start;
+  padding-top: clamp(18px, 3vw, 28px);
+  line-height: 1;
+}
+
+/* ── 说明文字 ── */
+.desc {
+  font-size: 13px;
+  color: var(--text3);
+  text-align: center;
+  line-height: 2;
+  max-width: 360px;
+  animation: fadeUp 1.2s 0.4s cubic-bezier(.2,.8,.3,1) both;
+}
+.desc b {
+  color: var(--gold);
+  font-weight: 500;
+}
+
+/* ── 底部 ── */
+.footer-text {
+  position: fixed;
+  bottom: 32px;
+  left: 0; right: 0;
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--text3);
+  opacity: 0.5;
+}
+
+/* ── 移动端 ── */
+@media (max-width: 480px) {
+  .deco-line-v { display: none; }
+  .desc { font-size: 12px; }
+  .countdown-num { padding: 10px 6px; }
+}
+
+/* ── 倒计时结束状态 ── */
+.finished .main-title {
+  background: linear-gradient(160deg, #e8e0d0 0%, #a09880 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+.finished .status-badge { border-color: rgba(74,191,138,0.3); }
+.finished .status-dot { background: #4abf8a; }
+</style>
+</head>
+<body>
+
+<!-- 背景装饰 -->
+<div class="stars"></div>
+<div class="deco-line top"></div>
+<div class="deco-line bottom"></div>
+<div class="deco-line-v left"></div>
+<div class="deco-line-v right"></div>
+<div class="corner tl"></div>
+<div class="corner tr"></div>
+<div class="corner bl"></div>
+<div class="corner br"></div>
+
+<div class="wrap" id="wrap">
+  <div class="eyebrow">Honor of Kings · Skin Database</div>
+
+  <h1 class="main-title">王者荣耀<br>皮肤数据库</h1>
+  <div class="sub-title">MAINTENANCE IN PROGRESS</div>
+
+  <div class="divider">
+    <div class="divider-line"></div>
+    <div class="divider-diamond"></div>
+    <div class="divider-line"></div>
+  </div>
+
+  <div class="status-badge">
+    <div class="status-dot"></div>
+    <span id="status-text">系统维护中，预计 4 月 16 日恢复</span>
+  </div>
+
+  <div class="countdown-wrap" id="countdown-wrap">
+    <div class="countdown-item">
+      <div class="countdown-num" id="cd-d">--</div>
+      <div class="countdown-label">天</div>
+    </div>
+    <div class="countdown-sep">:</div>
+    <div class="countdown-item">
+      <div class="countdown-num" id="cd-h">--</div>
+      <div class="countdown-label">时</div>
+    </div>
+    <div class="countdown-sep">:</div>
+    <div class="countdown-item">
+      <div class="countdown-num" id="cd-m">--</div>
+      <div class="countdown-label">分</div>
+    </div>
+    <div class="countdown-sep">:</div>
+    <div class="countdown-item">
+      <div class="countdown-num" id="cd-s">--</div>
+      <div class="countdown-label">秒</div>
+    </div>
+  </div>
+
+  <p class="desc">
+    我们正在对数据库进行升级维护<br>
+    预计于 <b>2026 年 4 月 16 日</b> 恢复服务<br>
+    感谢你的耐心等待 ⚔
+  </p>
+</div>
+
+<div class="footer-text">© 王者荣耀皮肤数据库</div>
+
+<script>
+// 目标时间：2026-04-16 00:00:00 (本地时间)
+const TARGET = new Date('2026-04-16T00:00:00');
+
+function pad(n) { return String(n).padStart(2, '0'); }
+
+function tick() {
+  const now  = new Date();
+  const diff = TARGET - now;
+
+  if (diff <= 0) {
+    document.getElementById('cd-d').textContent = '00';
+    document.getElementById('cd-h').textContent = '00';
+    document.getElementById('cd-m').textContent = '00';
+    document.getElementById('cd-s').textContent = '00';
+    document.getElementById('status-text').textContent = '维护即将结束，请稍候刷新';
+    document.getElementById('wrap').classList.add('finished');
+    return;
+  }
+
+  const totalSecs = Math.floor(diff / 1000);
+  const d = Math.floor(totalSecs / 86400);
+  const h = Math.floor((totalSecs % 86400) / 3600);
+  const m = Math.floor((totalSecs % 3600) / 60);
+  const s = totalSecs % 60;
+
+  document.getElementById('cd-d').textContent = pad(d);
+  document.getElementById('cd-h').textContent = pad(h);
+  document.getElementById('cd-m').textContent = pad(m);
+  document.getElementById('cd-s').textContent = pad(s);
+}
+
+tick();
+setInterval(tick, 1000);
+</script>
+</body>
+</html>
