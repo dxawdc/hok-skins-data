@@ -11,7 +11,9 @@
     }
   ],
   "routes": [
-    { "src": "/api/(.*)", "continue": true },
-    { "src": "/(.*)",     "dest": "/maintenance.html" }
+    { "src": "/api/admin(.*)", "dest": "/api/admin.js" },
+    { "src": "/admin",         "dest": "/admin.html" },
+    { "src": "/",              "dest": "/index.html" },
+    { "src": "/(.*)",          "dest": "/index.html" }
   ]
 }
