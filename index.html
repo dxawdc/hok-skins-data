@@ -804,7 +804,7 @@ async function fetchAllSkins() {
   let all = [], offset = 0;
   while (true) {
     const rows = await sbFetch('skins', {}, {
-      select: 'date,name,quality,tag,hero,job,price,obtain,type,permanent,skin_img_id,tag_img_id',
+      select: 'date,name,quality,tag,hero,job,price,obtain,type,permanent,skin_img_url,tag_img_url',
       order:  'date.desc',
       limit:  BATCH,
       offset: offset,
@@ -824,63 +824,23 @@ async function fetchAllSkins() {
     obtain:    r.obtain   || '',
     type:      r.type,
     permanent: r.permanent || '否',
-    si:        r.skin_img_id || '',
-    qi:        r.tag_img_id  || '',
+    si:        r.skin_img_url || '',
+    qi:        r.tag_img_url  || '',
   }));
 }
 
-// ── 图片缓存（按需加载）──────────────────────────────────────
-const IMG_CACHE = {};
-async function fetchImg(imgId) {
-  if (!imgId) return null;
-  if (IMG_CACHE[imgId] !== undefined) return IMG_CACHE[imgId];
-  IMG_CACHE[imgId] = null;
-  try {
-    const rows = await sbFetch('images',
-      { img_id: `eq.${imgId}` },
-      { select: 'data,mime_type', limit: 1 }
-    );
-    if (rows.length) {
-      IMG_CACHE[imgId] = `data:${rows[0].mime_type};base64,${rows[0].data}`;
-    }
-  } catch {}
-  return IMG_CACHE[imgId];
-}
+// ── 图片直接用 URL（Supabase Storage CDN）──────────────────
+// si / qi 字段现在直接是 https://... 公开 URL，无需缓存或预加载
 
-// ── 批量预加载图片 ────────────────────────────────────────────
-async function preloadImgs(imgIds) {
-  const toLoad = [...new Set(imgIds)].filter(id => id && IMG_CACHE[id] === undefined);
-  if (!toLoad.length) return;
-  toLoad.forEach(id => IMG_CACHE[id] = null);
-  const BATCH = 50;
-  for (let i = 0; i < toLoad.length; i += BATCH) {
-    const batch = toLoad.slice(i, i + BATCH);
-    try {
-      // Supabase in() 过滤格式：img_id=in.(id1,id2,id3)
-      const rows = await sbFetch('images',
-        { img_id: `in.(${batch.join(',')})` },
-        { select: 'img_id,data,mime_type', limit: BATCH }
-      );
-      rows.forEach(r => {
-        IMG_CACHE[r.img_id] = `data:${r.mime_type};base64,${r.data}`;
-      });
-    } catch (e) {
-      console.warn('preloadImgs batch failed:', e);
-    }
-  }
+function getQualityImg(qi) {
+  return qi || null;
+}
+function getSkinImg(si) {
+  return si || null;
 }
 
 // ── 全局数据（异步加载后填充）────────────────────────────────
 let RAW = [];
-
-function getQualityImg(qi) {
-  if (!qi) return null;
-  return IMG_CACHE[qi] || null;
-}
-function getSkinImg(si) {
-  if (!si) return null;
-  return IMG_CACHE[si] || null;
-}
 
 // ── 加载进度更新 ──────────────────────────────────────────────
 function setLoadingText(text) {
@@ -914,16 +874,11 @@ window.onload = async () => {
   document.querySelectorAll('.theme-btn').forEach(b => b.classList.toggle('active', b.dataset.t === savedTheme));
 
   try {
-    // 1. 拉取皮肤数据
+    // 拉取皮肤数据（图片 URL 直接包含在数据里，无需额外加载）
     setLoadingText('加载皮肤数据…');
     RAW = await fetchAllSkins();
 
-    // 2. 预加载第一页可见的图片（皮肤图 + 标签图）
-    setLoadingText('加载图片资源…');
-    const firstPageIds = RAW.slice(0, 100).flatMap(r => [r.si, r.qi]).filter(Boolean);
-    await preloadImgs(firstPageIds);
-
-    // 3. 初始化 UI
+    // 初始化 UI
     setLoadingText('渲染页面…');
     buildHeroSelect();
     filterList();
@@ -943,10 +898,6 @@ window.onload = async () => {
     document.getElementById('loading').style.display = 'none';
     document.getElementById('app').style.display = 'block';
 
-    // 4. 后台静默预加载剩余图片
-    const remainIds = RAW.slice(100).flatMap(r => [r.si, r.qi]).filter(Boolean);
-    preloadImgs(remainIds); // 不 await，后台静默加载
-
   } catch (e) {
     setLoadingText('加载失败，请刷新重试');
     console.error('Init error:', e);
@@ -960,15 +911,8 @@ async function refreshData() {
   btn.innerHTML = '⏳ <span class="refresh-label">刷新中…</span>';
 
   try {
-    // 清空图片缓存（强制重新拉取）
-    Object.keys(IMG_CACHE).forEach(k => delete IMG_CACHE[k]);
-
     // 重新拉取皮肤数据
     RAW = await fetchAllSkins();
-
-    // 重新预加载当前页图片
-    const firstPageIds = RAW.slice(0, 100).flatMap(r => [r.si, r.qi]).filter(Boolean);
-    await preloadImgs(firstPageIds);
 
     // 重置筛选/翻页状态
     page = 1;
@@ -988,9 +932,7 @@ async function refreshData() {
     ['hd-heroes','sb-heroes'].forEach(id => document.getElementById(id).textContent = heroes);
     ['hd-skins','sb-skins'].forEach(id => document.getElementById(id).textContent = skinSet);
 
-    // 后台静默加载剩余图片
-    preloadImgs(RAW.slice(100).flatMap(r => [r.si, r.qi]).filter(Boolean));
-
+    // 后台静默加载剩余图片（已改为 Storage URL，浏览器自动处理）
     btn.innerHTML = '✅ <span class="refresh-label">完成</span>';
     setTimeout(() => {
       btn.innerHTML = '🔄 <span class="refresh-label">刷新</span>';
@@ -1085,9 +1027,8 @@ function sortData() {
 }
 
 function thumbHtml(si, quality) {
-  const src = getSkinImg(si);
-  if (src) return `<img class="thumb-img" src="${src}" loading="lazy" alt="" data-si="${si}">`;
-  return `<div class="thumb-placeholder" data-si="${si}">${qualityEmoji(quality)}</div>`;
+  if (si) return `<img class="thumb-img" src="${si}" loading="lazy" alt="">`;
+  return `<div class="thumb-placeholder">${qualityEmoji(quality)}</div>`;
 }
 // qi字段实为皮肤标签图片
 function tagImgHtml(qi, tag, quality) {
@@ -1158,46 +1099,6 @@ function renderTable() {
 
   document.getElementById('pg-info').textContent = `共 ${total} 条 · 第 ${start+1}–${end} 条`;
 
-  // 预加载当前页图片，加载完后整体重新渲染卡片（避免局部 DOM 替换导致布局错乱）
-  const visibleIds = rows.flatMap(r => [r.si, r.qi]).filter(Boolean);
-  preloadImgs(visibleIds).then(() => {
-    // 刷新桌面缩略图
-    rows.forEach(r => {
-      if (r.si && IMG_CACHE[r.si]) {
-        document.querySelectorAll(`.thumb-img[data-si="${r.si}"]`).forEach(img => { img.src = IMG_CACHE[r.si]; });
-      }
-    });
-    // 手机端：图片加载完后重渲染整个卡片列表
-    if (isMobile()) {
-      document.getElementById('mobile-list').innerHTML = rows.map(r => {
-        const thumbSrc = getSkinImg(r.si);
-        const tagSrc   = getQualityImg(r.qi);
-        return `<div class="mobile-skin-card" onclick="goSkinDetail('${esc(r.hero)}','${esc(r.name)}')">
-          <div class="mobile-skin-thumb">
-            ${thumbSrc ? `<img src="${thumbSrc}" loading="lazy" alt="">` : qualityEmoji(r.quality)}
-          </div>
-          <div class="mobile-skin-info">
-            <div class="mobile-skin-name">${r.name}</div>
-            <div class="mobile-skin-meta">
-              <span class="mobile-skin-hero">${r.hero}</span>
-              <span class="mobile-skin-date">${r.date}</span>
-            </div>
-            <div class="mobile-skin-meta" style="margin-top:3px">
-              ${tagSrc
-                ? `<img src="${tagSrc}" style="height:16px;object-fit:contain;image-rendering:pixelated" alt="${r.tag}">`
-                : `<span style="font-size:11px;color:var(--text3)">${r.tag}</span>`}
-              ${r.obtain ? `<span style="font-size:11px;color:var(--text3)">· ${r.obtain}</span>` : ''}
-            </div>
-          </div>
-          <div class="mobile-skin-right">
-            <span class="badge badge-${r.quality}" style="font-size:11px">${r.quality}</span>
-            <span class="badge badge-${r.type}" style="font-size:11px">${r.type}</span>
-          </div>
-        </div>`;
-      }).join('');
-    }
-  });
-
   const totalPages = Math.ceil(total/PAGE_SIZE);
   const pgs = document.getElementById('pg-btns');
   let btns = `<button class="pg-btn" onclick="goPage(${page-1})" ${page<=1?'disabled':''}>‹</button>`;
@@ -1231,7 +1132,7 @@ function buildHeroMap() {
     const key = r.name;
     if (!m[r.hero].skins.has(key)) m[r.hero].skins.set(key, { name:r.name, quality:r.quality, tag:r.tag, si:r.si, qi:r.qi, records:[] });
     m[r.hero].skins.get(key).records.push(r);
-    // Update si/qi if available
+    // 保留非空 URL
     if (r.si) m[r.hero].skins.get(key).si = r.si;
     if (r.qi) m[r.hero].skins.get(key).qi = r.qi;
   });
@@ -1303,7 +1204,7 @@ function openHeroDetail(hero) {
       ${skins.map(s => {
         const firstRec = s.records.find(r=>r.type==='首发') || s.records[0];
         const returnCount = s.records.filter(r=>r.type==='返场').length;
-        const skinImgSrc = getSkinImg(s.si);
+        const skinImgSrc = s.si || null;
         return `<div class="skin-card" onclick="openSkinDetail('${esc(hero)}','${esc(s.name)}')">
           <div class="skin-card-img">
             ${skinImgSrc
@@ -1342,8 +1243,8 @@ function openSkinDetail(hero, skinName) {
   const first = records.find(r=>r.type==='首发') || records[0];
   const returns = records.filter(r=>r.type==='返场').sort((a,b)=>a.date>b.date?1:-1);
   const latestReturn = returns.length ? returns[returns.length-1] : null;
-  const skinImgSrc = getSkinImg(first.si) || getSkinImg(records.find(r=>r.si)?.si);
-  const qImgSrc = getQualityImg(first.qi) || getQualityImg(records.find(r=>r.qi)?.qi);
+  const skinImgSrc = first.si || records.find(r=>r.si)?.si || null;
+  const qImgSrc = first.qi || records.find(r=>r.qi)?.qi || null;
   const wrap = document.getElementById('hero-detail-wrap');
   wrap.style.display='block';
   wrap.innerHTML = `
@@ -1368,8 +1269,8 @@ function openSkinDetail(hero, skinName) {
                 <span class="badge badge-${first.quality}">${first.quality}</span>
               </div></div>
               <div class="attr-item"><label>皮肤标签</label><div class="val" style="display:flex;align-items:center;gap:6px">
-                ${getQualityImg(first.qi)||getQualityImg(records.find(r=>r.qi)?.qi)
-                  ? `<img src="${getQualityImg(first.qi)||getQualityImg(records.find(r=>r.qi)?.qi)}" style="height:20px;object-fit:contain;image-rendering:pixelated" alt="${first.tag}">`
+                ${(first.qi || records.find(r=>r.qi)?.qi)
+                  ? `<img src="${first.qi || records.find(r=>r.qi)?.qi}" style="height:20px;object-fit:contain;image-rendering:pixelated" alt="${first.tag}">`
                   : ''}
                 <span style="font-size:12px;color:var(--text2)">${first.tag}</span>
               </div></div>
@@ -1960,8 +1861,8 @@ function selectQuality(q) {
       </div>
       <div class="quality-skin-list">
         ${skins.map(s => {
-          const imgSrc = getSkinImg(s.si);
-          const tagSrc = getQualityImg(s.qi);
+          const imgSrc = s.si || null;
+          const tagSrc = s.qi || null;
           return `<div class="skin-card" onclick="goSkinDetail('${esc(s.hero)}','${esc(s.name)}')">
             <div class="skin-card-img">
               ${imgSrc ? `<img class="skin-thumb" src="${imgSrc}" loading="lazy" alt="${s.name}">` : `<div class="img-ph">${qualityEmoji(s.quality)}</div>`}
@@ -2037,7 +1938,7 @@ function renderRankingPage() {
   const skinCellHtml = (skin) => {
     if (!skin) return `<td class="ranking-empty-td"><span class="ranking-empty-cell">—</span></td>`;
     const firstRec = skin.records.find(r=>r.type==='首发') || skin.records[0];
-    const imgSrc = getSkinImg(skin.si);
+    const imgSrc = skin.si || null;
     return `<td class="ranking-skin-td">
       <div class="ranking-skin-cell" onclick="goSkinDetail('${esc(skin.hero||'')}','${esc(skin.name)}')">
         <div class="ranking-skin-thumb">

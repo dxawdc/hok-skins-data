@@ -592,8 +592,8 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
     </div>
 
     <input type="hidden" id="es-id">
-    <input type="hidden" id="es-skin-img-id">
-    <input type="hidden" id="es-tag-img-id">
+    <input type="hidden" id="es-skin-img-url">
+    <input type="hidden" id="es-tag-img-url">
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal()">取消</button>
       <button class="btn btn-primary" id="es-save-btn" onclick="doSaveSkin()">保存</button>
@@ -736,8 +736,8 @@ let pendingTagImgB64  = null;  // 待上传的标签图片 base64
 
 function resetSkinModal() {
   document.getElementById('es-id').value = '';
-  document.getElementById('es-skin-img-id').value = '';
-  document.getElementById('es-tag-img-id').value = '';
+  document.getElementById('es-skin-img-url').value = '';
+  document.getElementById('es-tag-img-url').value = '';
   document.getElementById('es-date').value = '';
   document.getElementById('es-name').value = '';
   document.getElementById('es-hero').value = '';
@@ -771,9 +771,22 @@ function openEditSkin(s) {
   resetSkinModal();
   document.getElementById('modal-skin-title').textContent = '编辑皮肤记录';
   document.getElementById('es-save-btn').textContent = '保存';
-  document.getElementById('es-id').value        = s.id;
-  document.getElementById('es-skin-img-id').value = s.skin_img_id || '';
-  document.getElementById('es-tag-img-id').value  = s.tag_img_id  || '';
+  document.getElementById('es-id').value          = s.id;
+  document.getElementById('es-skin-img-url').value = s.skin_img_url || '';
+  document.getElementById('es-tag-img-url').value  = s.tag_img_url  || '';
+  // 如果已有图片 URL，显示预览
+  if (s.skin_img_url) {
+    document.getElementById('skin-img-preview').src = s.skin_img_url;
+    document.getElementById('skin-img-preview').style.display = 'block';
+    document.getElementById('skin-img-placeholder').style.display = 'none';
+    document.getElementById('skin-img-box').classList.add('has-img');
+  }
+  if (s.tag_img_url) {
+    document.getElementById('tag-img-preview').src = s.tag_img_url;
+    document.getElementById('tag-img-preview').style.display = 'block';
+    document.getElementById('tag-img-placeholder').style.display = 'none';
+    document.getElementById('tag-img-box').classList.add('has-img');
+  }
   document.getElementById('es-date').value      = s.date;
   document.getElementById('es-name').value      = s.name;
   document.getElementById('es-hero').value      = s.hero;
@@ -804,7 +817,7 @@ function previewImg(type) {
   reader.readAsDataURL(file);
 }
 
-// 上传图片到后端，返回 img_id
+// 上传图片到 Storage，返回公开 URL
 async function uploadImg(b64, imgType) {
   if (!b64) return null;
   // 生成唯一 ID（时间戳+随机）
@@ -814,7 +827,8 @@ async function uploadImg(b64, imgType) {
   const mime = meta.match(/:(.*?);/)[1];
   const res = await api('POST', '/images', { img_id: imgId, img_type: imgType, data, mime_type: mime });
   if (res.error) { toast('图片上传失败：' + res.error, 'err'); return null; }
-  return imgId;
+  // 新接口返回 { img_id, url }，直接取 URL
+  return res.url || null;
 }
 
 async function doSaveSkin() {
@@ -826,25 +840,25 @@ async function doSaveSkin() {
   btn.textContent = '保存中…';
 
   try {
-    // 上传新图片（如果有）
-    let skinImgId = document.getElementById('es-skin-img-id').value;
-    let tagImgId  = document.getElementById('es-tag-img-id').value;
-    if (pendingSkinImgB64) skinImgId = await uploadImg(pendingSkinImgB64, 'skin') || skinImgId;
-    if (pendingTagImgB64)  tagImgId  = await uploadImg(pendingTagImgB64,  'tag')  || tagImgId;
+    // 上传新图片（如果有），获取 Storage URL
+    let skinImgUrl = document.getElementById('es-skin-img-url').value;
+    let tagImgUrl  = document.getElementById('es-tag-img-url').value;
+    if (pendingSkinImgB64) skinImgUrl = await uploadImg(pendingSkinImgB64, 'skin') || skinImgUrl;
+    if (pendingTagImgB64)  tagImgUrl  = await uploadImg(pendingTagImgB64,  'tag')  || tagImgUrl;
 
     const data = {
-      date:        document.getElementById('es-date').value,
-      name:        document.getElementById('es-name').value.trim(),
-      hero:        document.getElementById('es-hero').value.trim(),
-      quality:     document.getElementById('es-quality').value,
-      tag:         document.getElementById('es-tag').value.trim(),
-      price:       document.getElementById('es-price').value.trim(),
-      obtain:      document.getElementById('es-obtain').value.trim(),
-      job:         document.getElementById('es-job').value.trim(),
-      type:        document.getElementById('es-type').value,
-      permanent:   document.getElementById('es-permanent').value,
-      skin_img_id: skinImgId,
-      tag_img_id:  tagImgId,
+      date:         document.getElementById('es-date').value,
+      name:         document.getElementById('es-name').value.trim(),
+      hero:         document.getElementById('es-hero').value.trim(),
+      quality:      document.getElementById('es-quality').value,
+      tag:          document.getElementById('es-tag').value.trim(),
+      price:        document.getElementById('es-price').value.trim(),
+      obtain:       document.getElementById('es-obtain').value.trim(),
+      job:          document.getElementById('es-job').value.trim(),
+      type:         document.getElementById('es-type').value,
+      permanent:    document.getElementById('es-permanent').value,
+      skin_img_url: skinImgUrl,
+      tag_img_url:  tagImgUrl,
     };
 
     if (!data.date || !data.name || !data.hero) {
