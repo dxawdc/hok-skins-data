@@ -8,18 +8,14 @@ const SUPABASE_URL = process.env.SUPABASE_URL        || '';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || '';
 const JWT_SECRET   = process.env.JWT_SECRET           || 'change-me';
 
+// Storage bucket 名称，需在 Supabase 控制台提前创建并设为 Public
+const BUCKET = 'skin-images';
+
 function getClient() {
   return createClient(SUPABASE_URL, SUPABASE_KEY);
 }
 
 // ── CORS ──────────────────────────────────────────────────────
-const CORS = {
-  'Access-Control-Allow-Origin':  '*',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Content-Type': 'application/json',
-};
-
 function ok(data, status = 200) {
   return { statusCode: status, body: JSON.stringify(data) };
 }
@@ -66,12 +62,10 @@ async function log(client, operator, action, targetId, detail) {
 
 // ── 入口 ─────────────────────────────────────────────────────
 module.exports = async function handler(req, res) {
-  // CORS — 必须在所有响应上设置，包括 OPTIONS 预检
   res.setHeader('Access-Control-Allow-Origin',  '*');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
 
-  // OPTIONS 预检：直接返回 204 No Content（比 200 更标准）
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
     res.end();
@@ -90,36 +84,20 @@ module.exports = async function handler(req, res) {
     res.status(r.statusCode).end(r.body);
   };
 
-  // 登录
-  if (path.endsWith('/login')  && m === 'POST')   return send(await doLogin(body));
-  // 当前用户
-  if (path.endsWith('/me')     && m === 'GET')  {
-    const [u,e] = requireAuth(h); if (e) return send(e);
-    return send(ok({ user: u }));
-  }
-  // 用户列表 / 新建用户
-  if (path.endsWith('/users')  && m === 'GET')  { const [u,e]=requireAdmin(h); if(e) return send(e); return send(await listUsers()); }
-  if (path.endsWith('/users')  && m === 'POST') { const [u,e]=requireAdmin(h); if(e) return send(e); return send(await createUser(body,u)); }
-  // 删除用户
-  if (/\/users\/\d+$/.test(path) && m === 'DELETE') {
-    const [u,e]=requireAdmin(h); if(e) return send(e);
-    return send(await deleteUser(path.split('/').pop(), u));
-  }
-  // 皮肤列表
+  if (path.endsWith('/login')        && m === 'POST')   return send(await doLogin(body));
+  if (path.endsWith('/me')           && m === 'GET')    { const [u,e]=requireAuth(h); if(e) return send(e); return send(ok({ user: u })); }
+  if (path.endsWith('/users')        && m === 'GET')    { const [u,e]=requireAdmin(h); if(e) return send(e); return send(await listUsers()); }
+  if (path.endsWith('/users')        && m === 'POST')   { const [u,e]=requireAdmin(h); if(e) return send(e); return send(await createUser(body,u)); }
+  if (/\/users\/\d+$/.test(path)     && m === 'DELETE') { const [u,e]=requireAdmin(h); if(e) return send(e); return send(await deleteUser(path.split('/').pop(),u)); }
   if (path.endsWith('/skins')        && m === 'GET')    { const [u,e]=requireAuth(h); if(e) return send(e); return send(await listSkins(qs)); }
-  // 新增皮肤
   if (path.endsWith('/skins')        && m === 'POST')   { const [u,e]=requireAuth(h); if(e) return send(e); return send(await insertSkin(body,u)); }
-  // 更新皮肤
   if (/\/skins\/\d+$/.test(path)     && m === 'PUT')    { const [u,e]=requireAuth(h); if(e) return send(e); return send(await updateSkin(path.split('/').pop(),body,u)); }
-  // 删除皮肤
   if (/\/skins\/\d+$/.test(path)     && m === 'DELETE') { const [u,e]=requireAuth(h); if(e) return send(e); return send(await deleteSkin(path.split('/').pop(),u)); }
-  // 批量更新
   if (path.endsWith('/batch-update') && m === 'POST')   { const [u,e]=requireAuth(h); if(e) return send(e); return send(await batchUpdate(body,u)); }
-  // 上传图片
   if (path.endsWith('/images')       && m === 'POST')   { const [u,e]=requireAuth(h); if(e) return send(e); return send(await uploadImage(body,u)); }
-  // Excel 导入
+  // 【新增】删除 Storage 图片
+  if (path.endsWith('/images')       && m === 'DELETE') { const [u,e]=requireAuth(h); if(e) return send(e); return send(await deleteImage(body,u)); }
   if (path.endsWith('/import')       && m === 'POST')   { const [u,e]=requireAuth(h); if(e) return send(e); return send(await doImport(body,u)); }
-  // 日志
   if (path.endsWith('/logs')         && m === 'GET')    { const [u,e]=requireAuth(h); if(e) return send(e); return send(await listLogs(qs)); }
 
   return send(fail('接口不存在', 404));
@@ -131,7 +109,6 @@ async function doLogin({ username, password }) {
   const client = getClient();
   const { data, error } = await client.from('admin_users').select('*').eq('username', username).maybeSingle();
   if (error || !data) return fail('用户名或密码错误', 401);
-  // pgcrypto 生成 $2a$，bcryptjs 期望 $2b$，算法相同转换前缀即可兼容
   const hashForCompare = data.password_hash.replace(/^\$2a\$/, "$2b$");
   const match = await bcrypt.compare(String(password), hashForCompare);
   if (!match) return fail('用户名或密码错误', 401);
@@ -182,8 +159,10 @@ async function listSkins(params) {
   if (error) return fail(error.message);
   return ok({ skins: data || [], total: count || 0, page, per_page: perPage });
 }
+
 async function updateSkin(id, updates, user) {
-  const ALLOWED = new Set(['date','name','quality','tag','hero','job','price','obtain','type','permanent','skin_img_id','tag_img_id']);
+  // 【改动】白名单从 skin_img_id/tag_img_id 改为 skin_img_url/tag_img_url
+  const ALLOWED = new Set(['date','name','quality','tag','hero','job','price','obtain','type','permanent','skin_img_url','tag_img_url']);
   const clean = Object.fromEntries(Object.entries(updates).filter(([k]) => ALLOWED.has(k)));
   if (!Object.keys(clean).length) return fail('没有可更新的字段');
   const client = getClient();
@@ -196,6 +175,7 @@ async function updateSkin(id, updates, user) {
   });
   return ok({ skin: data });
 }
+
 async function deleteSkin(id, user) {
   const client = getClient();
   const { data: before } = await client.from('skins').select('*').eq('id', id).maybeSingle();
@@ -203,6 +183,7 @@ async function deleteSkin(id, user) {
   await log(client, user.username, 'delete', parseInt(id), { deleted: before });
   return ok({ ok: true });
 }
+
 async function batchUpdate({ ids, updates }, user) {
   if (!ids?.length || !updates) return fail('请提供 ids 和 updates');
   const ALLOWED = new Set(['quality','tag','hero','job','price','obtain','type','permanent']);
@@ -217,7 +198,8 @@ async function batchUpdate({ ids, updates }, user) {
 
 // ── 新增皮肤 ─────────────────────────────────────────────────
 async function insertSkin(data, user) {
-  const ALLOWED = new Set(['date','name','quality','tag','hero','job','price','obtain','type','permanent','skin_img_id','tag_img_id']);
+  // 【改动】白名单从 skin_img_id/tag_img_id 改为 skin_img_url/tag_img_url
+  const ALLOWED = new Set(['date','name','quality','tag','hero','job','price','obtain','type','permanent','skin_img_url','tag_img_url']);
   const clean = Object.fromEntries(Object.entries(data||{}).filter(([k]) => ALLOWED.has(k)));
   if (!clean.date || !clean.name || !clean.hero) return fail('日期、皮肤名称、归属英雄为必填项');
   const client = getClient();
@@ -227,15 +209,53 @@ async function insertSkin(data, user) {
   return ok({ skin: inserted });
 }
 
-// ── 上传图片 ─────────────────────────────────────────────────
+// ── 上传图片（改为 Supabase Storage）────────────────────────
 async function uploadImage({ img_id, img_type, data, mime_type }, user) {
   if (!img_id || !data || !mime_type) return fail('缺少必要字段');
   if (!['skin','tag'].includes(img_type)) return fail('img_type 只能是 skin 或 tag');
+
   const client = getClient();
-  const { error } = await client.from('images')
-    .upsert({ img_id, img_type, data, mime_type }, { onConflict: 'img_id' });
-  if (error) return fail(error.message);
-  return ok({ img_id });
+
+  // base64 → Buffer
+  const buffer = Buffer.from(data, 'base64');
+
+  // 文件扩展名
+  const ext = mime_type.split('/')[1]?.replace('jpeg','jpg') || 'png';
+  // Storage 路径：skin/abc123.png 或 tag/abc123.png
+  const storagePath = `${img_type}/${img_id}.${ext}`;
+
+  // 上传到 Supabase Storage（upsert 模式，重复上传覆盖）
+  const { error: uploadError } = await client.storage
+    .from(BUCKET)
+    .upload(storagePath, buffer, {
+      contentType: mime_type,
+      upsert: true,
+    });
+
+  if (uploadError) return fail('Storage 上传失败：' + uploadError.message);
+
+  // 获取永久公开 URL（无需鉴权，CDN 直接访问）
+  const { data: urlData } = client.storage
+    .from(BUCKET)
+    .getPublicUrl(storagePath);
+
+  const publicUrl = urlData.publicUrl;
+
+  await log(client, user.username, 'upload_image', null, { img_id, img_type, url: publicUrl });
+
+  // 返回 img_id 和公开 URL，前端拿到 URL 后存入对应皮肤记录
+  return ok({ img_id, url: publicUrl });
+}
+
+// ── 删除 Storage 图片 ────────────────────────────────────────
+async function deleteImage({ img_id, img_type, ext = 'png' }, user) {
+  if (!img_id || !img_type) return fail('缺少 img_id 或 img_type');
+  const client = getClient();
+  const storagePath = `${img_type}/${img_id}.${ext}`;
+  const { error } = await client.storage.from(BUCKET).remove([storagePath]);
+  if (error) return fail('删除失败：' + error.message);
+  await log(client, user.username, 'delete_image', null, { img_id, img_type });
+  return ok({ ok: true });
 }
 
 // ── 日志 ─────────────────────────────────────────────────────
@@ -289,21 +309,21 @@ function parseExcel(buf) {
     if (v instanceof Date) return v.toISOString().slice(0, 10);
     return String(v).slice(0, 10);
   };
-  const extractId = v => { const m = String(v||'').match(/ID_([A-Fa-f0-9]+)/); return m ? m[1] : ''; };
   const safe = (v, d='') => { const s = String(v??'').trim(); return ['undefined','null','nan'].includes(s.toLowerCase()) ? d : s; };
 
+  // 【改动】Excel 导入直接读取 URL 列，不再解析 img_id
   return rows.map(r => ({
-    date:        fmtDate(r['日期']),
-    name:        safe(r['皮肤名称']),
-    quality:     safe(r['皮肤品质']),
-    tag:         safe(r['皮肤标签']),
-    hero:        safe(r['归属英雄']),
-    job:         safe(r['英雄职业']),
-    price:       safe(r['价格']),
-    obtain:      safe(r['获取方式']),
-    type:        safe(r['首发or返场']),
-    permanent:   safe(r['是否常驻'], '否'),
-    skin_img_id: extractId(r['皮肤图片']),
-    tag_img_id:  extractId(r['皮肤品质图片']),
+    date:         fmtDate(r['日期']),
+    name:         safe(r['皮肤名称']),
+    quality:      safe(r['皮肤品质']),
+    tag:          safe(r['皮肤标签']),
+    hero:         safe(r['归属英雄']),
+    job:          safe(r['英雄职业']),
+    price:        safe(r['价格']),
+    obtain:       safe(r['获取方式']),
+    type:         safe(r['首发or返场']),
+    permanent:    safe(r['是否常驻'], '否'),
+    skin_img_url: safe(r['皮肤图片URL']),   // 改为直接存 URL
+    tag_img_url:  safe(r['标签图片URL']),   // 改为直接存 URL
   })).filter(r => r.name && r.hero && r.date);
 }
