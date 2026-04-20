@@ -857,14 +857,30 @@ async function fetchAllSkins() {
   return result;
 }
 
-// ── 图片 URL 工具：Supabase Image Transform（缩略图压缩）──
-// 将 /object/public/ 替换为 /render/image/public/ 并附加压缩参数
-// 详情大图不走此函数，保留原始 URL
+// ── 图片 URL 工具 ────────────────────────────────────────────
+// 缩略图：走 skinsdata.top/img/* CDN 代理 + Supabase Transform 压缩
+// 详情大图：也走 CDN 代理，但不加压缩参数（保留原图质量）
+const CDN_BASE    = 'https://skinsdata.top/img';
+const STORAGE_PREFIX = 'https://erphrsydujqrcvtpdtnf.supabase.co/storage/v1/object/public/skin-images';
+
+// 把 Supabase Storage URL 转成 CDN 代理 URL
+// 例：.../object/public/skin-images/skin/abc.png → skinsdata.top/img/skin/abc.png
+function toCdnUrl(url) {
+  if (!url) return null;
+  if (url.startsWith(CDN_BASE)) return url; // 已经是 CDN URL
+  return url.replace(STORAGE_PREFIX, CDN_BASE);
+}
+
+// 缩略图：CDN 代理 + Supabase Transform 压缩参数
 function thumbUrl(url, width, quality = 70) {
   if (!url) return null;
-  if (url.includes('/render/image/public/')) return url;
-  const transformed = url.replace('/object/public/', '/render/image/public/');
-  return `${transformed}?width=${width}&height=${width}&quality=${quality}&resize=contain`;
+  const cdnUrl = toCdnUrl(url);
+  return `${cdnUrl}?width=${width}&height=${width}&quality=${quality}&resize=contain`;
+}
+
+// 详情大图：只走 CDN，不压缩
+function fullUrl(url) {
+  return toCdnUrl(url);
 }
 
 function getQualityImg(qi, width = 120) {
@@ -1283,7 +1299,7 @@ function openSkinDetail(hero, skinName) {
   const first = records.find(r=>r.type==='首发') || records[0];
   const returns = records.filter(r=>r.type==='返场').sort((a,b)=>a.date>b.date?1:-1);
   const latestReturn = returns.length ? returns[returns.length-1] : null;
-  const skinImgSrc = first.si || records.find(r=>r.si)?.si || null; // 详情大图：保留原始 URL
+  const skinImgSrc = fullUrl(first.si || records.find(r=>r.si)?.si || null); // 详情大图：走 CDN 不压缩
   const qImgSrc = first.qi || records.find(r=>r.qi)?.qi || null;
   const tagImgUrl = thumbUrl(qImgSrc, 120); // 标签图用 Transform
   const wrap = document.getElementById('hero-detail-wrap');
