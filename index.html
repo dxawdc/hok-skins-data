@@ -154,7 +154,7 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
 .data-table tr:hover td { background: var(--table-hover); }
 .data-table tr.clickable { cursor: pointer; }
 .thumb-cell { width: 40px; padding-right: 4px !important; }
-.thumb-img { width: 36px; height: 36px; border-radius: 6px; object-fit: cover; background: var(--bg4); display: block; }
+.thumb-img { width: 36px; height: 36px; border-radius: 6px; object-fit: contain; background: var(--bg4); display: block; }
 .thumb-placeholder { width: 36px; height: 36px; border-radius: 6px; background: var(--bg4); display: flex; align-items: center; justify-content: center; font-size: 18px; }
 .quality-badge-img { height: 20px; object-fit: contain; vertical-align: middle; image-rendering: pixelated; }
 
@@ -862,10 +862,9 @@ async function fetchAllSkins() {
 // 详情大图不走此函数，保留原始 URL
 function thumbUrl(url, width, quality = 70) {
   if (!url) return null;
-  // 已经是 render URL 则直接返回
   if (url.includes('/render/image/public/')) return url;
   const transformed = url.replace('/object/public/', '/render/image/public/');
-  return `${transformed}?width=${width}&quality=${quality}`;
+  return `${transformed}?width=${width}&height=${width}&quality=${quality}&resize=contain`;
 }
 
 function getQualityImg(qi, width = 120) {
