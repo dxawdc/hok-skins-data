@@ -264,7 +264,6 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
 </head>
 <body>
 
-<!-- LOGIN -->
 <div id="login-page">
   <div class="login-box">
     <div class="login-logo">
@@ -286,10 +285,8 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
   </div>
 </div>
 
-<!-- APP -->
 <div id="app">
   <div class="layout">
-    <!-- Sidebar -->
     <div class="sidebar">
       <div class="sidebar-logo">
         <h2>👑 皮肤数据库</h2>
@@ -324,10 +321,8 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
       </div>
     </div>
 
-    <!-- Main -->
     <div class="main">
 
-      <!-- OVERVIEW -->
       <div class="page active" id="page-overview">
         <div class="page-header">
           <div><div class="page-title">数据概览</div><div class="page-subtitle">数据库整体情况</div></div>
@@ -351,7 +346,6 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
         </div>
       </div>
 
-      <!-- SKINS -->
       <div class="page" id="page-skins">
         <div class="page-header">
           <div><div class="page-title">皮肤数据</div><div class="page-subtitle">查看和编辑皮肤记录</div></div>
@@ -415,7 +409,6 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
         </div>
       </div>
 
-      <!-- IMPORT -->
       <div class="page" id="page-import">
         <div class="page-header">
           <div><div class="page-title">Excel 导入</div><div class="page-subtitle">上传 Excel 文件更新数据</div></div>
@@ -468,7 +461,6 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
         </div>
       </div>
 
-      <!-- USERS -->
       <div class="page admin-only" id="page-users">
         <div class="page-header">
           <div><div class="page-title">用户管理</div><div class="page-subtitle">管理后台访问账号</div></div>
@@ -486,7 +478,6 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
         </div>
       </div>
 
-      <!-- LOGS -->
       <div class="page admin-only" id="page-logs">
         <div class="page-header">
           <div><div class="page-title">操作日志</div><div class="page-subtitle">所有后台操作的完整记录</div></div>
@@ -503,11 +494,9 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
         </div>
       </div>
 
-    </div><!-- /main -->
-  </div>
+    </div></div>
 </div>
 
-<!-- CREATE USER MODAL -->
 <div class="modal-bg" id="modal-user">
   <div class="modal">
     <h3>新建用户</h3>
@@ -528,7 +517,6 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
   </div>
 </div>
 
-<!-- ADD/EDIT SKIN MODAL -->
 <div class="modal-bg" id="modal-skin">
   <div class="modal" style="width:560px;max-width:96vw">
     <h3 id="modal-skin-title">编辑皮肤记录</h3>
@@ -563,7 +551,6 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
       </div>
     </div>
 
-    <!-- 图片上传区 -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px">
       <div class="form-group">
         <label>皮肤图片 <span style="color:var(--text3);font-weight:400">（可选）</span></label>
@@ -671,7 +658,6 @@ async function loadOverview() {
   }
   const logs = await api('GET', '/logs?per_page=5');
   if (logs.logs) renderRecentLogs(logs.logs);
-  // Rough hero/skin counts via skins endpoint (cached in browser)
 }
 function renderRecentLogs(logs) {
   document.getElementById('recent-logs').innerHTML = logs.map(l => `
@@ -827,7 +813,6 @@ async function uploadImg(b64, imgType) {
   const mime = meta.match(/:(.*?);/)[1];
   const res = await api('POST', '/images', { img_id: imgId, img_type: imgType, data, mime_type: mime });
   if (res.error) { toast('图片上传失败：' + res.error, 'err'); return null; }
-  // 新接口返回 { img_id, url }，直接取 URL
   return res.url || null;
 }
 
@@ -840,11 +825,21 @@ async function doSaveSkin() {
   btn.textContent = '保存中…';
 
   try {
-    // 上传新图片（如果有），获取 Storage URL
     let skinImgUrl = document.getElementById('es-skin-img-url').value;
     let tagImgUrl  = document.getElementById('es-tag-img-url').value;
-    if (pendingSkinImgB64) skinImgUrl = await uploadImg(pendingSkinImgB64, 'skin') || skinImgUrl;
-    if (pendingTagImgB64)  tagImgUrl  = await uploadImg(pendingTagImgB64,  'tag')  || tagImgUrl;
+
+    // 关键修复：加入 return 进行错误阻断
+    if (pendingSkinImgB64) {
+      const uploadedSkinUrl = await uploadImg(pendingSkinImgB64, 'skin');
+      if (!uploadedSkinUrl) return; // 上传失败（内部已 toast 报错），直接终止流程
+      skinImgUrl = uploadedSkinUrl;
+    }
+    
+    if (pendingTagImgB64) {
+      const uploadedTagUrl = await uploadImg(pendingTagImgB64, 'tag');
+      if (!uploadedTagUrl) return; // 上传失败，直接终止流程
+      tagImgUrl = uploadedTagUrl;
+    }
 
     const data = {
       date:         document.getElementById('es-date').value,
@@ -881,6 +876,7 @@ async function doSaveSkin() {
     btn.textContent = id ? '保存' : '新增';
   }
 }
+
 async function doDeleteSkin(id, name) {
   if (!confirm(`确认删除"${name}"这条记录？此操作不可撤销。`)) return;
   const res = await api('DELETE', `/skins/${id}`);
