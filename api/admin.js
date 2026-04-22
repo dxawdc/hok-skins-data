@@ -95,7 +95,6 @@ module.exports = async function handler(req, res) {
   if (/\/skins\/\d+$/.test(path)     && m === 'DELETE') { const [u,e]=requireAuth(h); if(e) return send(e); return send(await deleteSkin(path.split('/').pop(),u)); }
   if (path.endsWith('/batch-update') && m === 'POST')   { const [u,e]=requireAuth(h); if(e) return send(e); return send(await batchUpdate(body,u)); }
   if (path.endsWith('/images')       && m === 'POST')   { const [u,e]=requireAuth(h); if(e) return send(e); return send(await uploadImage(body,u)); }
-  // 【新增】删除 Storage 图片
   if (path.endsWith('/images')       && m === 'DELETE') { const [u,e]=requireAuth(h); if(e) return send(e); return send(await deleteImage(body,u)); }
   if (path.endsWith('/import')       && m === 'POST')   { const [u,e]=requireAuth(h); if(e) return send(e); return send(await doImport(body,u)); }
   if (path.endsWith('/logs')         && m === 'GET')    { const [u,e]=requireAuth(h); if(e) return send(e); return send(await listLogs(qs)); }
@@ -161,7 +160,6 @@ async function listSkins(params) {
 }
 
 async function updateSkin(id, updates, user) {
-  // 【改动】白名单从 skin_img_id/tag_img_id 改为 skin_img_url/tag_img_url
   const ALLOWED = new Set(['date','name','quality','tag','hero','job','price','obtain','type','permanent','skin_img_url','tag_img_url']);
   const clean = Object.fromEntries(Object.entries(updates).filter(([k]) => ALLOWED.has(k)));
   if (!Object.keys(clean).length) return fail('没有可更新的字段');
@@ -198,7 +196,6 @@ async function batchUpdate({ ids, updates }, user) {
 
 // ── 新增皮肤 ─────────────────────────────────────────────────
 async function insertSkin(data, user) {
-  // 【改动】白名单从 skin_img_id/tag_img_id 改为 skin_img_url/tag_img_url
   const ALLOWED = new Set(['date','name','quality','tag','hero','job','price','obtain','type','permanent','skin_img_url','tag_img_url']);
   const clean = Object.fromEntries(Object.entries(data||{}).filter(([k]) => ALLOWED.has(k)));
   if (!clean.date || !clean.name || !clean.hero) return fail('日期、皮肤名称、归属英雄为必填项');
@@ -209,22 +206,25 @@ async function insertSkin(data, user) {
   return ok({ skin: inserted });
 }
 
-// ── 上传图片（改为 Supabase Storage）────────────────────────
+// ── 上传图片（改为 Supabase Storage，包含精确大小校验）────────────────────────
 async function uploadImage({ img_id, img_type, data, mime_type }, user) {
   if (!img_id || !data || !mime_type) return fail('缺少必要字段');
   if (!['skin','tag'].includes(img_type)) return fail('img_type 只能是 skin 或 tag');
 
-  // 大小校验：base64 长度 * 0.75 ≈ 实际字节数
+  // 去除前端可能附带的 Data URL 前缀 (如 data:image/png;base64,)
+  const base64Data = data.replace(/^data:image\/\w+;base64,/, "");
+  
+  // base64 → Buffer
+  const buffer = Buffer.from(base64Data, 'base64');
+
+  // 大小校验：直接获取 Buffer 的真实字节数
   const MAX_BYTES = 400 * 1024; // 400KB
-  const estimatedBytes = Math.floor(data.length * 0.75);
-  if (estimatedBytes > MAX_BYTES) {
-    return fail(`图片过大（约 ${(estimatedBytes / 1024).toFixed(0)}KB），请压缩后重新上传，限制 400KB 以内`);
+  if (buffer.byteLength > MAX_BYTES) {
+    const currentKB = (buffer.byteLength / 1024).toFixed(1);
+    return fail(`图片过大（当前 ${currentKB}KB），请压缩至 400KB 以内后重新上传`);
   }
 
   const client = getClient();
-
-  // base64 → Buffer
-  const buffer = Buffer.from(data, 'base64');
 
   // 文件扩展名
   const ext = mime_type.split('/')[1]?.replace('jpeg','jpg') || 'png';
@@ -318,7 +318,6 @@ function parseExcel(buf) {
   };
   const safe = (v, d='') => { const s = String(v??'').trim(); return ['undefined','null','nan'].includes(s.toLowerCase()) ? d : s; };
 
-  // 【改动】Excel 导入直接读取 URL 列，不再解析 img_id
   return rows.map(r => ({
     date:         fmtDate(r['日期']),
     name:         safe(r['皮肤名称']),
@@ -330,7 +329,7 @@ function parseExcel(buf) {
     obtain:       safe(r['获取方式']),
     type:         safe(r['首发or返场']),
     permanent:    safe(r['是否常驻'], '否'),
-    skin_img_url: safe(r['皮肤图片URL']),   // 改为直接存 URL
-    tag_img_url:  safe(r['标签图片URL']),   // 改为直接存 URL
+    skin_img_url: safe(r['皮肤图片URL']),
+    tag_img_url:  safe(r['标签图片URL']),
   })).filter(r => r.name && r.hero && r.date);
 }
