@@ -214,6 +214,13 @@ async function uploadImage({ img_id, img_type, data, mime_type }, user) {
   if (!img_id || !data || !mime_type) return fail('缺少必要字段');
   if (!['skin','tag'].includes(img_type)) return fail('img_type 只能是 skin 或 tag');
 
+  // 大小校验：base64 长度 * 0.75 ≈ 实际字节数
+  const MAX_BYTES = 400 * 1024; // 400KB
+  const estimatedBytes = Math.floor(data.length * 0.75);
+  if (estimatedBytes > MAX_BYTES) {
+    return fail(`图片过大（约 ${(estimatedBytes / 1024).toFixed(0)}KB），请压缩后重新上传，限制 400KB 以内`);
+  }
+
   const client = getClient();
 
   // base64 → Buffer
