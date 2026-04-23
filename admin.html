@@ -590,12 +590,15 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
       <div class="form-group"><label>皮肤标签说明</label><input type="text" id="es-tag" placeholder="如：史诗限定"></div>
       <div class="form-group"><label>价格</label><input type="text" id="es-price" placeholder="如：888"></div>
       <div class="form-group"><label>获取方式</label><input type="text" id="es-obtain" placeholder="如：直售"></div>
+      
       <div class="form-group">
         <label>关联英雄</label>
-        <select id="es-hero-id" class="filter-select" style="width:100%">
+        <input type="text" id="es-hero-search-input" placeholder="输入关键字筛选..." class="inline-input" style="margin-bottom:6px;width:100%;box-sizing:border-box" oninput="renderHeroSelectOptions(this.value)">
+        <select id="es-hero-id" class="filter-select" style="width:100%" onchange="this.dataset.selectedId = this.value">
           <option value="">— 不关联 —</option>
         </select>
       </div>
+
       <div class="form-group">
         <label>类型</label>
         <select id="es-type" class="filter-select" style="width:100%">
@@ -730,7 +733,7 @@ let importMode = 'append';
 let importFile = null;
 let searchTimer = null;
 
-// Hero Variables (New)
+// Hero Variables
 let allHeroes = [];
 let filteredHeroes = [];
 let heroPage = 1;
@@ -1170,6 +1173,7 @@ async function loadLogs() {
 
 // ── 英雄管理 ─────────────────────────────────────────────────
 
+// 【优化项1】：后台关联英雄 支持搜索 - 核心逻辑
 async function populateHeroSelect(selectId, selectedId) {
   if (!allHeroes.length) {
     const res = await api('GET', '/heroes?per_page=200');
@@ -1177,8 +1181,44 @@ async function populateHeroSelect(selectId, selectedId) {
   }
   const sel = document.getElementById(selectId);
   if (!sel) return;
-  sel.innerHTML = '<option value="">— 不关联 —</option>' +
-    allHeroes.map(h => `<option value="${h.id}" ${String(h.id)===String(selectedId)?'selected':''}>${h.name}</option>`).join('');
+  
+  sel.dataset.selectedId = selectedId || '';
+  
+  const searchInput = document.getElementById('es-hero-search-input');
+  if (searchInput) searchInput.value = ''; // 每次打开弹窗重置搜索词
+  
+  renderHeroSelectOptions(''); // 渲染全量选项
+}
+
+// 根据搜索词动态过滤渲染 option
+function renderHeroSelectOptions(keyword) {
+  const sel = document.getElementById('es-hero-id');
+  if (!sel) return;
+  
+  const selectedId = sel.dataset.selectedId; // 读取已选 ID
+  const kw = (keyword || '').toLowerCase();
+  
+  // 过滤匹配的英雄
+  const filtered = allHeroes.filter(h => h.name.toLowerCase().includes(kw));
+  
+  let html = '<option value="">— 不关联 —</option>';
+  let selectedExists = false;
+  
+  const optionsHtml = filtered.map(h => {
+    if (String(h.id) === String(selectedId)) selectedExists = true;
+    return `<option value="${h.id}" ${String(h.id)===String(selectedId)?'selected':''}>${h.name}</option>`;
+  }).join('');
+  
+  // 极端情况：如果当前搜索结果过滤掉了原本已选中的英雄，
+  // 为了不让它被默默丢失，我们需要将其强制保留在列表中
+  if (selectedId && !selectedExists) {
+    const selHero = allHeroes.find(h => String(h.id) === String(selectedId));
+    if (selHero) {
+      html += `<option value="${selHero.id}" selected>${selHero.name}</option>`;
+    }
+  }
+  
+  sel.innerHTML = html + optionsHtml;
 }
 
 function debounceHeroSearch() { 
@@ -1276,7 +1316,6 @@ function makeEditable(id, field, el, type = 'text') {
       } else {
         el.textContent = newValue || '—';
         toast('更新成功', 'ok');
-        // 默默更新本地缓存状态，不重新渲染表格以保持用户位置
         allHeroes = allHeroes.map(h => h.id === id ? {...h, [field]: newValue} : h);
         filteredHeroes = filteredHeroes.map(h => h.id === id ? {...h, [field]: newValue} : h);
       }
@@ -1289,7 +1328,7 @@ function makeEditable(id, field, el, type = 'text') {
   input.onkeydown = (e) => {
     if (e.key === 'Enter') save();
     if (e.key === 'Escape') {
-      input.onblur = null; // 防止 blur 二次触发
+      input.onblur = null; 
       el.textContent = originalValue || '—';
     }
   };
@@ -1345,7 +1384,7 @@ async function doHeroBatchDelete() {
   toast(`批量删除完成，成功删除 ${successCount} 条`, 'ok');
   
   clearHeroSelection();
-  loadHeroes(); // 刷新表格
+  loadHeroes(); 
 }
 
 function showAddHero() {

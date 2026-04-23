@@ -464,9 +464,7 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
   .header-logo span { display: none; }
   .header-stats { display: none; }
   .header-right { margin-left: auto; }
-  /* 刷新按钮手机端只显示图标 */
   .refresh-label { display: none; }
-  /* 主题按钮在手机上只显示图标 */
   .theme-btn { padding: 3px 6px; font-size: 13px; }
   .theme-btn span { display: none; }
 
@@ -481,7 +479,7 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
   .app-layout { display: block; }
 
   /* 顶部 nav tabs 显示（桌面隐藏） */
-  .nav-tabs { display: none !important; } /* 手机上顶部也有 nav，但主要用底部的 */
+  .nav-tabs { display: none !important; } 
 
   /* Filter bar */
   .filter-bar { padding: 10px 12px; gap: 7px; }
@@ -489,8 +487,6 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
   .search-box input { font-size: 14px; padding: 8px 10px 8px 32px; }
   .filter-chips { gap: 5px; }
   .chip { padding: 5px 10px; font-size: 12px; }
-
-  /* 筛选栏折叠：下拉选择器单独一行 */
   .filter-bar .filter-select { flex: 1; min-width: 0; font-size: 13px; padding: 7px 8px; }
 
 /* 桌面：表格显示，卡片隐藏 */
@@ -584,7 +580,8 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
   /* 面包屑 */
   .breadcrumb { font-size: 12px; }
 }
-  /* APP TOAST 提示框 */
+
+/* APP TOAST 提示框 */
 .app-toast {
   position: fixed; top: 20px; left: 50%; transform: translate(-50%, -20px); z-index: 9999;
   background: var(--bg3); color: var(--gold); padding: 12px 24px; font-weight: 500;
@@ -806,9 +803,9 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
       <span class="bn-icon">📊</span>统计
     </div>
   </nav>
-</div>
-  <div id="app-toast" class="app-toast"></div>
-  <script>
+</div><div id="app-toast" class="app-toast"></div>
+
+<script>
 const SUPABASE_URL = 'https://erphrsydujqrcvtpdtnf.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVycGhyc3lkdWpxcmN2dHBkdG5mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3MDU2ODQsImV4cCI6MjA4OTI4MTY4NH0.O6h3Eeq9gNfGAMYkZ5_1GY5lFBiJrF8fJat0Pxz868U';
 
@@ -970,8 +967,9 @@ window.onload = async () => {
     renderHeroGrid();
     renderStats();
 
+    // 【优化项2】全局前台应用真实 HEROES 总数
     const total = RAW.length.toLocaleString();
-    const heroes = new Set(RAW.map(r=>r.hero)).size;
+    const heroes = HEROES.length; // 改为读取英雄总表数量
     const skinSet = new Set(RAW.map(r=>r.hero+'|'+r.name)).size;
     document.getElementById('hd-total').textContent = total;
     document.getElementById('hd-heroes').textContent = heroes;
@@ -1014,8 +1012,9 @@ async function refreshData() {
     renderHeroGrid();
     renderStats();
 
+    // 【优化项2】全局前台应用真实 HEROES 总数
     const total = RAW.length.toLocaleString();
-    const heroes = new Set(RAW.map(r=>r.hero)).size;
+    const heroes = HEROES.length; 
     const skinSet = new Set(RAW.map(r=>r.hero+'|'+r.name)).size;
     ['hd-total','sb-total'].forEach(id => document.getElementById(id).textContent = total);
     ['hd-heroes','sb-heroes'].forEach(id => document.getElementById(id).textContent = heroes);
@@ -1083,7 +1082,7 @@ function showToast(msg) {
 }
 
 function openHeroDetailFromAnywhere(heroName) {
-  // 校验该英雄是否有皮肤记录
+  // 校验该英雄是否有皮肤记录，没有则拦截并提示
   const heroMap = buildHeroMap();
   if (!heroMap[heroName] || heroMap[heroName].skins.size === 0) {
     showToast('该英雄暂无皮肤');
@@ -1218,7 +1217,7 @@ function renderTable() {
   const rs = Math.max(1,page-2), re = Math.min(totalPages,page+2);
   if (rs>1) btns += `<button class="pg-btn" onclick="goPage(1)">1</button>${rs>2?'<span style="padding:4px;color:var(--text3)">…</span>':''}`;
   for (let i=rs;i<=re;i++) btns += `<button class="pg-btn${i===page?' active':''}" onclick="goPage(${i})">${i}</button>`;
-  if (re<totalPages) btns += `${re<totalPages-1?'<span style="padding:4px;color:var(--text3)">…</span>':''}<button class="pg-btn" onclick="goPage(${totalPages})">${totalPages}</button>`;
+  if (e<totalPages) btns += `${e<totalPages-1?'<span style="padding:4px;color:var(--text3)">…</span>':''}<button class="pg-btn" onclick="goPage(${totalPages})">${totalPages}</button>`;
   btns += `<button class="pg-btn" onclick="goPage(${page+1})" ${page>=totalPages?'disabled':''}>›</button>`;
   pgs.innerHTML = btns;
 }
@@ -1641,7 +1640,9 @@ function renderStats() {
     <div class="stats-title">📊 数据统计概览</div>
     <div class="stats-grid">
       <div class="stat-card"><div class="stat-label">总记录数</div><div class="stat-value">${RAW.length.toLocaleString()}</div><div class="stat-sub">含首发与返场</div></div>
-      <div class="stat-card"><div class="stat-label">英雄数量</div><div class="stat-value">${Object.keys(heroMap).length}</div><div class="stat-sub">已收录英雄</div></div>
+      
+      <div class="stat-card"><div class="stat-label">英雄数量</div><div class="stat-value" id="stat-heroes-count">${HEROES.length}</div><div class="stat-sub">已收录英雄</div></div>
+      
       <div class="stat-card"><div class="stat-label">皮肤款数</div><div class="stat-value">${totalSkins}</div><div class="stat-sub">唯一皮肤（英雄+名称）</div></div>
       <div class="stat-card"><div class="stat-label">返场次数</div><div class="stat-value">${RAW.filter(r=>r.type==='返场').length}</div><div class="stat-sub">次返场记录</div></div>
       <div class="stat-card"><div class="stat-label">常驻皮肤</div><div class="stat-value">${new Set(RAW.filter(r=>r.permanent==='是').map(r=>r.hero+'|'+r.name)).size}</div><div class="stat-sub">款常驻皮肤</div></div>
