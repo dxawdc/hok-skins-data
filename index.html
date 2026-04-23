@@ -584,6 +584,15 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
   /* 面包屑 */
   .breadcrumb { font-size: 12px; }
 }
+  /* APP TOAST 提示框 */
+.app-toast {
+  position: fixed; top: 20px; left: 50%; transform: translate(-50%, -20px); z-index: 9999;
+  background: var(--bg3); color: var(--gold); padding: 12px 24px; font-weight: 500;
+  border-radius: 30px; font-size: 14px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  border: 1px solid var(--border);
+  opacity: 0; pointer-events: none; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.app-toast.show { opacity: 1; transform: translate(-50%, 0); }
 </style>
 </head>
 <body>
@@ -797,7 +806,9 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
       <span class="bn-icon">📊</span>统计
     </div>
   </nav>
-</div><script>
+</div>
+  <div id="app-toast" class="app-toast"></div>
+  <script>
 const SUPABASE_URL = 'https://erphrsydujqrcvtpdtnf.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVycGhyc3lkdWpxcmN2dHBkdG5mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3MDU2ODQsImV4cCI6MjA4OTI4MTY4NH0.O6h3Eeq9gNfGAMYkZ5_1GY5lFBiJrF8fJat0Pxz868U';
 
@@ -1063,7 +1074,22 @@ function resetToHome() {
 }
 
 // ── Shared Helper ──
+function showToast(msg) {
+  const el = document.getElementById('app-toast');
+  if (!el) { alert(msg); return; }
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2000);
+}
+
 function openHeroDetailFromAnywhere(heroName) {
+  // 校验该英雄是否有皮肤记录
+  const heroMap = buildHeroMap();
+  if (!heroMap[heroName] || heroMap[heroName].skins.size === 0) {
+    showToast('该英雄暂无皮肤');
+    return; // 提前拦截，不执行后续的页面跳转
+  }
+  
   showView('heroes', document.getElementById('tab-heroes'), 'heroes');
   document.getElementById('heroes-list-wrap').style.display = 'none';
   document.getElementById('hero-detail-wrap').style.display = 'block';
