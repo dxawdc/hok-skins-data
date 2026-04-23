@@ -152,11 +152,12 @@ tr.selected td { background: #fffbeb; }
 input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color: var(--gold); }
 
 /* Inline edit */
-.editable { cursor: pointer; }
-.editable:hover { background: #f0f7ff; border-radius: 4px; }
+.editable { cursor: pointer; transition: background 0.2s; }
+.editable:hover { background: #f0f7ff; border-radius: 4px; box-shadow: inset 0 0 0 1px #bee3f8; }
 .inline-input {
   width: 100%; padding: 4px 8px; border: 1px solid var(--gold);
   border-radius: 4px; font-size: 13px; outline: none; font-family: inherit;
+  background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
 
 /* BADGES */
@@ -210,9 +211,6 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
 .log-line.ok  { color: #68d391; }
 .log-line.err { color: #fc8181; }
 .log-line.info { color: #63b3ed; }
-
-/* USERS */
-.user-table td { vertical-align: middle; }
 
 /* MODAL */
 .modal-bg {
@@ -412,6 +410,61 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
         </div>
       </div>
 
+      <div class="page" id="page-heroes">
+        <div class="page-header">
+          <div><div class="page-title">英雄管理</div><div class="page-subtitle">管理英雄基础信息</div></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-outline btn-sm" onclick="loadHeroes()">刷新</button>
+            <button class="btn btn-primary btn-sm" onclick="showAddHero()">+ 新增英雄</button>
+          </div>
+        </div>
+        <div class="page-body">
+          <div class="batch-bar" id="hero-batch-bar">
+            <span class="batch-count" id="hero-batch-count">已选 0 条</span>
+            <button class="btn btn-danger btn-sm" onclick="doHeroBatchDelete()">批量删除</button>
+            <button class="btn btn-outline btn-sm" onclick="clearHeroSelection()">取消选择</button>
+          </div>
+
+          <div class="table-toolbar">
+            <input class="search-input" id="hero-search" placeholder="搜索英雄名称…" oninput="debounceHeroSearch()" style="width:200px">
+            <select class="filter-select" id="hero-role-filter" onchange="loadHeroes()">
+              <option value="">全部职业</option>
+              <option>法师</option><option>战士</option><option>射手</option>
+              <option>刺客</option><option>坦克</option><option>辅助</option>
+            </select>
+            <select class="filter-select" id="hero-lane-filter" onchange="loadHeroes()">
+              <option value="">全部分路</option>
+              <option>中路</option><option>对抗路</option><option>发育路</option>
+              <option>打野</option><option>游走</option>
+            </select>
+            <span style="color:var(--text3);font-size:12px;margin-left:auto" id="hero-total-label"></span>
+          </div>
+
+          <div class="data-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th class="check-col"><input type="checkbox" id="hero-check-all" onchange="toggleAllHeroes(this)"></th>
+                  <th style="width:50px">头像</th>
+                  <th>英雄名称</th>
+                  <th>性别</th>
+                  <th>职业</th>
+                  <th>分路</th>
+                  <th>上线日期</th>
+                  <th>备注</th>
+                  <th style="width:130px">操作</th>
+                </tr>
+              </thead>
+              <tbody id="hero-tbody"></tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <div class="pg-info" id="hero-pg-info"></div>
+            <div class="pg-btns" id="hero-pg-btns"></div>
+          </div>
+        </div>
+      </div>
+
       <div class="page" id="page-import">
         <div class="page-header">
           <div><div class="page-title">Excel 导入</div><div class="page-subtitle">上传 Excel 文件更新数据</div></div>
@@ -460,43 +513,6 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
                 开始导入
               </button>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ══ 英雄管理页 ══ -->
-      <div class="page" id="page-heroes">
-        <div class="page-header">
-          <div><div class="page-title">英雄管理</div><div class="page-subtitle">管理英雄基础信息</div></div>
-          <button class="btn btn-primary btn-sm" onclick="showAddHero()">+ 新增英雄</button>
-        </div>
-        <div class="page-body">
-          <div class="table-toolbar">
-            <input class="search-input" id="hero-search" placeholder="搜索英雄名称…" oninput="filterHeroTable()" style="width:200px">
-            <select class="filter-select" id="hero-role-filter" onchange="filterHeroTable()">
-              <option value="">全部职业</option>
-              <option>法师</option><option>战士</option><option>射手</option>
-              <option>刺客</option><option>坦克</option><option>辅助</option>
-            </select>
-            <select class="filter-select" id="hero-lane-filter" onchange="filterHeroTable()">
-              <option value="">全部分路</option>
-              <option>中路</option><option>对抗路</option><option>发育路</option>
-              <option>打野</option><option>游走</option>
-            </select>
-          </div>
-          <div class="data-table-wrap" style="border-top:none;border-radius:0 0 var(--radius) var(--radius)">
-            <table>
-              <thead><tr>
-                <th style="width:50px">头像</th>
-                <th>英雄名称</th><th>职业</th><th>分路</th><th>性别</th>
-                <th>上线日期</th><th>备注</th><th style="width:130px">操作</th>
-              </tr></thead>
-              <tbody id="hero-tbody"></tbody>
-            </table>
-          </div>
-          <div class="pagination" id="hero-pagination">
-            <span class="pg-info" id="hero-pg-info"></span>
-            <div class="pg-btns" id="hero-pg-btns"></div>
           </div>
         </div>
       </div>
@@ -636,7 +652,6 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
   </div>
 </div>
 
-<!-- ══ 英雄 Modal ══ -->
 <div class="modal-bg" id="modal-hero">
   <div class="modal" style="width:560px;max-width:96vw">
     <h3 id="modal-hero-title">新增英雄</h3>
@@ -706,11 +721,22 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
 const API = '/api/admin';  // Vercel serverless endpoint
 let token = localStorage.getItem('admin_token') || '';
 let currentUser = null;
-let skinPage = 1; const SKIN_PER_PAGE = 50;
+
+// Skin Variables
+let skinPage = 1; 
+const SKIN_PER_PAGE = 50;
 let selectedIds = new Set();
 let importMode = 'append';
 let importFile = null;
 let searchTimer = null;
+
+// Hero Variables (New)
+let allHeroes = [];
+let filteredHeroes = [];
+let heroPage = 1;
+const HERO_PER_PAGE = 50;
+let selectedHeroIds = new Set();
+let heroSearchTimer = null;
 
 // ── Auth ─────────────────────────────────────────────────────
 async function doLogin() {
@@ -737,7 +763,6 @@ async function enterApp() {
   document.getElementById('user-name').textContent = currentUser.display_name || currentUser.username;
   document.getElementById('user-role').textContent = currentUser.role === 'admin' ? '管理员' : '编辑者';
   document.getElementById('user-avatar').textContent = (currentUser.display_name || currentUser.username)[0].toUpperCase();
-  // Show/hide admin-only elements
   document.querySelectorAll('.admin-only').forEach(el => {
     el.style.display = currentUser.role === 'admin' ? '' : 'none';
   });
@@ -756,6 +781,7 @@ function navTo(page, el) {
   if (el) el.classList.add('active');
   document.getElementById('page-' + page).classList.add('active');
   if (page === 'skins')    loadSkins();
+  if (page === 'heroes')   loadHeroes();
   if (page === 'users')    loadUsers();
   if (page === 'logs')     loadLogs();
   if (page === 'overview') loadOverview();
@@ -828,8 +854,8 @@ function goPage(p) { skinPage = p; loadSkins(); }
 function debounceSearch() { clearTimeout(searchTimer); searchTimer = setTimeout(() => { skinPage=1; loadSkins(); }, 400); }
 
 // ── Add / Edit Skin ───────────────────────────────────────────
-let pendingSkinImgB64 = null;  // 待上传的皮肤图片 base64
-let pendingTagImgB64  = null;  // 待上传的标签图片 base64
+let pendingSkinImgB64 = null;
+let pendingTagImgB64  = null;
 
 function resetSkinModal() {
   document.getElementById('es-id').value = '';
@@ -846,7 +872,6 @@ function resetSkinModal() {
   document.getElementById('es-notes').value = '';
   document.getElementById('es-type').value = '首发';
   document.getElementById('es-permanent').value = '否';
-  // 重置图片预览
   ['skin','tag'].forEach(t => {
     document.getElementById(`${t}-img-preview`).style.display = 'none';
     document.getElementById(`${t}-img-preview`).src = '';
@@ -873,7 +898,6 @@ function openEditSkin(s) {
   document.getElementById('es-id').value          = s.id;
   document.getElementById('es-skin-img-url').value = s.skin_img_url || '';
   document.getElementById('es-tag-img-url').value  = s.tag_img_url  || '';
-  // 如果已有图片 URL，显示预览
   if (s.skin_img_url) {
     document.getElementById('skin-img-preview').src = s.skin_img_url;
     document.getElementById('skin-img-preview').style.display = 'block';
@@ -906,7 +930,7 @@ function previewImg(type) {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = e => {
-    const b64 = e.target.result; // data:image/...;base64,...
+    const b64 = e.target.result;
     document.getElementById(`${type}-img-preview`).src = b64;
     document.getElementById(`${type}-img-preview`).style.display = 'block';
     document.getElementById(`${type}-img-placeholder`).style.display = 'none';
@@ -917,12 +941,9 @@ function previewImg(type) {
   reader.readAsDataURL(file);
 }
 
-// 上传图片到 Storage，返回公开 URL
 async function uploadImg(b64, imgType) {
   if (!b64) return null;
-  // 生成唯一 ID（时间戳+随机）
   const imgId = Date.now().toString(16).toUpperCase() + Math.random().toString(16).slice(2,10).toUpperCase();
-  // 取出纯 base64 和 mime
   const [meta, data] = b64.split(',');
   const mime = meta.match(/:(.*?);/)[1];
   const res = await api('POST', '/images', { img_id: imgId, img_type: imgType, data, mime_type: mime });
@@ -942,16 +963,15 @@ async function doSaveSkin() {
     let skinImgUrl = document.getElementById('es-skin-img-url').value;
     let tagImgUrl  = document.getElementById('es-tag-img-url').value;
 
-    // 关键修复：加入 return 进行错误阻断
     if (pendingSkinImgB64) {
       const uploadedSkinUrl = await uploadImg(pendingSkinImgB64, 'skin');
-      if (!uploadedSkinUrl) return; // 上传失败（内部已 toast 报错），直接终止流程
+      if (!uploadedSkinUrl) return; 
       skinImgUrl = uploadedSkinUrl;
     }
     
     if (pendingTagImgB64) {
       const uploadedTagUrl = await uploadImg(pendingTagImgB64, 'tag');
-      if (!uploadedTagUrl) return; // 上传失败，直接终止流程
+      if (!uploadedTagUrl) return; 
       tagImgUrl = uploadedTagUrl;
     }
 
@@ -999,7 +1019,7 @@ async function doDeleteSkin(id, name) {
   loadSkins(); toast('已删除', 'ok');
 }
 
-// Selection & batch
+// Selection & batch for Skins
 function toggleRow(id, cb) {
   if (cb.checked) selectedIds.add(id); else selectedIds.delete(id);
   document.getElementById(`row-${id}`).classList.toggle('selected', cb.checked);
@@ -1161,6 +1181,11 @@ async function populateHeroSelect(selectId, selectedId) {
     allHeroes.map(h => `<option value="${h.id}" ${String(h.id)===String(selectedId)?'selected':''}>${h.name}</option>`).join('');
 }
 
+function debounceHeroSearch() { 
+  clearTimeout(heroSearchTimer); 
+  heroSearchTimer = setTimeout(() => { heroPage = 1; loadHeroes(); }, 400); 
+}
+
 async function loadHeroes() {
   const res = await api('GET', '/heroes?per_page=200');
   if (!res.heroes) return;
@@ -1174,9 +1199,9 @@ async function loadHeroes() {
     if (lane   && !(h.lanes||[]).includes(lane)) return false;
     return true;
   });
-  heroPage = 1; renderHeroTable();
+  heroPage = 1; 
+  renderHeroTable();
 }
-function filterHeroTable() { loadHeroes(); }
 
 function renderHeroTable() {
   const total = filteredHeroes.length;
@@ -1190,36 +1215,137 @@ function renderHeroTable() {
     const cdn = url.startsWith(CDN) ? url : url.replace(STORAGE, CDN);
     return `${cdn}?width=60&height=60&quality=75&resize=cover`;
   };
+  
   document.getElementById('hero-tbody').innerHTML = rows.map(h => `
-    <tr>
-      <td>${h.avatar_url
-        ? `<img src="${thumb(h.avatar_url)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1px solid var(--border)" loading="lazy">`
-        : `<div style="width:36px;height:36px;border-radius:50%;background:#f0f2f5;display:flex;align-items:center;justify-content:center;font-size:18px">🎭</div>`}</td>
-      <td style="font-weight:600">${h.name}</td>
-      <td>${(h.roles||[]).map(r=>`<span class="badge badge-史诗" style="margin-right:3px">${r}</span>`).join('')||'—'}</td>
-      <td style="font-size:12px;color:var(--text2)">${(h.lanes||[]).join(' · ')||'—'}</td>
-      <td style="font-size:12px">${h.gender||'—'}</td>
-      <td style="font-size:12px;color:var(--text3)">${h.release_date||'—'}</td>
-      <td style="font-size:12px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(h.notes||'').replace(/"/g,'&quot;')}">${h.notes||'—'}</td>
+    <tr id="hero-row-${h.id}" class="${selectedHeroIds.has(h.id) ? 'selected' : ''}">
+      <td><input type="checkbox" ${selectedHeroIds.has(h.id) ? 'checked' : ''} onchange="toggleHeroRow(${h.id}, this)"></td>
+      <td>
+        ${h.avatar_url
+          ? `<img src="${thumb(h.avatar_url)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;cursor:pointer;border:1px solid var(--border)" onclick='editHero(${JSON.stringify(JSON.stringify(h))})' loading="lazy">`
+          : `<div style="width:36px;height:36px;border-radius:50%;background:#f0f2f5;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer" onclick='editHero(${JSON.stringify(JSON.stringify(h))})'>🎭</div>`}
+      </td>
+      <td class="editable" onclick="makeEditable(${h.id}, 'name', this)" title="点击修改">${h.name}</td>
+      <td class="editable" onclick="makeEditable(${h.id}, 'gender', this)" title="点击修改">${h.gender || '—'}</td>
+      <td>${(h.roles || []).map(r=>`<span class="badge badge-史诗" style="margin-right:3px">${r}</span>`).join('')||'—'}</td>
+      <td style="font-size:12px;color:var(--text2)">${(h.lanes || []).join(' · ') || '—'}</td>
+      <td class="editable" onclick="makeEditable(${h.id}, 'release_date', this, 'date')" style="font-size:12px;color:var(--text3)" title="点击修改">${h.release_date || '—'}</td>
+      <td class="editable" onclick="makeEditable(${h.id}, 'notes', this)" style="font-size:12px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(h.notes||'').replace(/"/g,'&quot;')} (点击修改)">${h.notes || '—'}</td>
       <td>
         <button class="btn btn-outline btn-sm" onclick='editHero(${JSON.stringify(JSON.stringify(h))})'>编辑</button>
-        <button class="btn btn-danger  btn-sm" onclick="doDeleteHero(${h.id},'${h.name.replace(/'/g,"\\'")}')">删除</button>
+        <button class="btn btn-danger btn-sm" onclick="doDeleteHero(${h.id}, '${h.name.replace(/'/g,"\\'")}')">删除</button>
       </td>
-    </tr>`).join('') || '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text3)">暂无英雄数据</td></tr>';
+    </tr>`).join('') || '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text3)">暂无英雄数据</td></tr>';
 
-  document.getElementById('hero-pg-info').textContent =
-    `共 ${total} 位英雄 · 第 ${start+1}–${Math.min(start+HERO_PER_PAGE,total)} 条`;
+  document.getElementById('hero-total-label').textContent = `共 ${total} 条`;
+  document.getElementById('hero-pg-info').textContent = `共 ${total} 位英雄 · 第 ${start+1}–${Math.min(start+HERO_PER_PAGE,total)} 条`;
+  
   let btns = `<button class="pg-btn" onclick="goHeroPage(${heroPage-1})" ${heroPage<=1?'disabled':''}>‹</button>`;
-  const rs=Math.max(1,heroPage-2), re=Math.min(totalPages,heroPage+2);
-  if(rs>1) btns+=`<button class="pg-btn" onclick="goHeroPage(1)">1</button>`;
-  for(let i=rs;i<=re;i++) btns+=`<button class="pg-btn${i===heroPage?' active':''}" onclick="goHeroPage(${i})">${i}</button>`;
-  if(re<totalPages) btns+=`<button class="pg-btn" onclick="goHeroPage(${totalPages})">${totalPages}</button>`;
-  btns+=`<button class="pg-btn" onclick="goHeroPage(${heroPage+1})" ${heroPage>=totalPages?'disabled':''}>›</button>`;
+  const rs = Math.max(1, heroPage-2), re = Math.min(totalPages, heroPage+2);
+  if (rs > 1) btns += `<button class="pg-btn" onclick="goHeroPage(1)">1</button>${rs>2?'<span style="padding:4px;color:var(--text3)">…</span>':''}`;
+  for (let i = rs; i <= re; i++) btns += `<button class="pg-btn${i===heroPage?' active':''}" onclick="goHeroPage(${i})">${i}</button>`;
+  if (re < totalPages) btns += `${re<totalPages-1?'<span style="padding:4px;color:var(--text3)">…</span>':''}<button class="pg-btn" onclick="goHeroPage(${totalPages})">${totalPages}</button>`;
+  btns += `<button class="pg-btn" onclick="goHeroPage(${heroPage+1})" ${heroPage>=totalPages?'disabled':''}>›</button>`;
   document.getElementById('hero-pg-btns').innerHTML = btns;
 }
+
 function goHeroPage(p) {
   const t = Math.ceil(filteredHeroes.length / HERO_PER_PAGE)||1;
   if (p<1||p>t) return; heroPage=p; renderHeroTable();
+}
+
+// 行内编辑逻辑
+function makeEditable(id, field, el, type = 'text') {
+  if (el.querySelector('input')) return; // 防止重复触发
+  const originalValue = el.textContent === '—' ? '' : el.textContent;
+  const input = document.createElement('input');
+  input.type = type;
+  input.className = 'inline-input';
+  input.value = originalValue;
+  
+  el.innerHTML = '';
+  el.appendChild(input);
+  input.focus();
+
+  const save = async () => {
+    const newValue = input.value.trim();
+    if (newValue !== originalValue) {
+      const res = await api('PUT', `/heroes/${id}`, { [field]: newValue });
+      if (res.error) {
+        toast(res.error, 'err');
+        el.textContent = originalValue || '—';
+      } else {
+        el.textContent = newValue || '—';
+        toast('更新成功', 'ok');
+        // 默默更新本地缓存状态，不重新渲染表格以保持用户位置
+        allHeroes = allHeroes.map(h => h.id === id ? {...h, [field]: newValue} : h);
+        filteredHeroes = filteredHeroes.map(h => h.id === id ? {...h, [field]: newValue} : h);
+      }
+    } else {
+      el.textContent = originalValue || '—';
+    }
+  };
+
+  input.onblur = save;
+  input.onkeydown = (e) => {
+    if (e.key === 'Enter') save();
+    if (e.key === 'Escape') {
+      input.onblur = null; // 防止 blur 二次触发
+      el.textContent = originalValue || '—';
+    }
+  };
+}
+
+// 英雄批量操作逻辑
+function toggleHeroRow(id, cb) {
+  if (cb.checked) selectedHeroIds.add(id); else selectedHeroIds.delete(id);
+  document.getElementById(`hero-row-${id}`).classList.toggle('selected', cb.checked);
+  updateHeroBatchBar();
+}
+
+function toggleAllHeroes(cb) {
+  document.querySelectorAll('#hero-tbody input[type=checkbox]').forEach(box => {
+    const id = parseInt(box.closest('tr').id.replace('hero-row-', ''));
+    box.checked = cb.checked;
+    if (cb.checked) selectedHeroIds.add(id); else selectedHeroIds.delete(id);
+    box.closest('tr').classList.toggle('selected', cb.checked);
+  });
+  updateHeroBatchBar();
+}
+
+function updateHeroBatchBar() {
+  const bar = document.getElementById('hero-batch-bar');
+  bar.classList.toggle('show', selectedHeroIds.size > 0);
+  document.getElementById('hero-batch-count').textContent = `已选 ${selectedHeroIds.size} 条`;
+}
+
+function clearHeroSelection() {
+  selectedHeroIds.clear();
+  const checkAll = document.getElementById('hero-check-all');
+  if (checkAll) checkAll.checked = false;
+  document.querySelectorAll('#hero-tbody input[type=checkbox]').forEach(cb => cb.checked = false);
+  document.querySelectorAll('#hero-tbody tr').forEach(tr => tr.classList.remove('selected'));
+  updateHeroBatchBar();
+}
+
+async function doHeroBatchDelete() {
+  if (!confirm(`确定删除选中的 ${selectedHeroIds.size} 位英雄吗？\n注意：此操作不可撤销，相关皮肤的归属将置空。`)) return;
+  
+  const btn = document.querySelector('#hero-batch-bar .btn-danger');
+  btn.disabled = true;
+  btn.textContent = '删除中...';
+  
+  let successCount = 0;
+  for (let id of selectedHeroIds) {
+    const res = await api('DELETE', `/heroes/${id}`);
+    if (!res.error) successCount++;
+  }
+  
+  btn.disabled = false;
+  btn.textContent = '批量删除';
+  toast(`批量删除完成，成功删除 ${successCount} 条`, 'ok');
+  
+  clearHeroSelection();
+  loadHeroes(); // 刷新表格
 }
 
 function showAddHero() {
@@ -1316,9 +1442,6 @@ async function api(method, path, body, skipAuth = false) {
   }
 }
 
-// ── Add logs endpoint call ────────────────────────────────────
-// (Extend API to support GET /logs — add to admin.py)
-
 // ── UI Helpers ────────────────────────────────────────────────
 function closeModal() {
   document.querySelectorAll('.modal-bg').forEach(m => m.classList.remove('show'));
@@ -1328,8 +1451,7 @@ function toast(msg, type = 'ok') {
   el.textContent = (type === 'ok' ? '✓ ' : '✕ ') + msg;
   el.className = `toast show ${type}`;
   setTimeout(() => el.className = 'toast', 3000);
-  // 数据变更时通知前台页面自动刷新
-  if (type === 'ok' && (msg.includes('保存') || msg.includes('新增') || msg.includes('删除') || msg.includes('导入') || msg.includes('修改'))) {
+  if (type === 'ok' && (msg.includes('保存') || msg.includes('更新') || msg.includes('新增') || msg.includes('删除') || msg.includes('导入') || msg.includes('修改'))) {
     localStorage.setItem('skin_db_updated', Date.now().toString());
   }
 }
