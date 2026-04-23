@@ -1210,7 +1210,7 @@ function renderTable() {
     mobileEl.innerHTML = '';
   }
 
-  document.getElementById('pg-info').textContent = `共 ${total} 条 · 第 ${start+1}–${end} 条`;
+  document.getElementById('pg-info').textContent = total === 0 ? '暂无匹配数据' : `共 ${total} 条 · 第 ${start+1}–${end} 条`;
 
   const totalPages = Math.ceil(total/PAGE_SIZE);
   const pgs = document.getElementById('pg-btns');
@@ -1221,6 +1221,14 @@ function renderTable() {
   if (re<totalPages) btns += `${re<totalPages-1?'<span style="padding:4px;color:var(--text3)">…</span>':''}<button class="pg-btn" onclick="goPage(${totalPages})">${totalPages}</button>`;
   btns += `<button class="pg-btn" onclick="goPage(${page+1})" ${page>=totalPages?'disabled':''}>›</button>`;
   pgs.innerHTML = btns;
+}
+
+function goPage(p) {
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE) || 1;
+  if (p < 1 || p > totalPages) return;
+  page = p;
+  renderTable();
+  document.getElementById('view-list').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // ── View: Hero List (New) ──
@@ -1476,6 +1484,8 @@ function backToHeroes() {
 
 // ── Skin Detail ──
 function goSkinDetail(hero, skinName) {
+  // 记录跳转前的列表状态，供浏览器返回时恢复
+  history.pushState({ view: 'list', page, scrollY: window.scrollY }, '');
   showView('heroes', document.getElementById('tab-heroes'), 'heroes');
   openSkinDetail(hero, skinName);
 }
@@ -2225,6 +2235,21 @@ function goRankingPage(p) {
   renderRankingPage();
   document.getElementById('ranking-content').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
+
+// ── 浏览器返回：恢复皮肤列表翻页位置 ──
+history.replaceState({ view: 'list', page: 1, scrollY: 0 }, '');
+window.addEventListener('popstate', e => {
+  const s = e.state;
+  if (!s) return;
+  if (s.view === 'list') {
+    showView('list', document.getElementById('tab-list'), 'list');
+    setBottomNav('list');
+    page = s.page || 1;
+    renderTable();
+    // 等待 DOM 渲染后恢复滚动位置
+    requestAnimationFrame(() => window.scrollTo({ top: s.scrollY || 0, behavior: 'instant' }));
+  }
+});
 
 // ── Helpers ──
 function esc(s) { return (s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
