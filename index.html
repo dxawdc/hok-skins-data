@@ -1168,6 +1168,9 @@ function getHeroInfo(heroName) {
   // 优先从英雄表查，fallback 到空
   return HERO_BY_NAME[heroName] || null;
 }
+// 加回这两个，兼容 renderTable 里的旧调用
+function parseRoles(job) { return ['坦克','战士','刺客','法师','射手','辅助'].filter(r=>(job||'').includes(r)); }
+function parseLanes(job) { return ['对抗路','中路','发育路','打野','游走'].filter(l=>(job||'').includes(l)); }
 function heroRoles(heroName) {
   const h = getHeroInfo(heroName);
   return h ? (h.roles || []) : [];
