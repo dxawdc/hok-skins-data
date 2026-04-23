@@ -1450,4 +1450,94 @@ async function doSaveHero() {
   const id=document.getElementById('eh-id').value;
   const name=document.getElementById('eh-name').value.trim();
   if(!name) return toast('英雄名称不能为空','err');
-  const roles=[...document.querySelectorAll('#eh-roles input:
+  
+  const roles=[...document.querySelectorAll('#eh-roles input:checked')].map(cb=>cb.value);
+  const lanes=[...document.querySelectorAll('#eh-lanes input:checked')].map(cb=>cb.value);
+  
+  const btn = document.querySelector('#modal-hero .btn-primary');
+  btn.disabled = true;
+  btn.textContent = '保存中...';
+
+  try {
+    let avatar_url = document.getElementById('eh-avatar-url').value;
+    if (heroAvatarFile) {
+      const reader = new FileReader();
+      const b64 = await new Promise(resolve => {
+        reader.onload = e => resolve(e.target.result);
+        reader.readAsDataURL(heroAvatarFile);
+      });
+      const uploadedUrl = await uploadImg(b64, 'avatar');
+      if (uploadedUrl) avatar_url = uploadedUrl;
+    }
+
+    const data = {
+      name,
+      gender: document.getElementById('eh-gender').value,
+      roles,
+      lanes,
+      release_date: document.getElementById('eh-release-date').value || null,
+      is_available: document.getElementById('eh-available').value === 'true',
+      notes: document.getElementById('eh-notes').value.trim(),
+      avatar_url
+    };
+
+    const res = id ? await api('PUT', `/heroes/${id}`, data) : await api('POST', '/heroes', data);
+    if (res.error) return toast(res.error, 'err');
+
+    closeModal();
+    loadHeroes();
+    toast(id ? '英雄更新成功' : '英雄新增成功', 'ok');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '保存';
+  }
+}
+
+async function doDeleteHero(id, name) {
+  if (!confirm(`确定删除英雄"${name}"吗？此操作不可撤销！`)) return;
+  const res = await api('DELETE', `/heroes/${id}`);
+  if (res.error) return toast(res.error, 'err');
+  toast('英雄已删除', 'ok');
+  loadHeroes();
+}
+
+// ── API helper ────────────────────────────────────────────────
+async function api(method, path, body, skipAuth = false) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (!skipAuth && token) headers['Authorization'] = 'Bearer ' + token;
+  try {
+    const res = await fetch(API + path, {
+      method, headers,
+      body: body ? JSON.stringify(body) : undefined
+    });
+    return await res.json();
+  } catch (e) {
+    return { error: '网络错误：' + e.message };
+  }
+}
+
+// ── UI Helpers ────────────────────────────────────────────────
+function closeModal() {
+  document.querySelectorAll('.modal-bg').forEach(m => m.classList.remove('show'));
+}
+
+function toast(msg, type = 'ok') {
+  const el = document.getElementById('toast');
+  el.textContent = (type === 'ok' ? '✓ ' : '✕ ') + msg;
+  el.className = `toast show ${type}`;
+  setTimeout(() => el.className = 'toast', 3000);
+  if (type === 'ok' && (msg.includes('保存') || msg.includes('更新') || msg.includes('新增') || msg.includes('删除') || msg.includes('导入') || msg.includes('修改'))) {
+    localStorage.setItem('skin_db_updated', Date.now().toString());
+  }
+}
+
+function fmtTime(str) {
+  if (!str) return '—';
+  return new Date(str).toLocaleString('zh-CN', {month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
+// 页面初始化时检查鉴权态
+checkAuth();
+</script>
+</body>
+</html>
