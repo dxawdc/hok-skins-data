@@ -461,6 +461,43 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
         </div>
       </div>
 
+      <!-- ══ 英雄管理页 ══ -->
+      <div class="page" id="page-heroes">
+        <div class="page-header">
+          <div><div class="page-title">英雄管理</div><div class="page-subtitle">管理英雄基础信息</div></div>
+          <button class="btn btn-primary btn-sm" onclick="showAddHero()">+ 新增英雄</button>
+        </div>
+        <div class="page-body">
+          <div class="table-toolbar">
+            <input class="search-input" id="hero-search" placeholder="搜索英雄名称…" oninput="filterHeroTable()" style="width:200px">
+            <select class="filter-select" id="hero-role-filter" onchange="filterHeroTable()">
+              <option value="">全部职业</option>
+              <option>法师</option><option>战士</option><option>射手</option>
+              <option>刺客</option><option>坦克</option><option>辅助</option>
+            </select>
+            <select class="filter-select" id="hero-lane-filter" onchange="filterHeroTable()">
+              <option value="">全部分路</option>
+              <option>中路</option><option>对抗路</option><option>发育路</option>
+              <option>打野</option><option>游走</option>
+            </select>
+          </div>
+          <div class="data-table-wrap" style="border-top:none;border-radius:0 0 var(--radius) var(--radius)">
+            <table>
+              <thead><tr>
+                <th style="width:50px">头像</th>
+                <th>英雄名称</th><th>职业</th><th>分路</th><th>性别</th>
+                <th>上线日期</th><th>备注</th><th style="width:130px">操作</th>
+              </tr></thead>
+              <tbody id="hero-tbody"></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="hero-pagination">
+            <span class="pg-info" id="hero-pg-info"></span>
+            <div class="pg-btns" id="hero-pg-btns"></div>
+          </div>
+        </div>
+      </div>
+
       <div class="page admin-only" id="page-users">
         <div class="page-header">
           <div><div class="page-title">用户管理</div><div class="page-subtitle">管理后台访问账号</div></div>
@@ -535,7 +572,10 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
       <div class="form-group"><label>价格</label><input type="text" id="es-price" placeholder="如：888"></div>
       <div class="form-group"><label>获取方式</label><input type="text" id="es-obtain" placeholder="如：直售"></div>
       <div class="form-group">
-        <label>英雄职业/分路</label><input type="text" id="es-job" placeholder="如：刺客（打野）">
+        <label>关联英雄</label>
+        <select id="es-hero-id" class="filter-select" style="width:100%">
+          <option value="">— 不关联 —</option>
+        </select>
       </div>
       <div class="form-group">
         <label>类型</label>
@@ -549,6 +589,11 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
           <option>否</option><option>是</option>
         </select>
       </div>
+    </div>
+    <div class="form-group" style="margin-top:4px">
+      <label>备注 <span style="color:var(--text3);font-weight:400">（可选）</span></label>
+      <textarea id="es-notes" placeholder="如：2024年5月升级为史诗，后续不再直售…" rows="2"
+        style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;outline:none;font-family:inherit;resize:vertical"></textarea>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px">
@@ -584,6 +629,69 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal()">取消</button>
       <button class="btn btn-primary" id="es-save-btn" onclick="doSaveSkin()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 英雄 Modal ══ -->
+<div class="modal-bg" id="modal-hero">
+  <div class="modal" style="width:560px;max-width:96vw">
+    <h3 id="modal-hero-title">新增英雄</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group"><label>英雄名称 <span style="color:var(--red)">*</span></label><input type="text" id="eh-name" placeholder="如：孙悟空"></div>
+      <div class="form-group">
+        <label>性别</label>
+        <select id="eh-gender" class="filter-select" style="width:100%">
+          <option value="男">男</option><option value="女">女</option><option value="未知">未知</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>职业 <span style="color:var(--text3);font-weight:400">（可多选）</span></label>
+        <div id="eh-roles" style="display:flex;flex-wrap:wrap;gap:8px;padding:8px 0">
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" value="法师"> 法师</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" value="战士"> 战士</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" value="射手"> 射手</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" value="刺客"> 刺客</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" value="坦克"> 坦克</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" value="辅助"> 辅助</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>分路 <span style="color:var(--text3);font-weight:400">（可多选）</span></label>
+        <div id="eh-lanes" style="display:flex;flex-wrap:wrap;gap:8px;padding:8px 0">
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" value="中路"> 中路</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" value="对抗路"> 对抗路</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" value="发育路"> 发育路</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" value="打野"> 打野</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" value="游走"> 游走</label>
+        </div>
+      </div>
+      <div class="form-group"><label>上线日期</label><input type="date" id="eh-release-date"></div>
+      <div class="form-group">
+        <label>是否上架</label>
+        <select id="eh-available" class="filter-select" style="width:100%">
+          <option value="true">上架</option><option value="false">下架</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group" style="margin-top:4px">
+      <label>头像图片 <span style="color:var(--text3);font-weight:400">（可选，建议正方形，≤400KB）</span></label>
+      <div class="img-upload-box" id="hero-avatar-box" style="height:90px" onclick="document.getElementById('hero-avatar-input').click()">
+        <img id="hero-avatar-preview" style="display:none;width:80px;height:80px;border-radius:50%;object-fit:cover">
+        <div id="hero-avatar-placeholder"><div style="font-size:28px">🎭</div><div style="font-size:12px;color:var(--text3);margin-top:4px">点击上传头像</div></div>
+      </div>
+      <input type="file" id="hero-avatar-input" accept="image/*" style="display:none" onchange="previewHeroAvatar(event)">
+    </div>
+    <div class="form-group">
+      <label>备注 <span style="color:var(--text3);font-weight:400">（可选）</span></label>
+      <textarea id="eh-notes" placeholder="如：2024年上线新版皮肤机制…" rows="2"
+        style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;outline:none;font-family:inherit;resize:vertical"></textarea>
+    </div>
+    <input type="hidden" id="eh-id">
+    <input type="hidden" id="eh-avatar-url">
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="doSaveHero()">保存</button>
     </div>
   </div>
 </div>
@@ -731,7 +839,8 @@ function resetSkinModal() {
   document.getElementById('es-tag').value = '';
   document.getElementById('es-price').value = '';
   document.getElementById('es-obtain').value = '';
-  document.getElementById('es-job').value = '';
+  document.getElementById('es-hero-id').value = '';
+  document.getElementById('es-notes').value = '';
   document.getElementById('es-type').value = '首发';
   document.getElementById('es-permanent').value = '否';
   // 重置图片预览
@@ -750,6 +859,7 @@ function openAddSkin() {
   resetSkinModal();
   document.getElementById('modal-skin-title').textContent = '新增皮肤记录';
   document.getElementById('es-save-btn').textContent = '新增';
+  populateHeroSelect('es-hero-id', '');
   document.getElementById('modal-skin').classList.add('show');
 }
 
@@ -780,9 +890,10 @@ function openEditSkin(s) {
   document.getElementById('es-tag').value       = s.tag   || '';
   document.getElementById('es-price').value     = s.price || '';
   document.getElementById('es-obtain').value    = s.obtain || '';
-  document.getElementById('es-job').value       = s.job   || '';
   document.getElementById('es-type').value      = s.type;
   document.getElementById('es-permanent').value = s.permanent;
+  document.getElementById('es-notes').value     = s.notes || '';
+  populateHeroSelect('es-hero-id', s.hero_id || '');
   document.getElementById('modal-skin').classList.add('show');
 }
 
@@ -849,7 +960,8 @@ async function doSaveSkin() {
       tag:          document.getElementById('es-tag').value.trim(),
       price:        document.getElementById('es-price').value.trim(),
       obtain:       document.getElementById('es-obtain').value.trim(),
-      job:          document.getElementById('es-job').value.trim(),
+      hero_id:      document.getElementById('es-hero-id').value ? parseInt(document.getElementById('es-hero-id').value) : null,
+      notes:        document.getElementById('es-notes').value.trim() || null,
       type:         document.getElementById('es-type').value,
       permanent:    document.getElementById('es-permanent').value,
       skin_img_url: skinImgUrl,
@@ -1031,6 +1143,159 @@ async function loadLogs() {
       <td style="font-size:12px;color:var(--text3)">${l.target_id||'—'}</td>
       <td style="font-size:12px;color:var(--text3);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${JSON.stringify(l.detail||{})}</td>
     </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text3)">暂无日志</td></tr>';
+}
+
+// ── 英雄管理 ─────────────────────────────────────────────────
+
+async function populateHeroSelect(selectId, selectedId) {
+  if (!allHeroes.length) {
+    const res = await api('GET', '/heroes?per_page=200');
+    allHeroes = res.heroes || [];
+  }
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— 不关联 —</option>' +
+    allHeroes.map(h => `<option value="${h.id}" ${String(h.id)===String(selectedId)?'selected':''}>${h.name}</option>`).join('');
+}
+
+async function loadHeroes() {
+  const res = await api('GET', '/heroes?per_page=200');
+  if (!res.heroes) return;
+  allHeroes = res.heroes;
+  const search = (document.getElementById('hero-search')?.value||'').trim();
+  const role   =  document.getElementById('hero-role-filter')?.value||'';
+  const lane   =  document.getElementById('hero-lane-filter')?.value||'';
+  filteredHeroes = allHeroes.filter(h => {
+    if (search && !h.name.includes(search)) return false;
+    if (role   && !(h.roles||[]).includes(role)) return false;
+    if (lane   && !(h.lanes||[]).includes(lane)) return false;
+    return true;
+  });
+  heroPage = 1; renderHeroTable();
+}
+function filterHeroTable() { loadHeroes(); }
+
+function renderHeroTable() {
+  const total = filteredHeroes.length;
+  const totalPages = Math.ceil(total / HERO_PER_PAGE) || 1;
+  const start = (heroPage - 1) * HERO_PER_PAGE;
+  const rows  = filteredHeroes.slice(start, start + HERO_PER_PAGE);
+  const CDN     = 'https://skinsdata.top/img';
+  const STORAGE = 'https://erphrsydujqrcvtpdtnf.supabase.co/storage/v1/object/public/skin-images';
+  const thumb = url => {
+    if (!url) return null;
+    const cdn = url.startsWith(CDN) ? url : url.replace(STORAGE, CDN);
+    return `${cdn}?width=60&height=60&quality=75&resize=cover`;
+  };
+  document.getElementById('hero-tbody').innerHTML = rows.map(h => `
+    <tr>
+      <td>${h.avatar_url
+        ? `<img src="${thumb(h.avatar_url)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1px solid var(--border)" loading="lazy">`
+        : `<div style="width:36px;height:36px;border-radius:50%;background:#f0f2f5;display:flex;align-items:center;justify-content:center;font-size:18px">🎭</div>`}</td>
+      <td style="font-weight:600">${h.name}</td>
+      <td>${(h.roles||[]).map(r=>`<span class="badge badge-史诗" style="margin-right:3px">${r}</span>`).join('')||'—'}</td>
+      <td style="font-size:12px;color:var(--text2)">${(h.lanes||[]).join(' · ')||'—'}</td>
+      <td style="font-size:12px">${h.gender||'—'}</td>
+      <td style="font-size:12px;color:var(--text3)">${h.release_date||'—'}</td>
+      <td style="font-size:12px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(h.notes||'').replace(/"/g,'&quot;')}">${h.notes||'—'}</td>
+      <td>
+        <button class="btn btn-outline btn-sm" onclick='editHero(${JSON.stringify(JSON.stringify(h))})'>编辑</button>
+        <button class="btn btn-danger  btn-sm" onclick="doDeleteHero(${h.id},'${h.name.replace(/'/g,"\\'")}')">删除</button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text3)">暂无英雄数据</td></tr>';
+
+  document.getElementById('hero-pg-info').textContent =
+    `共 ${total} 位英雄 · 第 ${start+1}–${Math.min(start+HERO_PER_PAGE,total)} 条`;
+  let btns = `<button class="pg-btn" onclick="goHeroPage(${heroPage-1})" ${heroPage<=1?'disabled':''}>‹</button>`;
+  const rs=Math.max(1,heroPage-2), re=Math.min(totalPages,heroPage+2);
+  if(rs>1) btns+=`<button class="pg-btn" onclick="goHeroPage(1)">1</button>`;
+  for(let i=rs;i<=re;i++) btns+=`<button class="pg-btn${i===heroPage?' active':''}" onclick="goHeroPage(${i})">${i}</button>`;
+  if(re<totalPages) btns+=`<button class="pg-btn" onclick="goHeroPage(${totalPages})">${totalPages}</button>`;
+  btns+=`<button class="pg-btn" onclick="goHeroPage(${heroPage+1})" ${heroPage>=totalPages?'disabled':''}>›</button>`;
+  document.getElementById('hero-pg-btns').innerHTML = btns;
+}
+function goHeroPage(p) {
+  const t = Math.ceil(filteredHeroes.length / HERO_PER_PAGE)||1;
+  if (p<1||p>t) return; heroPage=p; renderHeroTable();
+}
+
+function showAddHero() {
+  document.getElementById('modal-hero-title').textContent = '新增英雄';
+  ['eh-id','eh-name','eh-release-date','eh-notes','eh-avatar-url'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('eh-gender').value='男';
+  document.getElementById('eh-available').value='true';
+  document.querySelectorAll('#eh-roles input,#eh-lanes input').forEach(cb=>cb.checked=false);
+  document.getElementById('hero-avatar-preview').style.display='none';
+  document.getElementById('hero-avatar-placeholder').style.display='block';
+  heroAvatarFile=null;
+  document.getElementById('modal-hero').classList.add('show');
+}
+
+let heroAvatarFile = null;
+function previewHeroAvatar(e) {
+  const file=e.target.files[0]; if(!file) return;
+  heroAvatarFile=file;
+  const r=new FileReader();
+  r.onload=ev=>{
+    const img=document.getElementById('hero-avatar-preview');
+    img.src=ev.target.result; img.style.display='block';
+    document.getElementById('hero-avatar-placeholder').style.display='none';
+  };
+  r.readAsDataURL(file);
+}
+
+function editHero(jsonStr) {
+  const h=JSON.parse(jsonStr);
+  document.getElementById('modal-hero-title').textContent='编辑英雄';
+  document.getElementById('eh-id').value          =h.id;
+  document.getElementById('eh-name').value        =h.name;
+  document.getElementById('eh-gender').value      =h.gender||'男';
+  document.getElementById('eh-release-date').value=h.release_date||'';
+  document.getElementById('eh-available').value   =h.is_available?'true':'false';
+  document.getElementById('eh-notes').value       =h.notes||'';
+  document.getElementById('eh-avatar-url').value  =h.avatar_url||'';
+  document.querySelectorAll('#eh-roles input').forEach(cb=>{cb.checked=(h.roles||[]).includes(cb.value);});
+  document.querySelectorAll('#eh-lanes input').forEach(cb=>{cb.checked=(h.lanes||[]).includes(cb.value);});
+  heroAvatarFile=null;
+  const img=document.getElementById('hero-avatar-preview');
+  if(h.avatar_url){img.src=h.avatar_url;img.style.display='block';document.getElementById('hero-avatar-placeholder').style.display='none';}
+  else{img.style.display='none';document.getElementById('hero-avatar-placeholder').style.display='block';}
+  document.getElementById('modal-hero').classList.add('show');
+}
+
+async function doSaveHero() {
+  const id=document.getElementById('eh-id').value;
+  const name=document.getElementById('eh-name').value.trim();
+  if(!name) return toast('英雄名称不能为空','err');
+  const roles=[...document.querySelectorAll('#eh-roles input:checked')].map(cb=>cb.value);
+  const lanes=[...document.querySelectorAll('#eh-lanes input:checked')].map(cb=>cb.value);
+  let avatarUrl=document.getElementById('eh-avatar-url').value;
+
+  if(heroAvatarFile){
+    const b64=await new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(',')[1]);r.readAsDataURL(heroAvatarFile);});
+    const up=await api('POST','/images',{img_id:`hero_${id||name}`,img_type:'hero',data:b64,mime_type:heroAvatarFile.type});
+    if(up.error) return toast('头像上传失败：'+up.error,'err');
+    avatarUrl=up.url;
+  }
+
+  const body={name,roles,lanes,
+    gender:      document.getElementById('eh-gender').value,
+    release_date:document.getElementById('eh-release-date').value||null,
+    is_available:document.getElementById('eh-available').value==='true',
+    notes:       document.getElementById('eh-notes').value.trim()||null,
+    avatar_url:  avatarUrl||null,
+  };
+  const res=id?await api('PUT',`/heroes/${id}`,body):await api('POST','/heroes',body);
+  if(res.error) return toast(res.error,'err');
+  closeModal(); allHeroes=[]; loadHeroes();
+  toast(id?'英雄信息已更新':'英雄新增成功','ok');
+}
+
+async function doDeleteHero(id,name){
+  if(!confirm(`确认删除英雄「${name}」？相关皮肤的 hero_id 将置为空，皮肤数据本身不会删除。`)) return;
+  const res=await api('DELETE',`/heroes/${id}`);
+  if(res.error) return toast(res.error,'err');
+  allHeroes=[]; loadHeroes(); toast('已删除','ok');
 }
 
 // ── API helper ────────────────────────────────────────────────

@@ -763,13 +763,34 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
 const SUPABASE_URL = 'https://erphrsydujqrcvtpdtnf.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVycGhyc3lkdWpxcmN2dHBkdG5mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3MDU2ODQsImV4cCI6MjA4OTI4MTY4NH0.O6h3Eeq9gNfGAMYkZ5_1GY5lFBiJrF8fJat0Pxz868U';
 
-// ── 数据拉取：走 Cloudflare CDN 缓存（/api/skins），不直连 Supabase ──
-const CACHE_KEY = 'wzry_skin_data_v2'; // 版本号升级，清除旧缓存
-const CACHE_TTL = 30 * 60 * 1000;      // 客户端 sessionStorage 缓存 30 分钟
-const API_BASE  = 'https://skinsdata.top';
+// ── 数据拉取：走 Cloudflare CDN 缓存 ──────────────────────────
+const CACHE_KEY       = 'wzry_skin_data_v3';   // 版本号升级，清除旧缓存
+const CACHE_KEY_HERO  = 'wzry_hero_data_v1';
+const CACHE_TTL       = 30 * 60 * 1000;
+const HERO_CACHE_TTL  = 2  * 60 * 60 * 1000;
+const API_BASE        = 'https://skinsdata.top';
+
+// 全局英雄数组 & 按 id/name 查找的 Map
+let HEROES = [];
+let HERO_BY_ID   = {};   // id → hero
+let HERO_BY_NAME = {};   // name → hero
+
+async function fetchAllHeroes() {
+  try {
+    const cached = sessionStorage.getItem(CACHE_KEY_HERO);
+    if (cached) {
+      const { data, ts } = JSON.parse(cached);
+      if (Date.now() - ts < HERO_CACHE_TTL) return data;
+    }
+  } catch (e) {}
+  const res = await fetch(`${API_BASE}/api/heroes`);
+  if (!res.ok) throw new Error(`/api/heroes 请求失败: ${res.status}`);
+  const heroes = await res.json();
+  try { sessionStorage.setItem(CACHE_KEY_HERO, JSON.stringify({ data: heroes, ts: Date.now() })); } catch (e) {}
+  return heroes;
+}
 
 async function fetchAllSkins() {
-  // 1. 客户端 sessionStorage 缓存（同一会话内秒响应）
   try {
     const cached = sessionStorage.getItem(CACHE_KEY);
     if (cached) {
@@ -779,10 +800,8 @@ async function fetchAllSkins() {
         return data;
       }
     }
-  } catch (e) { /* 降级 */ }
+  } catch (e) {}
 
-  // 2. 请求 Cloudflare Worker /api/skins（Worker 端30分钟共享缓存）
-  //    Worker 再按需分页拉 Supabase，多用户共享同一份 Worker 缓存
   console.log('[L1缓存未命中] 请求 CDN /api/skins…');
   const res = await fetch(`${API_BASE}/api/skins`);
   if (!res.ok) throw new Error(`/api/skins 请求失败: ${res.status}`);
@@ -794,7 +813,8 @@ async function fetchAllSkins() {
     quality:   r.quality,
     tag:       r.tag      || '',
     hero:      r.hero,
-    job:       r.job      || '',
+    hero_id:   r.hero_id  || null,
+    notes:     r.notes    || '',
     price:     r.price    || '',
     obtain:    r.obtain   || '',
     type:      r.type,
@@ -803,14 +823,12 @@ async function fetchAllSkins() {
     qi:        r.tag_img_url  || '',
   }));
 
-  // 3. 写入客户端缓存
   try {
     sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data: result, ts: Date.now() }));
     console.log(`[L1缓存] 已写入 ${result.length} 条`);
   } catch (e) {
     console.warn('[L1缓存] 写入失败:', e.message);
   }
-
   return result;
 }
 
@@ -884,9 +902,15 @@ window.onload = async () => {
   document.querySelectorAll('.theme-btn').forEach(b => b.classList.toggle('active', b.dataset.t === savedTheme));
 
   try {
-    // 拉取皮肤数据（图片 URL 直接包含在数据里，无需额外加载）
-    setLoadingText('加载皮肤数据…');
-    RAW = await fetchAllSkins();
+    // 并行拉取英雄数据 + 皮肤数据
+    setLoadingText('加载英雄与皮肤数据…');
+    [HEROES, RAW] = await Promise.all([fetchAllHeroes(), fetchAllSkins()]);
+
+    // 建立快速查找索引
+    HEROES.forEach(h => {
+      HERO_BY_ID[h.id]     = h;
+      HERO_BY_NAME[h.name] = h;
+    });
 
     // 初始化 UI
     setLoadingText('渲染页面…');
@@ -921,9 +945,11 @@ async function refreshData() {
   btn.innerHTML = '⏳ <span class="refresh-label">刷新中…</span>';
 
   try {
-    // 手动刷新：清除缓存，强制从 Supabase 重新拉取
-    try { sessionStorage.removeItem(CACHE_KEY); } catch (e) {}
-    RAW = await fetchAllSkins();
+    // 手动刷新：清除缓存，强制重新拉取
+    try { sessionStorage.removeItem(CACHE_KEY); sessionStorage.removeItem(CACHE_KEY_HERO); } catch (e) {}
+    [HEROES, RAW] = await Promise.all([fetchAllHeroes(), fetchAllSkins()]);
+    HERO_BY_ID = {}; HERO_BY_NAME = {};
+    HEROES.forEach(h => { HERO_BY_ID[h.id] = h; HERO_BY_NAME[h.name] = h; });
 
     // 重置筛选/翻页状态
     page = 1;
@@ -1132,8 +1158,23 @@ function setBottomNav(v) {
 function goPage(p) { const t = Math.ceil(filtered.length/PAGE_SIZE); if(p<1||p>t) return; page=p; renderTable(); }
 
 // ── Heroes ──
-function parseRoles(job) { return ['坦克','战士','刺客','法师','射手','辅助'].filter(r=>job.includes(r)); }
-function parseLanes(job) { return ['对抗路','中路','发育路','打野','游走'].filter(l=>job.includes(l)); }
+function getHeroInfo(heroName) {
+  // 优先从英雄表查，fallback 到空
+  return HERO_BY_NAME[heroName] || null;
+}
+function heroRoles(heroName) {
+  const h = getHeroInfo(heroName);
+  return h ? (h.roles || []) : [];
+}
+function heroLanes(heroName) {
+  const h = getHeroInfo(heroName);
+  return h ? (h.lanes || []) : [];
+}
+function heroAvatarUrl(heroName) {
+  const h = getHeroInfo(heroName);
+  return h && h.avatar_url ? toCdnUrl(h.avatar_url) : null;
+}
+
 function setRoleFilter(el,val) { document.querySelectorAll('#role-chips .chip').forEach(c=>c.classList.remove('active')); el.classList.add('active'); heroRoleFilter=val; renderHeroGrid(); }
 function setLaneFilter(el,val) { document.querySelectorAll('#lane-chips .chip').forEach(c=>c.classList.remove('active')); el.classList.add('active'); heroLaneFilter=val; renderHeroGrid(); }
 function filterHeroes() { heroSearch=document.getElementById('search-hero').value.trim().toLowerCase(); renderHeroGrid(); }
@@ -1141,11 +1182,10 @@ function filterHeroes() { heroSearch=document.getElementById('search-hero').valu
 function buildHeroMap() {
   const m = {};
   RAW.forEach(r => {
-    if (!m[r.hero]) m[r.hero] = { job: r.job, skins: new Map() };
+    if (!m[r.hero]) m[r.hero] = { skins: new Map() };
     const key = r.name;
     if (!m[r.hero].skins.has(key)) m[r.hero].skins.set(key, { name:r.name, quality:r.quality, tag:r.tag, si:r.si, qi:r.qi, records:[] });
     m[r.hero].skins.get(key).records.push(r);
-    // 保留非空 URL
     if (r.si) m[r.hero].skins.get(key).si = r.si;
     if (r.qi) m[r.hero].skins.get(key).qi = r.qi;
   });
@@ -1156,14 +1196,19 @@ function renderHeroGrid() {
   const heroMap = buildHeroMap();
   let heroes = Object.entries(heroMap).sort((a,b)=>b[1].skins.size-a[1].skins.size);
   if (heroSearch) heroes = heroes.filter(([h])=>h.includes(heroSearch));
-  if (heroRoleFilter) heroes = heroes.filter(([h,d])=>parseRoles(d.job).includes(heroRoleFilter));
-  if (heroLaneFilter) heroes = heroes.filter(([h,d])=>parseLanes(d.job).includes(heroLaneFilter));
+  if (heroRoleFilter) heroes = heroes.filter(([h])=>heroRoles(h).includes(heroRoleFilter));
+  if (heroLaneFilter) heroes = heroes.filter(([h])=>heroLanes(h).includes(heroLaneFilter));
   const grid = document.getElementById('hero-grid');
   if (!heroes.length) { grid.innerHTML='<div class="empty-state" style="grid-column:1/-1"><div class="icon">🎭</div><p>未找到匹配的英雄</p></div>'; return; }
   grid.innerHTML = heroes.map(([hero,data]) => {
-    const roles = parseRoles(data.job);
-    const lanes = parseLanes(data.job);
+    const roles = heroRoles(hero);
+    const lanes = heroLanes(hero);
+    const avatarUrl = heroAvatarUrl(hero);
+    const avatarHtml = avatarUrl
+      ? `<img src="${thumbUrl(avatarUrl,120)}" style="width:52px;height:52px;border-radius:50%;object-fit:cover;margin-bottom:8px;border:2px solid var(--border)" loading="lazy" alt="${hero}">`
+      : `<div style="width:52px;height:52px;border-radius:50%;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 8px">🎭</div>`;
     return `<div class="hero-card" onclick="openHeroDetail('${esc(hero)}')">
+      ${avatarHtml}
       <div class="hero-name">${hero}</div>
       <div class="hero-job-mini">${roles.join('/')}${lanes.length?'<br>'+lanes.join('/'):''}</div>
       <div class="hero-skin-count"><b>${data.skins.size}</b> 款皮肤</div>
@@ -1177,8 +1222,13 @@ function openHeroDetail(hero) {
   const heroMap = buildHeroMap();
   const data = heroMap[hero];
   if (!data) return;
-  const roles = parseRoles(data.job);
-  const lanes = parseLanes(data.job);
+  const heroInfo = getHeroInfo(hero);
+  const roles = heroInfo ? (heroInfo.roles || []) : [];
+  const lanes = heroInfo ? (heroInfo.lanes || []) : [];
+  const gender = heroInfo ? heroInfo.gender || '' : '';
+  const releaseDate = heroInfo ? heroInfo.release_date || '' : '';
+  const heroNotes = heroInfo ? heroInfo.notes || '' : '';
+  const avatarUrl = heroInfo && heroInfo.avatar_url ? toCdnUrl(heroInfo.avatar_url) : null;
   const allRecords = RAW.filter(r=>r.hero===hero);
   const totalReturns = allRecords.filter(r=>r.type==='返场').length;
 
@@ -1204,13 +1254,23 @@ function openHeroDetail(hero) {
   wrap.innerHTML = `
     <div class="hero-detail-header">
       <div class="breadcrumb"><a onclick="backToHeroes()">← 英雄列表</a> / ${hero}</div>
-      <div class="hero-detail-title">${hero}</div>
-      <div class="hero-detail-meta">
-        <span>🗡️ ${roles.join(' / ')}</span>
-        <span>🗺️ ${lanes.length?lanes.join(' / '):'—'}</span>
-        <span>🎨 <b style="color:var(--gold)">${skins.length}</b> 款皮肤</span>
-        <span>🔄 <b style="color:var(--accent2)">${totalReturns}</b> 次返场</span>
-        ${daysSince ? `<span style="color:var(--text3);font-size:13px">⏱ ${daysSince}</span>` : ''}
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:8px">
+        ${avatarUrl
+          ? `<img src="${thumbUrl(avatarUrl,160)}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid var(--gold);flex-shrink:0" loading="lazy" alt="${hero}">`
+          : `<div style="width:64px;height:64px;border-radius:50%;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0">🎭</div>`}
+        <div>
+          <div class="hero-detail-title">${hero}</div>
+          <div class="hero-detail-meta" style="margin-top:6px">
+            <span>🗡️ ${roles.length?roles.join(' / '):'—'}</span>
+            <span>🗺️ ${lanes.length?lanes.join(' / '):'—'}</span>
+            ${gender?`<span>👤 ${gender}</span>`:''}
+            ${releaseDate?`<span>📅 ${releaseDate}</span>`:''}
+            <span>🎨 <b style="color:var(--gold)">${skins.length}</b> 款皮肤</span>
+            <span>🔄 <b style="color:var(--accent2)">${totalReturns}</b> 次返场</span>
+            ${daysSince ? `<span style="color:var(--text3);font-size:13px">⏱ ${daysSince}</span>` : ''}
+          </div>
+          ${heroNotes?`<div style="margin-top:8px;font-size:13px;color:var(--text2);padding:8px 12px;background:var(--bg4);border-radius:6px;border-left:3px solid var(--gold)">📝 ${heroNotes}</div>`:''}
+        </div>
       </div>
     </div>
     <div class="hero-skins-grid">
@@ -1277,7 +1337,10 @@ function openSkinDetail(hero, skinName) {
           </div>
           <div class="skin-detail-info">
             <div class="skin-detail-name">${skinName}</div>
-            <div class="skin-detail-hero">归属英雄：<span style="color:var(--gold)">${hero}</span></div>
+            <div class="skin-detail-hero" style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+              ${(()=>{const av=heroAvatarUrl(hero);return av?`<img src="${thumbUrl(av,60)}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:1.5px solid var(--border)" loading="lazy">`:''})()}
+              归属英雄：<span style="color:var(--gold);cursor:pointer" onclick="backToHeroes();openHeroDetail('${esc(hero)}')">${hero} →</span>
+            </div>
             <div class="skin-detail-attrs">
               <div class="attr-item"><label>皮肤品质</label><div class="val">
                 <span class="badge badge-${first.quality}">${first.quality}</span>
@@ -1297,6 +1360,7 @@ function openSkinDetail(hero, skinName) {
             </div>
           </div>
         </div>
+        ${(()=>{const n=first.notes||records.find(r=>r.notes)?.notes||'';return n?`<div style="padding:16px 22px;border-top:1px solid var(--border)"><div style="font-size:13px;color:var(--text3);margin-bottom:6px;font-weight:500">📝 备注</div><div style="font-size:14px;color:var(--text2);line-height:1.7">${n}</div></div>`:''})()}
         <div class="skin-timeline">
           <div class="timeline-title">🕐 上线 &amp; 返场记录（共 ${records.length} 条）</div>
           <div class="timeline-list">
