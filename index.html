@@ -904,7 +904,10 @@ window.onload = async () => {
   try {
     // 并行拉取英雄数据 + 皮肤数据
     setLoadingText('加载英雄与皮肤数据…');
-    [HEROES, RAW] = await Promise.all([fetchAllHeroes(), fetchAllSkins()]);
+    [HEROES, RAW] = await Promise.all([
+      fetchAllHeroes().catch(e => { console.warn('英雄数据加载失败:', e); return []; }),
+      fetchAllSkins()
+    ]);
 
     // 建立快速查找索引
     HEROES.forEach(h => {
@@ -947,7 +950,10 @@ async function refreshData() {
   try {
     // 手动刷新：清除缓存，强制重新拉取
     try { sessionStorage.removeItem(CACHE_KEY); sessionStorage.removeItem(CACHE_KEY_HERO); } catch (e) {}
-    [HEROES, RAW] = await Promise.all([fetchAllHeroes(), fetchAllSkins()]);
+    [HEROES, RAW] = await Promise.all([
+      fetchAllHeroes().catch(e => []),
+      fetchAllSkins()
+    ]);
     HERO_BY_ID = {}; HERO_BY_NAME = {};
     HEROES.forEach(h => { HERO_BY_ID[h.id] = h; HERO_BY_NAME[h.name] = h; });
 
