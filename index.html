@@ -971,7 +971,7 @@ window.onload = async () => {
     renderStats();
 
     const total = RAW.length.toLocaleString();
-    const heroes = new Set(RAW.map(r=>r.hero)).size;
+    const heroes = HEROES.length; // 已更改为英雄表的数量
     const skinSet = new Set(RAW.map(r=>r.hero+'|'+r.name)).size;
     document.getElementById('hd-total').textContent = total;
     document.getElementById('hd-heroes').textContent = heroes;
@@ -1015,7 +1015,7 @@ async function refreshData() {
     renderStats();
 
     const total = RAW.length.toLocaleString();
-    const heroes = new Set(RAW.map(r=>r.hero)).size;
+    const heroes = HEROES.length; // 已更改为英雄表的数量
     const skinSet = new Set(RAW.map(r=>r.hero+'|'+r.name)).size;
     ['hd-total','sb-total'].forEach(id => document.getElementById(id).textContent = total);
     ['hd-heroes','sb-heroes'].forEach(id => document.getElementById(id).textContent = heroes);
@@ -1611,6 +1611,9 @@ function renderStats() {
   const totalSkins = new Set(RAW.map(r=>r.hero+'|'+r.name)).size;
   const total = Object.values(qualityCounts).reduce((a,b)=>a+b,0);
   const maxH = topHeroes[0]?.[1]||1;
+  
+  // 已更改为直接读取英雄表数据长度
+  const totalHeroes = HEROES.length;
 
   const qs = Q_ORDER.filter(q=>qualityCounts[q]);
   const qColors = Q_COLORS;
@@ -1641,7 +1644,7 @@ function renderStats() {
     <div class="stats-title">📊 数据统计概览</div>
     <div class="stats-grid">
       <div class="stat-card"><div class="stat-label">总记录数</div><div class="stat-value">${RAW.length.toLocaleString()}</div><div class="stat-sub">含首发与返场</div></div>
-      <div class="stat-card"><div class="stat-label">英雄数量</div><div class="stat-value">${Object.keys(heroMap).length}</div><div class="stat-sub">已收录英雄</div></div>
+      <div class="stat-card"><div class="stat-label">英雄数量</div><div class="stat-value">${totalHeroes}</div><div class="stat-sub">已收录英雄</div></div>
       <div class="stat-card"><div class="stat-label">皮肤款数</div><div class="stat-value">${totalSkins}</div><div class="stat-sub">唯一皮肤（英雄+名称）</div></div>
       <div class="stat-card"><div class="stat-label">返场次数</div><div class="stat-value">${RAW.filter(r=>r.type==='返场').length}</div><div class="stat-sub">次返场记录</div></div>
       <div class="stat-card"><div class="stat-label">常驻皮肤</div><div class="stat-value">${new Set(RAW.filter(r=>r.permanent==='是').map(r=>r.hero+'|'+r.name)).size}</div><div class="stat-sub">款常驻皮肤</div></div>
