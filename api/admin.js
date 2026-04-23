@@ -99,6 +99,13 @@ module.exports = async function handler(req, res) {
   if (path.endsWith('/import')       && m === 'POST')   { const [u,e]=requireAuth(h); if(e) return send(e); return send(await doImport(body,u)); }
   if (path.endsWith('/logs')         && m === 'GET')    { const [u,e]=requireAuth(h); if(e) return send(e); return send(await listLogs(qs)); }
 
+  if (path.endsWith('/heroes')            && m === 'GET')    { const [u,e]=requireAuth(h); if(e) return send(e); return send(await listHeroes(qs)); }
+  if (path.endsWith('/heroes')            && m === 'POST')   { const [u,e]=requireAuth(h); if(e) return send(e); return send(await insertHero(body,u)); }
+  if (/\/heroes\/\d+$/.test(path)         && m === 'GET')    { const [u,e]=requireAuth(h); if(e) return send(e); return send(await getHero(path.split('/').pop())); }
+  if (/\/heroes\/\d+$/.test(path)         && m === 'PUT')    { const [u,e]=requireAuth(h); if(e) return send(e); return send(await updateHero(path.split('/').pop(),body,u)); }
+  if (/\/heroes\/\d+$/.test(path)         && m === 'DELETE') { const [u,e]=requireAuth(h); if(e) return send(e); return send(await deleteHero(path.split('/').pop(),u)); }
+  if (/\/heroes\/\d+\/skins$/.test(path)  && m === 'GET')    { const [u,e]=requireAuth(h); if(e) return send(e); return send(await listHeroSkins(path.split('/').slice(-2)[0])); }
+
   return send(fail('接口不存在', 404));
 };
 
@@ -160,7 +167,7 @@ async function listSkins(params) {
 }
 
 async function updateSkin(id, updates, user) {
-  const ALLOWED = new Set(['date','name','quality','tag','hero','job','price','obtain','type','permanent','skin_img_url','tag_img_url']);
+  const ALLOWED = new Set(['date','name','quality','tag','hero','price','obtain','type','permanent','skin_img_url','tag_img_url','hero_id','notes']);
   const clean = Object.fromEntries(Object.entries(updates).filter(([k]) => ALLOWED.has(k)));
   if (!Object.keys(clean).length) return fail('没有可更新的字段');
   const client = getClient();
@@ -184,7 +191,7 @@ async function deleteSkin(id, user) {
 
 async function batchUpdate({ ids, updates }, user) {
   if (!ids?.length || !updates) return fail('请提供 ids 和 updates');
-  const ALLOWED = new Set(['quality','tag','hero','job','price','obtain','type','permanent']);
+  const ALLOWED = new Set(['quality','tag','hero','price','obtain','type','permanent','hero_id','notes']);
   const clean = Object.fromEntries(Object.entries(updates).filter(([k]) => ALLOWED.has(k)));
   if (!Object.keys(clean).length) return fail('没有可更新的字段');
   const client = getClient();
@@ -196,7 +203,7 @@ async function batchUpdate({ ids, updates }, user) {
 
 // ── 新增皮肤 ─────────────────────────────────────────────────
 async function insertSkin(data, user) {
-  const ALLOWED = new Set(['date','name','quality','tag','hero','job','price','obtain','type','permanent','skin_img_url','tag_img_url']);
+  const ALLOWED = new Set(['date','name','quality','tag','hero','price','obtain','type','permanent','skin_img_url','tag_img_url','hero_id','notes']);
   const clean = Object.fromEntries(Object.entries(data||{}).filter(([k]) => ALLOWED.has(k)));
   if (!clean.date || !clean.name || !clean.hero) return fail('日期、皮肤名称、归属英雄为必填项');
   const client = getClient();
@@ -209,7 +216,7 @@ async function insertSkin(data, user) {
 // ── 上传图片（改为 Supabase Storage，包含精确大小校验）────────────────────────
 async function uploadImage({ img_id, img_type, data, mime_type }, user) {
   if (!img_id || !data || !mime_type) return fail('缺少必要字段');
-  if (!['skin','tag'].includes(img_type)) return fail('img_type 只能是 skin 或 tag');
+  if (!['skin','tag','hero'].includes(img_type)) return fail('img_type 只能是 skin、tag 或 hero');
 
   // 去除前端可能附带的 Data URL 前缀 (如 data:image/png;base64,)
   const base64Data = data.replace(/^data:image\/\w+;base64,/, "");
@@ -332,4 +339,93 @@ function parseExcel(buf) {
     skin_img_url: safe(r['皮肤图片URL']),
     tag_img_url:  safe(r['标签图片URL']),
   })).filter(r => r.name && r.hero && r.date);
+}
+// ── 英雄列表 ─────────────────────────────────────────────────
+async function listHeroes(params) {
+  const page    = Math.max(1, parseInt(params.page     || '1'));
+  const perPage = Math.min(200, parseInt(params.per_page || '100'));
+  const offset  = (page - 1) * perPage;
+
+  let q = getClient().from('heroes').select('*', { count: 'exact' });
+
+  if (params.role)   q = q.contains('roles', [decodeURIComponent(params.role)]);
+  if (params.lane)   q = q.contains('lanes', [decodeURIComponent(params.lane)]);
+  if (params.gender) q = q.eq('gender', decodeURIComponent(params.gender));
+  if (params.search) q = q.ilike('name', `%${decodeURIComponent(params.search)}%`);
+
+  q = q.order('release_date', { ascending: true }).range(offset, offset + perPage - 1);
+  const { data, count, error } = await q;
+  if (error) return fail(error.message);
+  return ok({ heroes: data || [], total: count || 0, page, per_page: perPage });
+}
+
+// ── 英雄详情（含皮肤数量统计）────────────────────────────────
+async function getHero(id) {
+  const client = getClient();
+  const { data, error } = await client
+    .from('heroes')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) return fail(error.message);
+  if (!data)  return fail('英雄不存在', 404);
+
+  const { count } = await client
+    .from('skins')
+    .select('*', { count: 'exact', head: true })
+    .eq('hero_id', parseInt(id));
+
+  return ok({ hero: { ...data, skin_count: count || 0 } });
+}
+
+// ── 新增英雄 ─────────────────────────────────────────────────
+async function insertHero(data, user) {
+  const ALLOWED = new Set(['name','gender','roles','lanes','release_date','avatar_url','is_available','notes']);
+  const clean = Object.fromEntries(Object.entries(data || {}).filter(([k]) => ALLOWED.has(k)));
+  if (!clean.name) return fail('英雄名称为必填项');
+
+  const client = getClient();
+  const { data: inserted, error } = await client
+    .from('heroes').insert(clean).select().maybeSingle();
+  if (error) return fail('创建失败：' + error.message);
+  await log(client, user.username, 'hero_insert', inserted?.id || null, { name: clean.name });
+  return ok({ hero: inserted });
+}
+
+// ── 编辑英雄 ─────────────────────────────────────────────────
+async function updateHero(id, updates, user) {
+  const ALLOWED = new Set(['name','gender','roles','lanes','release_date','avatar_url','is_available','notes']);
+  const clean = Object.fromEntries(Object.entries(updates).filter(([k]) => ALLOWED.has(k)));
+  if (!Object.keys(clean).length) return fail('没有可更新的字段');
+
+  const client = getClient();
+  const { data: before } = await client.from('heroes').select('*').eq('id', id).maybeSingle();
+  const { data, error } = await client
+    .from('heroes').update(clean).eq('id', id).select().maybeSingle();
+  if (error) return fail(error.message);
+  await log(client, user.username, 'hero_update', parseInt(id), {
+    before: Object.fromEntries(Object.keys(clean).map(k => [k, before?.[k]])),
+    after:  clean,
+  });
+  return ok({ hero: data });
+}
+
+// ── 删除英雄 ─────────────────────────────────────────────────
+async function deleteHero(id, user) {
+  const client = getClient();
+  const { data: before } = await client.from('heroes').select('*').eq('id', id).maybeSingle();
+  await client.from('heroes').delete().eq('id', id);
+  await log(client, user.username, 'hero_delete', parseInt(id), { deleted: before });
+  return ok({ ok: true });
+}
+
+// ── 某英雄的所有皮肤 ──────────────────────────────────────────
+async function listHeroSkins(heroId) {
+  const { data, error } = await getClient()
+    .from('skins')
+    .select('*')
+    .eq('hero_id', parseInt(heroId))
+    .order('date', { ascending: false });
+  if (error) return fail(error.message);
+  return ok({ skins: data || [], total: data?.length || 0 });
 }
