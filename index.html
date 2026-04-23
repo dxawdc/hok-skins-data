@@ -481,9 +481,7 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
   .app-layout { display: block; }
 
   /* 顶部 nav tabs 显示（桌面隐藏） */
-  .nav-tabs { display: flex !important; }
-  /* 手机上顶部也有 nav，但主要用底部的 */
-  .nav-tabs { display: none !important; }
+  .nav-tabs { display: none !important; } /* 手机上顶部也有 nav，但主要用底部的 */
 
   /* Filter bar */
   .filter-bar { padding: 10px 12px; gap: 7px; }
@@ -496,12 +494,12 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
   .filter-bar .filter-select { flex: 1; min-width: 0; font-size: 13px; padding: 7px 8px; }
 
 /* 桌面：表格显示，卡片隐藏 */
-#mobile-list { display: none; }
+#mobile-list, #mobile-hero-list { display: none; }
 .data-table { display: table; }
 
 /* 手机端：卡片显示，表格隐藏 */
 @media (max-width: 899px) {
-  #mobile-list { display: block !important; padding: 8px 12px; }
+  #mobile-list, #mobile-hero-list { display: block !important; padding: 8px 12px; }
   .data-table   { display: none !important; }
   .table-container { padding: 0; overflow-x: visible; }
   .mobile-skin-card {
@@ -600,7 +598,8 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
   <header class="header">
     <div class="header-logo" onclick="resetToHome()">王者荣耀皮肤数据库<span>HONOR OF KINGS · SKIN DATABASE</span></div>
     <div class="nav-tabs">
-      <div class="nav-tab active" id="tab-list" onclick="showView('list',this)">数据明细</div>
+      <div class="nav-tab active" id="tab-list" onclick="showView('list',this)">皮肤明细</div>
+      <div class="nav-tab" id="tab-hero-list" onclick="showView('hero-list',this)">英雄明细</div>
       <div class="nav-tab" id="tab-heroes" onclick="showView('heroes',this)">英雄皮肤</div>
       <div class="nav-tab" id="tab-ranking" onclick="showView('ranking',this)">皮肤盘点</div>
       <div class="nav-tab" id="tab-stats" onclick="showView('stats',this)">统计分析</div>
@@ -628,11 +627,11 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
   </header>
 
   <div class="app-layout">
-    <!-- Desktop sidebar -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-section">
         <div class="sidebar-label">导航</div>
-        <div class="sidebar-nav-item active" id="snav-list" onclick="showView('list', null, 'list')">📋 数据明细</div>
+        <div class="sidebar-nav-item active" id="snav-list" onclick="showView('list', null, 'list')">📋 皮肤明细</div>
+        <div class="sidebar-nav-item" id="snav-hero-list" onclick="showView('hero-list', null, 'hero-list')">👤 英雄明细</div>
         <div class="sidebar-nav-item" id="snav-heroes" onclick="showView('heroes', null, 'heroes')">🎭 英雄皮肤</div>
         <div class="sidebar-nav-item" id="snav-ranking" onclick="showView('ranking', null, 'ranking')">🏆 皮肤盘点</div>
         <div class="sidebar-nav-item" id="snav-stats" onclick="showView('stats', null, 'stats')">📊 统计分析</div>
@@ -649,7 +648,6 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
 
     <div class="main-content" id="main-content">
 
-  <!-- LIST -->
   <div id="view-list" class="view active">
     <div class="filter-bar">
       <div class="search-box">
@@ -690,7 +688,6 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
         <tbody id="table-body"></tbody>
       </table>
     </div>
-    <!-- 手机端卡片列表（桌面隐藏） -->
     <div id="mobile-list"></div>
     <div class="pagination">
       <div class="pagination-info" id="pg-info"></div>
@@ -698,7 +695,53 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
     </div>
   </div>
 
-  <!-- HEROES -->
+  <div id="view-hero-list" class="view">
+    <div class="filter-bar">
+      <div class="search-box">
+        <span class="icon">🔍</span>
+        <input type="text" id="search-hl" placeholder="搜索英雄..." oninput="filterHeroList()">
+      </div>
+      <div class="filter-chips" id="hl-role-chips">
+        <div class="chip active" onclick="setHlRoleFilter(this,'')">全部职业</div>
+        <div class="chip" onclick="setHlRoleFilter(this,'坦克')">坦克</div>
+        <div class="chip" onclick="setHlRoleFilter(this,'战士')">战士</div>
+        <div class="chip" onclick="setHlRoleFilter(this,'刺客')">刺客</div>
+        <div class="chip" onclick="setHlRoleFilter(this,'法师')">法师</div>
+        <div class="chip" onclick="setHlRoleFilter(this,'射手')">射手</div>
+        <div class="chip" onclick="setHlRoleFilter(this,'辅助')">辅助</div>
+      </div>
+      <div class="filter-chips" id="hl-lane-chips">
+        <div class="chip active" onclick="setHlLaneFilter(this,'')">全部分路</div>
+        <div class="chip" onclick="setHlLaneFilter(this,'对抗路')">对抗路</div>
+        <div class="chip" onclick="setHlLaneFilter(this,'中路')">中路</div>
+        <div class="chip" onclick="setHlLaneFilter(this,'发育路')">发育路</div>
+        <div class="chip" onclick="setHlLaneFilter(this,'打野')">打野</div>
+        <div class="chip" onclick="setHlLaneFilter(this,'游走')">游走</div>
+      </div>
+    </div>
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th class="thumb-cell"></th>
+            <th>上线日期</th>
+            <th>英雄名称</th>
+            <th>职业</th>
+            <th>分路</th>
+            <th>性别</th>
+            <th>皮肤总数</th>
+          </tr>
+        </thead>
+        <tbody id="hero-list-table-body"></tbody>
+      </table>
+    </div>
+    <div id="mobile-hero-list"></div>
+    <div class="pagination">
+      <div class="pagination-info" id="hl-pg-info"></div>
+      <div class="pagination-btns" id="hl-pg-btns"></div>
+    </div>
+  </div>
+
   <div id="view-heroes" class="view">
     <div id="heroes-list-wrap">
       <div class="filter-bar">
@@ -729,26 +772,23 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
     <div id="hero-detail-wrap" style="display:none"></div>
   </div>
 
-  <!-- STATS -->
   <div id="view-stats" class="view">
     <div class="stats-wrap" id="stats-content"></div>
   </div>
 
-  <!-- RANKING -->
   <div id="view-ranking" class="view">
     <div class="ranking-wrap" id="ranking-content"></div>
   </div>
 
-    </div><!-- /main-content -->
-  </div><!-- /app-layout -->
-
-  <!-- 手机底部导航 -->
-  <nav class="bottom-nav" id="bottom-nav">
+    </div></div><nav class="bottom-nav" id="bottom-nav">
     <div class="bottom-nav-item active" id="bnav-list" onclick="showView('list',null,'list');setBottomNav('list')">
-      <span class="bn-icon">📋</span>数据明细
+      <span class="bn-icon">📋</span>皮肤
+    </div>
+    <div class="bottom-nav-item" id="bnav-hero-list" onclick="showView('hero-list',null,'hero-list');setBottomNav('hero-list')">
+      <span class="bn-icon">👤</span>英雄
     </div>
     <div class="bottom-nav-item" id="bnav-heroes" onclick="showView('heroes',null,'heroes');setBottomNav('heroes')">
-      <span class="bn-icon">🎭</span>英雄皮肤
+      <span class="bn-icon">🎭</span>图鉴
     </div>
     <div class="bottom-nav-item" id="bnav-ranking" onclick="showView('ranking',null,'ranking');setBottomNav('ranking')">
       <span class="bn-icon">🏆</span>盘点
@@ -757,9 +797,7 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
       <span class="bn-icon">📊</span>统计
     </div>
   </nav>
-</div><!-- /app -->
-
-<script>
+</div><script>
 const SUPABASE_URL = 'https://erphrsydujqrcvtpdtnf.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVycGhyc3lkdWpxcmN2dHBkdG5mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3MDU2ODQsImV4cCI6MjA4OTI4MTY4NH0.O6h3Eeq9gNfGAMYkZ5_1GY5lFBiJrF8fJat0Pxz868U';
 
@@ -859,11 +897,9 @@ function fullUrl(url) {
 }
 
 function getQualityImg(qi, width = 120) {
-  // tag 标签图限宽，节省流量
   return thumbUrl(qi, width);
 }
 function getSkinImg(si, width = 120) {
-  // 列表/卡片缩略图限宽
   return thumbUrl(si, width);
 }
 
@@ -885,7 +921,6 @@ function setTheme(t, el) {
 (function() {
   const saved = localStorage.getItem('theme') || 'dark';
   document.documentElement.setAttribute('data-theme', saved);
-  // Will sync buttons after DOM loads
 })();
 
 // ── State ──
@@ -894,33 +929,35 @@ let page = 1; const PAGE_SIZE = 50;
 let fHero = '', fQuality = '', fType = '', fSearch = '';
 let heroRoleFilter = '', heroLaneFilter = '', heroSearch = '';
 
+// Hero List State
+let hlFiltered = [];
+let hlPage = 1;
+let hlSearch = '', hlRole = '', hlLane = '';
+
 // ── Init ──
 window.onload = async () => {
-  // Sync theme
   const savedTheme = localStorage.getItem('theme') || 'dark';
   document.documentElement.setAttribute('data-theme', savedTheme);
   document.querySelectorAll('.theme-btn').forEach(b => b.classList.toggle('active', b.dataset.t === savedTheme));
 
   try {
-    // 并行拉取英雄数据 + 皮肤数据
     setLoadingText('加载英雄与皮肤数据…');
     [HEROES, RAW] = await Promise.all([
       fetchAllHeroes().catch(e => { console.warn('英雄数据加载失败:', e); return []; }),
       fetchAllSkins()
     ]);
 
-    // 建立快速查找索引
     HEROES.forEach(h => {
       HERO_BY_ID[h.id]     = h;
       HERO_BY_NAME[h.name] = h;
     });
 
-    // 初始化 UI
     setLoadingText('渲染页面…');
     buildHeroSelect();
     filterList();
+    filterHeroList(); // Initialize Hero List
     renderHeroGrid();
-    renderStats(); // 只构建 HTML 骨架，ECharts 在切换到统计页时懒渲染
+    renderStats();
 
     const total = RAW.length.toLocaleString();
     const heroes = new Set(RAW.map(r=>r.hero)).size;
@@ -948,7 +985,6 @@ async function refreshData() {
   btn.innerHTML = '⏳ <span class="refresh-label">刷新中…</span>';
 
   try {
-    // 手动刷新：清除缓存，强制重新拉取
     try { sessionStorage.removeItem(CACHE_KEY); sessionStorage.removeItem(CACHE_KEY_HERO); } catch (e) {}
     [HEROES, RAW] = await Promise.all([
       fetchAllHeroes().catch(e => []),
@@ -957,17 +993,16 @@ async function refreshData() {
     HERO_BY_ID = {}; HERO_BY_NAME = {};
     HEROES.forEach(h => { HERO_BY_ID[h.id] = h; HERO_BY_NAME[h.name] = h; });
 
-    // 重置筛选/翻页状态
     page = 1;
+    hlPage = 1;
     filtered = [...RAW];
 
-    // 重新渲染
     buildHeroSelect();
     filterList();
+    filterHeroList();
     renderHeroGrid();
     renderStats();
 
-    // 更新头部统计数字
     const total = RAW.length.toLocaleString();
     const heroes = new Set(RAW.map(r=>r.hero)).size;
     const skinSet = new Set(RAW.map(r=>r.hero+'|'+r.name)).size;
@@ -975,7 +1010,6 @@ async function refreshData() {
     ['hd-heroes','sb-heroes'].forEach(id => document.getElementById(id).textContent = heroes);
     ['hd-skins','sb-skins'].forEach(id => document.getElementById(id).textContent = skinSet);
 
-    // 后台静默加载剩余图片（已改为 Storage URL，浏览器自动处理）
     btn.innerHTML = '✅ <span class="refresh-label">完成</span>';
     setTimeout(() => {
       btn.innerHTML = '🔄 <span class="refresh-label">刷新</span>';
@@ -992,10 +1026,8 @@ async function refreshData() {
   }
 }
 
-// 监听后台操作通知（后台保存成功后写入 localStorage，前台自动刷新）
 window.addEventListener('storage', e => {
   if (e.key === 'skin_db_updated') {
-    console.log('检测到后台数据更新，自动刷新…');
     refreshData();
   }
 });
@@ -1017,7 +1049,6 @@ function showView(v, el, snavId) {
   if (document.getElementById(tabId)) document.getElementById(tabId).classList.add('active');
   if (snavEl) snavEl.classList.add('active');
   setBottomNav(v);
-  // stats 页：容器变为可见后再初始化/resize ECharts
   if (v === 'stats') {
     setTimeout(() => {
       Object.values(_charts).forEach(c => c && c.resize());
@@ -1031,7 +1062,15 @@ function resetToHome() {
   showView('list', document.getElementById('tab-list'), 'list');
 }
 
-// ── List ──
+// ── Shared Helper ──
+function openHeroDetailFromAnywhere(heroName) {
+  showView('heroes', document.getElementById('tab-heroes'), 'heroes');
+  document.getElementById('heroes-list-wrap').style.display = 'none';
+  document.getElementById('hero-detail-wrap').style.display = 'block';
+  openHeroDetail(heroName);
+}
+
+// ── View: List (Skins) ──
 function setTypeFilter(el, val) {
   document.querySelectorAll('.chip[data-ftype]').forEach(c=>c.classList.remove('active'));
   el.classList.add('active'); fType = val; page = 1; filterList();
@@ -1070,16 +1109,13 @@ function sortData() {
 }
 
 function thumbHtml(si, quality) {
-  // 表格行缩略图：显示 36px，拉取 80px 宽
   const src = thumbUrl(si, 80);
   if (src) return `<img class="thumb-img" src="${src}" loading="lazy" alt="">`;
   return `<div class="thumb-placeholder">${qualityEmoji(quality)}</div>`;
 }
-// qi字段实为皮肤标签图片
 function tagImgHtml(qi, tag, quality) {
   const src = getQualityImg(qi);
   if (src) return `<img class="quality-badge-img" src="${src}" loading="lazy" alt="${tag}" title="${tag}">`;
-  // 降级：无图时用文字标签，若标签=品质名则用品质badge，否则显示文字
   if (tag === quality) return `<span class="badge badge-${quality}">${quality}</span>`;
   return `<span style="font-size:11px;color:var(--text3)">${tag}</span>`;
 }
@@ -1091,25 +1127,31 @@ function renderTable() {
   const start = (page-1)*PAGE_SIZE, end = Math.min(start+PAGE_SIZE, total);
   const rows = filtered.slice(start, end);
 
-  // ── 桌面表格 ──
-  document.getElementById('table-body').innerHTML = rows.map(r => `
-    <tr class="clickable" onclick="goSkinDetail('${esc(r.hero)}','${esc(r.name)}')">
+  // 桌面表格
+  document.getElementById('table-body').innerHTML = rows.map(r => {
+    // 根据皮肤归属英雄查询最新的职业和分路
+    const heroInfo = getHeroInfo(r.hero) || {};
+    const roles = heroInfo.roles || [];
+    const lanes = heroInfo.lanes || [];
+    
+    return `<tr class="clickable" onclick="goSkinDetail('${esc(r.hero)}','${esc(r.name)}')">
       <td class="thumb-cell">${thumbHtml(r.si, r.quality)}</td>
       <td style="color:var(--text3);font-size:12px;white-space:nowrap">${r.date}</td>
       <td style="font-weight:600">${r.name}</td>
       <td><span class="badge badge-${r.quality}">${r.quality}</span></td>
       <td>${tagImgHtml(r.qi, r.tag, r.quality)}</td>
       <td style="color:var(--gold-light)">${r.hero}</td>
-      <td style="font-size:11px;color:var(--text3)">${parseRoles(r.job).join('/')}${parseLanes(r.job).length?' <span style="opacity:.5">·</span> '+parseLanes(r.job).join('/'):''}
+      <td style="font-size:11px;color:var(--text3)">
+        ${roles.join('/') || '—'}${lanes.length ? ' <span style="opacity:.5">·</span> ' + lanes.join('/') : ''}
       </td>
       <td style="font-weight:500;white-space:nowrap;font-size:12px">${r.price&&r.price!=='/'&&r.price!=='nan'?r.price:'-'}</td>
       <td style="font-size:12px;color:var(--text3)">${r.obtain}</td>
       <td><span class="badge badge-${r.type}">${r.type}</span></td>
       <td><span class="badge badge-${r.permanent}" style="font-size:10px">${r.permanent}</span></td>
-    </tr>
-  `).join('');
+    </tr>`;
+  }).join('');
 
-  // ── 手机卡片列表（仅手机端渲染）──
+  // 手机端卡片列表
   const mobileEl = document.getElementById('mobile-list');
   if (isMobile()) {
     mobileEl.innerHTML = rows.map(r => {
@@ -1139,7 +1181,7 @@ function renderTable() {
       </div>`;
     }).join('');
   } else {
-    mobileEl.innerHTML = ''; // PC端清空，防止残留
+    mobileEl.innerHTML = '';
   }
 
   document.getElementById('pg-info').textContent = `共 ${total} 条 · 第 ${start+1}–${end} 条`;
@@ -1154,23 +1196,118 @@ function renderTable() {
   btns += `<button class="pg-btn" onclick="goPage(${page+1})" ${page>=totalPages?'disabled':''}>›</button>`;
   pgs.innerHTML = btns;
 }
-// 图片加载完后局部刷新手机卡片缩略图
-// ── 底部导航同步 ──────────────────────────────────────────────
+
+// ── View: Hero List (New) ──
+function setHlRoleFilter(el, val) {
+  document.querySelectorAll('#hl-role-chips .chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active'); hlRole = val; filterHeroList();
+}
+function setHlLaneFilter(el, val) {
+  document.querySelectorAll('#hl-lane-chips .chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active'); hlLane = val; filterHeroList();
+}
+function filterHeroList() {
+  hlSearch = document.getElementById('search-hl').value.trim().toLowerCase();
+  
+  hlFiltered = HEROES.filter(h => {
+    if (hlSearch && !h.name.toLowerCase().includes(hlSearch)) return false;
+    if (hlRole && !(h.roles||[]).includes(hlRole)) return false;
+    if (hlLane && !(h.lanes||[]).includes(hlLane)) return false;
+    return true;
+  });
+  
+  // 默认按日期倒序
+  hlFiltered.sort((a, b) => {
+    const da = a.release_date || '';
+    const db = b.release_date || '';
+    return db > da ? 1 : (db < da ? -1 : 0);
+  });
+  
+  hlPage = 1;
+  renderHeroList();
+}
+
+function renderHeroList() {
+  const hm = buildHeroMap(); // To get skin counts
+  const total = hlFiltered.length;
+  const start = (hlPage-1)*PAGE_SIZE;
+  const end = Math.min(start+PAGE_SIZE, total);
+  const rows = hlFiltered.slice(start, end);
+
+  // Desktop
+  document.getElementById('hero-list-table-body').innerHTML = rows.map(h => {
+    const skinCount = hm[h.name] ? hm[h.name].skins.size : 0;
+    const avatar = h.avatar_url ? `<img src="${thumbUrl(h.avatar_url, 80)}" class="thumb-img" loading="lazy">` : `<div class="thumb-placeholder">🎭</div>`;
+    return `<tr class="clickable" onclick="openHeroDetailFromAnywhere('${esc(h.name)}')">
+      <td class="thumb-cell">${avatar}</td>
+      <td style="color:var(--text3);font-size:12px">${h.release_date || '—'}</td>
+      <td style="font-weight:600">${h.name}</td>
+      <td>${(h.roles||[]).map(r=>`<span class="badge badge-史诗" style="margin-right:3px">${r}</span>`).join('') || '—'}</td>
+      <td style="font-size:11px;color:var(--text3)">${(h.lanes||[]).join('/') || '—'}</td>
+      <td>${h.gender || '—'}</td>
+      <td><b style="color:var(--gold)">${skinCount}</b></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text3)">未找到匹配的英雄</td></tr>';
+
+  // Mobile
+  const mobileEl = document.getElementById('mobile-hero-list');
+  if (isMobile()) {
+    mobileEl.innerHTML = rows.map(h => {
+      const skinCount = hm[h.name] ? hm[h.name].skins.size : 0;
+      const avatarSrc = h.avatar_url ? thumbUrl(h.avatar_url, 80) : '';
+      return `<div class="mobile-skin-card" onclick="openHeroDetailFromAnywhere('${esc(h.name)}')">
+        <div class="mobile-skin-thumb">
+          ${avatarSrc ? `<img src="${avatarSrc}" loading="lazy" style="border-radius:50%">` : '🎭'}
+        </div>
+        <div class="mobile-skin-info">
+          <div class="mobile-skin-name">${h.name}</div>
+          <div class="mobile-skin-meta">
+            <span class="mobile-skin-hero">${(h.roles||[]).join('/') || '—'}</span>
+            <span class="mobile-skin-date">${h.release_date || '—'}</span>
+          </div>
+          <div class="mobile-skin-meta" style="margin-top:3px">
+            <span style="font-size:11px;color:var(--text3)">${(h.lanes||[]).join('/') || '—'}</span>
+          </div>
+        </div>
+        <div class="mobile-skin-right">
+          <span class="badge badge-史诗" style="font-size:11px">${skinCount} 款皮肤</span>
+          <span style="font-size:11px;color:var(--text3);margin-top:4px">${h.gender || '—'}</span>
+        </div>
+      </div>`;
+    }).join('');
+  } else {
+    mobileEl.innerHTML = '';
+  }
+
+  // Pagination
+  document.getElementById('hl-pg-info').textContent = `共 ${total} 位 · 第 ${start+1}–${end} 位`;
+  const totalPages = Math.ceil(total/PAGE_SIZE) || 1;
+  const pgs = document.getElementById('hl-pg-btns');
+  let btns = `<button class="pg-btn" onclick="goHeroListPage(${hlPage-1})" ${hlPage<=1?'disabled':''}>‹</button>`;
+  const rs = Math.max(1, hlPage-2), re = Math.min(totalPages, hlPage+2);
+  if (rs>1) btns += `<button class="pg-btn" onclick="goHeroListPage(1)">1</button>${rs>2?'<span style="padding:4px;color:var(--text3)">…</span>':''}`;
+  for (let i=rs; i<=re; i++) btns += `<button class="pg-btn${i===hlPage?' active':''}" onclick="goHeroListPage(${i})">${i}</button>`;
+  if (re<totalPages) btns += `${re<totalPages-1?'<span style="padding:4px;color:var(--text3)">…</span>':''}<button class="pg-btn" onclick="goHeroListPage(${totalPages})">${totalPages}</button>`;
+  btns += `<button class="pg-btn" onclick="goHeroListPage(${hlPage+1})" ${hlPage>=totalPages?'disabled':''}>›</button>`;
+  pgs.innerHTML = btns;
+}
+
+function goHeroListPage(p) { 
+  const t = Math.ceil(hlFiltered.length/PAGE_SIZE); 
+  if (p<1||p>t) return; hlPage=p; renderHeroList(); 
+}
+
+// ── Bottom Nav ──
 function setBottomNav(v) {
   document.querySelectorAll('.bottom-nav-item').forEach(el => {
     el.classList.toggle('active', el.id === 'bnav-' + v);
   });
 }
-function goPage(p) { const t = Math.ceil(filtered.length/PAGE_SIZE); if(p<1||p>t) return; page=p; renderTable(); }
 
-// ── Heroes ──
+// ── Heroes (Grid / Details) ──
 function getHeroInfo(heroName) {
-  // 优先从英雄表查，fallback 到空
   return HERO_BY_NAME[heroName] || null;
 }
-// 加回这两个，兼容 renderTable 里的旧调用
-function parseRoles(job) { return ['坦克','战士','刺客','法师','射手','辅助'].filter(r=>(job||'').includes(r)); }
-function parseLanes(job) { return ['对抗路','中路','发育路','打野','游走'].filter(l=>(job||'').includes(l)); }
 function heroRoles(heroName) {
   const h = getHeroInfo(heroName);
   return h ? (h.roles || []) : [];
@@ -1241,14 +1378,12 @@ function openHeroDetail(hero) {
   const allRecords = RAW.filter(r=>r.hero===hero);
   const totalReturns = allRecords.filter(r=>r.type==='返场').length;
 
-  // 皮肤按首发日期由近及远排序
   const skins = [...data.skins.values()].sort((a, b) => {
     const da = (a.records.find(r=>r.type==='首发')||a.records[0])?.date || '';
     const db = (b.records.find(r=>r.type==='首发')||b.records[0])?.date || '';
     return db > da ? 1 : db < da ? -1 : 0;
   });
 
-  // 最近一次首发距今天数
   const latestFirstDate = skins.length
     ? (skins[0].records.find(r=>r.type==='首发')||skins[0].records[0])?.date
     : null;
@@ -1262,7 +1397,7 @@ function openHeroDetail(hero) {
   wrap.style.display='block';
   wrap.innerHTML = `
     <div class="hero-detail-header">
-      <div class="breadcrumb"><a onclick="backToHeroes()">← 英雄列表</a> / ${hero}</div>
+      <div class="breadcrumb"><a onclick="backToHeroes()">← 返回图鉴</a> / ${hero}</div>
       <div style="display:flex;align-items:center;gap:16px;margin-bottom:8px">
         ${avatarUrl
           ? `<img src="${thumbUrl(avatarUrl,160)}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid var(--gold);flex-shrink:0" loading="lazy" alt="${hero}">`
@@ -1286,7 +1421,7 @@ function openHeroDetail(hero) {
       ${skins.map(s => {
         const firstRec = s.records.find(r=>r.type==='首发') || s.records[0];
         const returnCount = s.records.filter(r=>r.type==='返场').length;
-        const skinImgSrc = thumbUrl(s.si, 200); // 卡片缩略图 200px 宽
+        const skinImgSrc = thumbUrl(s.si, 200);
         return `<div class="skin-card" onclick="openSkinDetail('${esc(hero)}','${esc(s.name)}')">
           <div class="skin-card-img">
             ${skinImgSrc
@@ -1325,9 +1460,9 @@ function openSkinDetail(hero, skinName) {
   const first = records.find(r=>r.type==='首发') || records[0];
   const returns = records.filter(r=>r.type==='返场').sort((a,b)=>a.date>b.date?1:-1);
   const latestReturn = returns.length ? returns[returns.length-1] : null;
-  const skinImgSrc = fullUrl(first.si || records.find(r=>r.si)?.si || null); // 详情大图：走 CDN 不压缩
+  const skinImgSrc = fullUrl(first.si || records.find(r=>r.si)?.si || null);
   const qImgSrc = first.qi || records.find(r=>r.qi)?.qi || null;
-  const tagImgUrl = thumbUrl(qImgSrc, 120); // 标签图用 Transform
+  const tagImgUrl = thumbUrl(qImgSrc, 120);
   const wrap = document.getElementById('hero-detail-wrap');
   wrap.style.display='block';
   wrap.innerHTML = `
@@ -1398,27 +1533,23 @@ let compareYears = new Set();
 const Q_ORDER  = ['伴生','勇者','史诗','传说','珍品传说','无双','珍品无双','荣耀典藏'];
 const Q_COLORS = {'史诗':'#b090d8','传说':'#d4a830','勇者':'#6ea4d8','伴生':'#50c090','无双':'#d07070','荣耀典藏':'#d4944a','珍品传说':'#c8a000','珍品无双':'#c04040'};
 
-// ECharts 实例缓存
 const _charts = {};
 function getChart(id) {
   const el = document.getElementById(id);
   if (!el) return null;
-  // 如果容器宽度为 0，销毁旧实例重新初始化
   if (_charts[id]) {
     if (el.offsetWidth > 0) { _charts[id].resize(); return _charts[id]; }
     _charts[id].dispose();
     delete _charts[id];
   }
-  if (el.offsetWidth === 0) return null; // 容器不可见，跳过
+  if (el.offsetWidth === 0) return null;
   _charts[id] = echarts.init(el, null, { renderer: 'svg' });
   return _charts[id];
 }
 
-// ── 新皮空窗期 TOP10 图表 ────────────────────────────────────
 function buildDaysSinceChart(heroMap) {
   const today = Date.now();
   const herodays = Object.entries(heroMap).map(([hero, data]) => {
-    // 找该英雄最近一次首发日期
     let latestDate = '';
     data.skins.forEach(skin => {
       const fr = skin.records.find(r=>r.type==='首发') || skin.records[0];
@@ -1455,12 +1586,10 @@ function renderStats() {
   const total = Object.values(qualityCounts).reduce((a,b)=>a+b,0);
   const maxH = topHeroes[0]?.[1]||1;
 
-  // 饼图数据
   const qs = Q_ORDER.filter(q=>qualityCounts[q]);
   const qColors = Q_COLORS;
   const segments = qs.map(q => ({ q, count: qualityCounts[q], frac: qualityCounts[q]/total }));
 
-  // 饼图 SVG（保留原有交互）
   const R = 100, cx = 120, cy = 120, innerR = 62;
   let cumAngle = -Math.PI/2;
   const segs = segments.map(s => {
@@ -1531,7 +1660,6 @@ function renderStats() {
       </div>
     </div>
 
-    <!-- ── 趋势分析区块 ── -->
     <div class="chart-section" style="margin-bottom:14px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
         <h3 style="margin:0">📈 皮肤投放趋势分析</h3>
@@ -1571,10 +1699,8 @@ function renderStats() {
   renderYearCompareChips();
 }
 
-// ── 趋势数据切换 ──────────────────────────────────────────────
 function setTrendType(type) {
   trendDataType = type;
-  // 切换数据类型时关闭月度详情，避免标题与数据不一致
   selectedMonthYear = null;
   document.getElementById('chart-monthly-scroll').style.display = 'none';
   document.getElementById('chart-monthly-title').innerHTML =
@@ -1598,7 +1724,6 @@ function renderTrendCharts() {
   });
 }
 
-// ── 图表1：年度堆叠柱状图（ECharts）──────────────────────────
 function renderYearlyChart() {
   const data = RAW.filter(r => r.type === trendDataType);
   const years = [...new Set(data.map(r=>r.date.slice(0,4)))].sort();
@@ -1609,7 +1734,6 @@ function renderYearlyChart() {
   const chart = getChart('chart-yearly');
   if (!chart) return;
 
-  // 1. 正常遍历所有品质，不再针对最后一个做特殊覆盖
   const series = Q_ORDER.map((q) => {
     return {
       name: q,
@@ -1627,12 +1751,11 @@ function renderYearlyChart() {
     };
   });
 
-  // 2. 额外追加一个“隐藏”系列，利用其堆叠特性在最顶部悬浮显示总计
   series.push({
     name: '年度总计',
     type: 'bar',
     stack: 'total',
-    tooltip: { show: false }, // 不需要 tooltip
+    tooltip: { show: false },
     label: {
       show: true,
       position: 'top',
@@ -1645,7 +1768,7 @@ function renderYearlyChart() {
       fontSize: 11,
       fontWeight: 'bold',
     },
-    data: years.map(() => 0) // 高度为 0，不影响视觉和原始数据
+    data: years.map(() => 0)
   });
 
   const option = {
@@ -1684,8 +1807,6 @@ function renderYearlyChart() {
   };
 
   chart.setOption(option, true);
-
-  // 点击柱子查看月度详情
   chart.off('click');
   chart.on('click', params => {
     const year = params.name || params.axisValue;
@@ -1693,7 +1814,6 @@ function renderYearlyChart() {
   });
 }
 
-// ── 图表2：月度堆叠柱状图（ECharts）─────────────────────────
 function clickYearBar(year) {
   selectedMonthYear = selectedMonthYear === year ? null : year;
   if (selectedMonthYear) {
@@ -1738,18 +1858,17 @@ function renderMonthlyChart(year) {
     },
     data: months.map(m => monthData[m][q] || 0),
   }));
-  // 追加一个“隐藏”系列，利用其堆叠特性在最顶部显示月度总计
   series.push({
     name: '月度总计',
     type: 'bar',
     stack: 'total',
-    tooltip: { show: false }, // 不需要 tooltip
+    tooltip: { show: false },
     label: {
       show: true,
       position: 'top',
       formatter: p => {
-        const mi = p.dataIndex; // 0-11 对应月份索引
-        const mon = months[mi]; // '01'-'12'
+        const mi = p.dataIndex;
+        const mon = months[mi];
         const monthTotal = Q_ORDER.reduce((s, q) => s + (monthData[mon][q] || 0), 0);
         return monthTotal > 0 ? monthTotal : '';
       },
@@ -1757,7 +1876,7 @@ function renderMonthlyChart(year) {
       fontSize: 11,
       fontWeight: 'bold',
     },
-    data: months.map(() => 0) // 数据为 0，仅作为顶部标签占位
+    data: months.map(() => 0)
   });
   const option = {
     backgroundColor: 'transparent',
@@ -1765,8 +1884,8 @@ function renderMonthlyChart(year) {
       trigger: 'item',
       formatter: p => {
         if (!p.value) return '';
-        const mi = p.dataIndex; // 0-11
-        const mon = months[mi]; // '01'-'12'
+        const mi = p.dataIndex;
+        const mon = months[mi];
         const monthTotal = Q_ORDER.reduce((s,q)=>s+(monthData[mon][q]||0),0);
         return `<b>${year}年${parseInt(mon)}月</b><br/>
           <span style="display:inline-block;width:10px;height:10px;background:${p.color};border-radius:2px;margin-right:5px"></span>
@@ -1798,7 +1917,6 @@ function renderMonthlyChart(year) {
   chart.setOption(option, true);
 }
 
-// ── 图表3：多年对比（ECharts 折线+柱图）──────────────────────
 function renderYearCompareChips() {
   const years = [...new Set(RAW.map(r=>r.date.slice(0,4)))].sort();
   document.getElementById('year-compare-chips').innerHTML = years.map(y => `
@@ -1818,7 +1936,6 @@ function toggleCompareYear(year) {
 }
 
 function renderCompareChart() {
-  const el = document.getElementById('chart-compare');
   const chart = getChart('chart-compare');
   if (!chart) return;
 
@@ -1906,7 +2023,6 @@ function selectQuality(q) {
     document.querySelectorAll('.pie-segment').forEach(el => el.classList.remove('dimmed'));
     document.querySelectorAll('.pie-legend-item').forEach(el => el.classList.remove('active'));
     document.getElementById('quality-skin-panel').innerHTML = '';
-    // 恢复为首发总数
     const firstTotal = RAW.filter(r=>r.type==='首发').length;
     document.getElementById('pie-center-num').textContent = firstTotal;
     document.getElementById('pie-center-txt').textContent = '首发记录';
@@ -1922,12 +2038,10 @@ function selectQuality(q) {
     el.classList.toggle('active', el.id === 'leg-'+q);
   });
 
-  // 只统计首发
   const count = RAW.filter(r=>r.type==='首发' && r.quality===q).length;
   document.getElementById('pie-center-num').textContent = count;
   document.getElementById('pie-center-txt').textContent = q;
 
-  // 只展示首发记录中该品质的唯一皮肤（按英雄+名称去重）
   const skinMap = new Map();
   RAW.filter(r => r.quality === q && r.type === '首发').forEach(r => {
     const key = r.hero + '|' + r.name;
@@ -1948,8 +2062,8 @@ function selectQuality(q) {
       </div>
       <div class="quality-skin-list">
         ${skins.map(s => {
-          const imgSrc = thumbUrl(s.si, 200); // 品质面板卡片缩略图
-          const tagSrc = thumbUrl(s.qi, 80);  // 标签图
+          const imgSrc = thumbUrl(s.si, 200);
+          const tagSrc = thumbUrl(s.qi, 80);
           return `<div class="skin-card" onclick="goSkinDetail('${esc(s.hero)}','${esc(s.name)}')">
             <div class="skin-card-img">
               ${imgSrc ? `<img class="skin-thumb" src="${imgSrc}" loading="lazy" alt="${s.name}">` : `<div class="img-ph">${qualityEmoji(s.quality)}</div>`}
@@ -1993,8 +2107,6 @@ function renderRanking() {
     })
     .sort((a, b) => b.count - a.count);
 
-  // 动态列数：当前页最多的皮肤数（不超过当前页行里的最大值）
-  // 全局最大列数由第一名决定，但每页只渲染该页实际需要的列数
   document.getElementById('ranking-content').innerHTML = `
     <div class="ranking-wrap">
       <div class="ranking-title">🏆 皮肤盘点</div>
@@ -2012,7 +2124,6 @@ function renderRankingPage() {
   const totalPages = Math.ceil(total / RANKING_PAGE_SIZE);
   const start = (rankingPage - 1) * RANKING_PAGE_SIZE;
   const pageRows = rankingRows.slice(start, start + RANKING_PAGE_SIZE);
-  // 动态列数：当前页中皮肤最多的英雄决定该页列数
   const MAX_COLS = Math.max(...pageRows.map(r => r.count), 0);
 
   const rankNumHtml = (globalIdx) => {
@@ -2025,7 +2136,7 @@ function renderRankingPage() {
   const skinCellHtml = (skin) => {
     if (!skin) return `<td class="ranking-empty-td"><span class="ranking-empty-cell">—</span></td>`;
     const firstRec = skin.records.find(r=>r.type==='首发') || skin.records[0];
-    const imgSrc = thumbUrl(skin.si, 60); // 排行榜缩略图 28px 显示，拉 60px
+    const imgSrc = thumbUrl(skin.si, 60);
     return `<td class="ranking-skin-td">
       <div class="ranking-skin-cell" onclick="goSkinDetail('${esc(skin.hero||'')}','${esc(skin.name)}')">
         <div class="ranking-skin-thumb">
@@ -2054,7 +2165,6 @@ function renderRankingPage() {
     </tr>`;
   }).join('');
 
-  // 分页按钮
   let pgBtns = `<button class="pg-btn" onclick="goRankingPage(${rankingPage-1})" ${rankingPage<=1?'disabled':''}>‹</button>`;
   const rs = Math.max(1, rankingPage-2), re = Math.min(totalPages, rankingPage+2);
   if (rs > 1) pgBtns += `<button class="pg-btn" onclick="goRankingPage(1)">1</button>${rs>2?'<span style="padding:4px;color:var(--text3)">…</span>':''}`;
