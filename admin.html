@@ -1466,7 +1466,7 @@ async function doSaveHero() {
         reader.onload = e => resolve(e.target.result);
         reader.readAsDataURL(heroAvatarFile);
       });
-      const uploadedUrl = await uploadImg(b64, 'avatar');
+      const uploadedUrl = await uploadImg(b64, 'hero');
       if (uploadedUrl) avatar_url = uploadedUrl;
     }
 
