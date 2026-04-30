@@ -472,7 +472,7 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
               <option>天幕</option><option>小兵</option>
             </select>
             <select class="filter-select" id="res-release-filter" onchange="loadResources()">
-              <option value="">全部首发/返场</option>
+              <option value="">全部类型</option>
               <option>首发</option><option>返场</option>
             </select>
           </div>
@@ -499,7 +499,10 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
       <div class="page" id="page-heroes">
         <div class="page-header">
           <div><div class="page-title">英雄管理</div><div class="page-subtitle">管理英雄基础信息</div></div>
-          <button class="btn btn-primary btn-sm" onclick="showAddHero()">+ 新增英雄</button>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-outline btn-sm" onclick="loadHeroes()">刷新</button>
+            <button class="btn btn-primary btn-sm" onclick="showAddHero()">+ 新增英雄</button>
+          </div>
         </div>
         <div class="page-body">
           <div class="table-toolbar">
