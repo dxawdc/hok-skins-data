@@ -106,6 +106,11 @@ module.exports = async function handler(req, res) {
   if (/\/heroes\/\d+$/.test(path)         && m === 'DELETE') { const [u,e]=requireAuth(h); if(e) return send(e); return send(await deleteHero(path.split('/').pop(),u)); }
   if (/\/heroes\/\d+\/skins$/.test(path)  && m === 'GET')    { const [u,e]=requireAuth(h); if(e) return send(e); return send(await listHeroSkins(path.split('/').slice(-2)[0])); }
 
+  if (path.endsWith('/resources')          && m === 'GET')    { const [u,e]=requireAuth(h); if(e) return send(e); return send(await listResources(qs)); }
+  if (path.endsWith('/resources')          && m === 'POST')   { const [u,e]=requireAuth(h); if(e) return send(e); return send(await insertResource(body,u)); }
+  if (/\/resources\/\d+$/.test(path)       && m === 'PUT')    { const [u,e]=requireAuth(h); if(e) return send(e); return send(await updateResource(path.split('/').pop(),body,u)); }
+  if (/\/resources\/\d+$/.test(path)       && m === 'DELETE') { const [u,e]=requireAuth(h); if(e) return send(e); return send(await deleteResource(path.split('/').pop(),u)); }
+
   return send(fail('接口不存在', 404));
 };
 
@@ -216,7 +221,7 @@ async function insertSkin(data, user) {
 // ── 上传图片（改为 Supabase Storage，包含精确大小校验）────────────────────────
 async function uploadImage({ img_id, img_type, data, mime_type }, user) {
   if (!img_id || !data || !mime_type) return fail('缺少必要字段');
-  if (!['skin','tag','hero'].includes(img_type)) return fail('img_type 只能是 skin、tag 或 hero');
+  if (!['skin','tag','hero','resource'].includes(img_type)) return fail('img_type 只能是 skin、tag、hero 或 resource');
 
   // 去除前端可能附带的 Data URL 前缀 (如 data:image/png;base64,)
   const base64Data = data.replace(/^data:image\/\w+;base64,/, "");
@@ -428,4 +433,64 @@ async function listHeroSkins(heroId) {
     .order('date', { ascending: false });
   if (error) return fail(error.message);
   return ok({ skins: data || [], total: data?.length || 0 });
+}
+
+// ── 资源列表 ─────────────────────────────────────────────────
+async function listResources(params) {
+  const page    = Math.max(1, parseInt(params.page     || '1'));
+  const perPage = Math.min(200, parseInt(params.per_page || '100'));
+  const offset  = (page - 1) * perPage;
+
+  let q = getClient().from('resources').select('*', { count: 'exact' });
+  if (params.type)   q = q.eq('type',   decodeURIComponent(params.type));
+  if (params.search) q = q.ilike('name', `%${decodeURIComponent(params.search)}%`);
+
+  q = q.order('date', { ascending: false }).range(offset, offset + perPage - 1);
+  const { data, count, error } = await q;
+  if (error) return fail(error.message);
+  return ok({ resources: data || [], total: count || 0, page, per_page: perPage });
+}
+
+// ── 新增资源 ─────────────────────────────────────────────────
+async function insertResource(data, user) {
+  const ALLOWED = new Set(['type','name','quality','tag','collab','obtain','price','release_type','permanent','date','img_url','notes','is_available']);
+  const clean = Object.fromEntries(Object.entries(data || {}).filter(([k]) => ALLOWED.has(k)));
+  if (!clean.type) return fail('资源类型为必填项');
+  if (!clean.name) return fail('资源名称为必填项');
+  if (!clean.date) return fail('上线日期为必填项');
+  if (!['天幕','小兵'].includes(clean.type)) return fail('type 只能是 天幕 或 小兵');
+
+  const client = getClient();
+  const { data: inserted, error } = await client
+    .from('resources').insert(clean).select().maybeSingle();
+  if (error) return fail('创建失败：' + error.message);
+  await log(client, user.username, 'resource_insert', inserted?.id || null, { name: clean.name, type: clean.type });
+  return ok({ resource: inserted });
+}
+
+// ── 编辑资源 ─────────────────────────────────────────────────
+async function updateResource(id, updates, user) {
+  const ALLOWED = new Set(['type','name','quality','tag','collab','obtain','price','release_type','permanent','date','img_url','notes','is_available']);
+  const clean = Object.fromEntries(Object.entries(updates).filter(([k]) => ALLOWED.has(k)));
+  if (!Object.keys(clean).length) return fail('没有可更新的字段');
+
+  const client = getClient();
+  const { data: before } = await client.from('resources').select('*').eq('id', id).maybeSingle();
+  const { data, error } = await client
+    .from('resources').update(clean).eq('id', id).select().maybeSingle();
+  if (error) return fail(error.message);
+  await log(client, user.username, 'resource_update', parseInt(id), {
+    before: Object.fromEntries(Object.keys(clean).map(k => [k, before?.[k]])),
+    after:  clean,
+  });
+  return ok({ resource: data });
+}
+
+// ── 删除资源 ─────────────────────────────────────────────────
+async function deleteResource(id, user) {
+  const client = getClient();
+  const { data: before } = await client.from('resources').select('*').eq('id', id).maybeSingle();
+  await client.from('resources').delete().eq('id', id);
+  await log(client, user.username, 'resource_delete', parseInt(id), { deleted: before });
+  return ok({ ok: true });
 }
