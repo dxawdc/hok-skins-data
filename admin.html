@@ -151,14 +151,6 @@ tr.selected td { background: #fffbeb; }
 .check-col { width: 36px; }
 input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color: var(--gold); }
 
-/* Inline edit */
-.editable { cursor: pointer; }
-.editable:hover { background: #f0f7ff; border-radius: 4px; }
-.inline-input {
-  width: 100%; padding: 4px 8px; border: 1px solid var(--gold);
-  border-radius: 4px; font-size: 13px; outline: none; font-family: inherit;
-}
-
 /* BADGES */
 .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; white-space: nowrap; }
 .badge-史诗 { background: rgba(123,94,167,0.12); color: #7b5ea7; border: 1px solid rgba(123,94,167,0.3); }
@@ -199,8 +191,6 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
 }
 .mode-opt:hover { border-color: var(--gold); }
 .mode-opt.selected { border-color: var(--gold); background: #fffdf0; }
-.mode-opt h4 { font-size: 14px; margin-bottom: 4px; }
-.mode-opt p { font-size: 12px; color: var(--text3); }
 .import-log {
   background: #1a1d23; color: #e8e0d0; border-radius: 8px;
   padding: 14px 16px; font-family: monospace; font-size: 13px;
@@ -211,9 +201,6 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
 .log-line.err { color: #fc8181; }
 .log-line.info { color: #63b3ed; }
 
-/* USERS */
-.user-table td { vertical-align: middle; }
-
 /* MODAL */
 .modal-bg {
   position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100;
@@ -223,6 +210,7 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
 .modal {
   background: var(--white); border-radius: 14px; padding: 28px;
   width: 460px; max-width: 95vw; box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  max-height: 90vh; overflow-y: auto;
 }
 .modal h3 { font-size: 17px; font-weight: 700; margin-bottom: 20px; }
 .modal .form-group { margin-bottom: 14px; }
@@ -742,6 +730,65 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
   </div>
 </div>
 
+<!-- ══ 资源 Modal ══ -->
+<div class="modal-bg" id="modal-resource">
+  <div class="modal" style="width:560px;max-width:96vw">
+    <h3 id="modal-res-title">新增资源</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group"><label>资源名称 <span style="color:var(--red)">*</span></label><input type="text" id="er-name" placeholder="如：星空璀璨"></div>
+      <div class="form-group">
+        <label>资源类型</label>
+        <select id="er-type" class="filter-select" style="width:100%">
+          <option>天幕</option><option>小兵</option>
+        </select>
+      </div>
+      <div class="form-group"><label>上线日期 <span style="color:var(--red)">*</span></label><input type="date" id="er-date"></div>
+      <div class="form-group">
+        <label>首发/返场</label>
+        <select id="er-release-type" class="filter-select" style="width:100%">
+          <option>首发</option><option>返场</option>
+        </select>
+      </div>
+      <div class="form-group"><label>品质</label><input type="text" id="er-quality" placeholder="如：传说"></div>
+      <div class="form-group"><label>标签</label><input type="text" id="er-tag" placeholder="如：限定"></div>
+      <div class="form-group"><label>获取方式</label><input type="text" id="er-obtain" placeholder="如：祈愿"></div>
+      <div class="form-group"><label>价格</label><input type="text" id="er-price" placeholder="如：保底3000点券"></div>
+      <div class="form-group"><label>IP联动</label><input type="text" id="er-collab" placeholder="如：三丽鸥联动"></div>
+      <div class="form-group">
+        <label>是否常驻</label>
+        <select id="er-permanent" class="filter-select" style="width:100%">
+          <option>否</option><option>是</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="form-group" style="margin-top:12px">
+      <label>资源图片 <span style="color:var(--text3);font-weight:400" id="res-img-type-hint">天幕图片比例约 21:10（横向长图），建议上传原始尺寸</span></label>
+      <div class="img-upload-box" id="res-img-box" style="height:auto; min-height:100px; aspect-ratio:21/10; overflow:hidden;" onclick="document.getElementById('res-img-input').click()">
+        <img id="res-img-preview" style="display:none;width:100%;height:100%;object-fit:contain;border-radius:6px">
+        <div id="res-img-placeholder">
+          <div style="font-size:24px">🖼️</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:4px">点击上传</div>
+        </div>
+      </div>
+      <input type="file" id="res-img-input" accept="image/*" style="display:none" onchange="previewResImg(event)">
+    </div>
+    
+    <div class="form-group">
+      <label>备注 <span style="color:var(--text3);font-weight:400">（可选）</span></label>
+      <textarea id="er-notes" placeholder="资源备注说明..." rows="2" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;outline:none;font-family:inherit;resize:vertical"></textarea>
+    </div>
+    
+    <input type="hidden" id="er-id">
+    <input type="hidden" id="er-img-url">
+    
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="doSaveResource()">保存</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -754,6 +801,14 @@ let selectedIds = new Set();
 let importMode = 'append';
 let importFile = null;
 let searchTimer = null;
+
+// ▼ 补全英雄与资源管理的全局变量
+let allHeroes = [], filteredHeroes = [];
+let heroPage = 1; const HERO_PER_PAGE = 20;
+let allResources = [], filteredResources = [];
+let resPage = 1; const RES_PER_PAGE = 20;
+let resImgFile = null;
+let heroSkinCountCache = {};
 
 // ── Auth ─────────────────────────────────────────────────────
 async function doLogin() {
@@ -1228,13 +1283,11 @@ function renderResTable() {
   const thumb = url => {
     if (!url) return null;
     const cdn = url.startsWith(CDN) ? url : url.replace(STORAGE, CDN);
-    // 把请求宽度稍微调大一点，适应横版长图的清晰度
-    return `${cdn}?width=160&quality=75`; 
+    return `${cdn}?width=160&quality=75`;
   };
   
   document.getElementById('res-tbody').innerHTML = rows.map(r => {
     const isSmall = r.type === '小兵';
-    // 关键改动：如果是天幕，缩略图改为横向长图比例 (约 84x40)；小兵保持方图 (44x44)
     const imgWidth = isSmall ? '44px' : '84px';
     const imgHeight = isSmall ? '44px' : '40px';
     
@@ -1285,22 +1338,17 @@ function goResPage(p) {
 }
 
 function updateResImgHint() {
-  const type = document.getElementById('er-type').value;
-  const hint = document.getElementById('res-img-type-hint');
+  const type=document.getElementById('er-type').value;
+  const hint=document.getElementById('res-img-type-hint');
   if(!hint) return;
-  // 关键改动：提示文案改为 21:10 横向长图
-  if (type === '天幕') {
-    hint.textContent = '天幕图片比例约 21:10（横向长图），建议上传原始尺寸';
-  } else if (type === '小兵') {
-    hint.textContent = '小兵图片为正方形，建议上传 1:1 比例';
-  } else {
-    hint.textContent = '';
-  }
+  if(type==='天幕') hint.textContent='天幕图片比例约 21:10（横向长图），建议上传原始尺寸';
+  else if(type==='小兵') hint.textContent='小兵图片为正方形，建议上传 1:1 比例';
+  else hint.textContent='';
 }
 
 function showAddResource() {
   document.getElementById('modal-res-title').textContent='新增资源';
-  ['er-id','er-name','er-quality','er-tag','er-collab','er-obtain','er-price','er-notes','er-img-url'].forEach(id=>{
+  ['er-id','er-name','er-date','er-quality','er-tag','er-collab','er-obtain','er-price','er-notes','er-img-url'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
   });
   document.getElementById('er-type').value='天幕';
@@ -1557,9 +1605,6 @@ async function api(method, path, body, skipAuth = false) {
     return { error: '网络错误：' + e.message };
   }
 }
-
-// ── Add logs endpoint call ────────────────────────────────────
-// (Extend API to support GET /logs — add to admin.py)
 
 // ── UI Helpers ────────────────────────────────────────────────
 function closeModal() {
