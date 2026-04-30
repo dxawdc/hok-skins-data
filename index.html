@@ -2317,8 +2317,31 @@ function setResType(type) {
 
 function filterResources() {
   const kw = (document.getElementById('search-res').value || '').toLowerCase();
+  // 1. 先过滤出当前类型（天幕/小兵）并匹配搜索词的记录
   const resFiltered = RESOURCES.filter(r => r.type === currentResType && (!kw || r.name.toLowerCase().includes(kw)));
-  renderResourceGrid(resFiltered);
+  
+  // 2. 按名称聚合，同名资源合并为一项，准备展示时间线
+  const groupedMap = new Map();
+  resFiltered.forEach(r => {
+    if (!groupedMap.has(r.name)) groupedMap.set(r.name, []);
+    groupedMap.get(r.name).push(r);
+  });
+
+  // 3. 提取每组数据的“首发”记录作为主显数据
+  const groupedList = Array.from(groupedMap.values()).map(records => {
+    // 按时间先后排序
+    records.sort((a,b) => a.date > b.date ? 1 : -1);
+    const first = records.find(x => x.release_type === '首发') || records[0];
+    return {
+      ...first,        // 继承首发信息（如名称、品质、获取方式）
+      records: records // 挂载所有记录（供详情页时间线使用）
+    };
+  });
+
+  // 4. 列表整体按照最新时间倒序排列
+  groupedList.sort((a,b) => b.date > a.date ? 1 : -1);
+
+  renderResourceGrid(groupedList);
 }
 
 function renderResourceGrid(list) {
@@ -2339,67 +2362,107 @@ function renderResourceGrid(list) {
     const badgeColor = currentResType === '天幕' ? 'rgba(74,124,191,0.15)' : 'rgba(74,191,138,0.15)';
     const textColor = currentResType === '天幕' ? 'var(--accent2)' : 'var(--green)';
     
-    return `<div class="res-card" onclick="openResDetail(${r.id})">
+    // 如果有联动信息，生成联动标签
+    const collabHtml = r.collab 
+      ? `<span class="badge" style="background:rgba(201,168,76,0.15); color:var(--gold); border:1px solid rgba(201,168,76,0.3); font-size:10px; margin-left:6px; padding: 2px 5px;">${r.collab}</span>` 
+      : '';
+    
+    // 注意：这里的 onclick 传入的是名称，用于在详情页拉取该资源的所有历史记录
+    return `<div class="res-card" onclick="openResDetail('${esc(r.name)}')">
       <div class="res-card-img ${currentResType === '天幕' ? 'tm' : 'xb'}">
-        ${imgSrc ? `<img src="${imgSrc}" loading="lazy">` : `<div style="font-size:28px">✨</div>`}
+        <!-- 强行加上 object-fit: contain 覆盖原来的 cover，保证图片不被截取 -->
+        ${imgSrc ? `<img src="${imgSrc}" loading="lazy" style="object-fit:contain; width:100%; height:100%;">` : `<div style="font-size:28px">✨</div>`}
       </div>
       <div class="res-card-body">
-        <div class="res-card-name">${r.name}</div>
+        <div class="res-card-name" style="display:flex; align-items:center;">
+          <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${r.name}</span>
+          ${collabHtml}
+        </div>
         <div style="display:flex; align-items:center; justify-content:space-between; margin-top:auto;">
           <span class="badge" style="background:${badgeColor}; color:${textColor}; font-size:11px;">${r.quality||'—'}</span>
-          <span style="font-size:11px; color:var(--text3);">${r.date?r.date.slice(0,7):'—'}</span>
+          <span style="font-size:11px; color:var(--text3);">${r.date||'—'}</span>
         </div>
       </div>
     </div>`;
   }).join('');
 }
 
-function openResDetail(id) {
-  const r = RESOURCES.find(x => x.id === id);
-  if (!r) return;
+function openResDetail(name) {
+  // 1. 获取该资源的所有记录，并按时间正序排列
+  const records = RESOURCES.filter(x => x.name === name && x.type === currentResType).sort((a,b) => a.date > b.date ? 1 : -1);
+  if (!records.length) return;
+  
+  // 2. 梳理首发与返场数据
+  const first = records.find(x => x.release_type === '首发') || records[0];
+  const returns = records.filter(x => x.release_type === '返场').sort((a,b) => a.date > b.date ? 1 : -1);
+  const latestReturn = returns.length ? returns[returns.length-1] : null;
   
   document.getElementById('resources-list-wrap').style.display = 'none';
   const wrap = document.getElementById('resource-detail-wrap');
   wrap.style.display = 'block';
   
-  const isTm = r.type === '天幕';
-  const imgSrc = r.img_url ? `${toCdnUrl(r.img_url)}?width=${isTm ? 800 : 400}&quality=90` : null;
+  const isTm = first.type === '天幕';
+  const imgSrc = first.img_url ? `${toCdnUrl(first.img_url)}?width=${isTm ? 800 : 400}&quality=90` : null;
   
   wrap.innerHTML = `
     <div class="hero-detail-header">
       <div class="breadcrumb">
-        <a onclick="document.getElementById('resource-detail-wrap').style.display='none'; document.getElementById('resources-list-wrap').style.display='block';">← 返回${r.type}列表</a> / ${r.name}
+        <a onclick="document.getElementById('resource-detail-wrap').style.display='none'; document.getElementById('resources-list-wrap').style.display='block';">← 返回${first.type}列表</a> / ${first.name}
       </div>
     </div>
     <div class="skin-detail-wrap">
       <div class="skin-detail-card">
+        
+        <!-- 上半部分：信息展示 -->
         <div class="skin-detail-top" style="flex-direction: ${isMobile() ? 'column' : 'row'};">
           <div class="skin-detail-img-wrap" style="width:${isMobile()?'100%':(isTm?'460px':'240px')}; padding:20px; background:var(--bg4);">
             ${imgSrc 
-              ? `<img src="${imgSrc}" style="width:100%; height:auto; border-radius:8px; box-shadow:var(--shadow);">` 
+              ? `<img src="${imgSrc}" style="width:100%; height:100%; object-fit:contain; border-radius:8px; box-shadow:var(--shadow);">` 
               : `<div style="font-size:50px; color:var(--text3);">✨</div>`}
           </div>
           <div class="skin-detail-info" style="padding: 24px;">
-            <div class="skin-detail-name">${r.name}</div>
-            <div class="skin-detail-hero" style="margin-bottom: 24px; color: var(--gold-light);">
-              ${r.type} · ${r.release_type || '首发'}
+            <div class="skin-detail-name">${first.name}</div>
+            <div class="skin-detail-hero" style="margin-bottom: 24px; color: var(--gold-light); display:flex; align-items:center;">
+              ${first.type}
+              ${first.collab ? `<span class="badge" style="background:rgba(201,168,76,0.15); color:var(--gold); border:1px solid rgba(201,168,76,0.3); font-size:11px; margin-left:10px;">联动：${first.collab}</span>` : ''}
             </div>
             
             <div class="skin-detail-attrs">
-              <div class="attr-item"><label>资源品质</label><div class="val"><span class="badge badge-史诗" style="border:none;">${r.quality||'未知'}</span></div></div>
-              <div class="attr-item"><label>上线日期</label><div class="val" style="color:var(--green)">${r.date||'—'}</div></div>
-              <div class="attr-item"><label>获取方式</label><div class="val" style="font-size:12px;color:var(--text2)">${r.obtain||'—'}</div></div>
-              <div class="attr-item"><label>资源价格</label><div class="val" style="color:var(--gold)">${r.price||'—'}</div></div>
-              <div class="attr-item"><label>是否常驻</label><div class="val"><span class="badge badge-${r.permanent||'否'}">${r.permanent||'否'}</span></div></div>
-              <div class="attr-item"><label>联动/标签</label><div class="val" style="font-size:12px;">${r.collab||r.tag||'无'}</div></div>
+              <div class="attr-item"><label>资源品质</label><div class="val"><span class="badge badge-史诗" style="border:none;">${first.quality||'未知'}</span></div></div>
+              <div class="attr-item"><label>首发日期</label><div class="val" style="color:var(--green)">${first.date||'—'}</div></div>
+              <div class="attr-item"><label>获取方式</label><div class="val" style="font-size:12px;color:var(--text2)">${first.obtain||'—'}</div></div>
+              <div class="attr-item"><label>首发价格</label><div class="val" style="color:var(--gold)">${first.price||'—'}</div></div>
+              <div class="attr-item"><label>是否常驻</label><div class="val"><span class="badge badge-${first.permanent||'否'}">${first.permanent||'否'}</span></div></div>
+              <div class="attr-item"><label>资源标签</label><div class="val" style="font-size:12px;">${first.tag||'无'}</div></div>
+              <div class="attr-item"><label>返场次数</label><div class="val" style="color:var(--accent2);font-size:20px;font-weight:700">${returns.length}</div></div>
+              ${latestReturn ? `<div class="attr-item" style="grid-column:1/-1"><label>最近返场</label><div class="val" style="color:var(--gold)">${latestReturn.date} · ${latestReturn.obtain}</div></div>` : ''}
             </div>
           </div>
         </div>
-        ${r.notes ? `
+
+        ${first.notes ? `
         <div style="padding:16px 24px; border-top:1px solid var(--border)">
           <div style="font-size:13px; color:var(--text3); margin-bottom:6px; font-weight:600;">📝 备注说明</div>
-          <div style="font-size:14px; color:var(--text2); line-height:1.6;">${r.notes}</div>
+          <div style="font-size:14px; color:var(--text2); line-height:1.6;">${first.notes}</div>
         </div>` : ''}
+
+        <!-- 下半部分：复刻皮肤的时间线 -->
+        <div class="skin-timeline">
+          <div class="timeline-title">🕐 上线 &amp; 返场记录（共 ${records.length} 条）</div>
+          <div class="timeline-list">
+            ${records.map(r => {
+              const isLatest = latestReturn && r === latestReturn;
+              const retIdx = r.release_type === '返场' ? returns.indexOf(r) + 1 : 0;
+              return `<div class="timeline-item ${r.release_type === '首发' ? 'first' : 'return'}${isLatest ? ' latest' : ''}">
+                <div class="timeline-date">${r.date}</div>
+                <div class="timeline-label">${r.release_type === '首发' ? '🌟 首发上线' : `🔄 第 ${retIdx} 次返场`}</div>
+                <div class="timeline-obtain">${r.obtain||'—'}${r.release_type === '首发' && r.price ? ' · ' + r.price : ''}</div>
+                ${isLatest ? '<div class="timeline-latest-tag">最近</div>' : ''}
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
+
       </div>
     </div>
   `;
