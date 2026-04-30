@@ -525,10 +525,19 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
   .contact-cards { grid-template-columns: 1fr; }
 
   /* 移动端资源模块适配 */
+  /* 1. 天幕保持一行2个 */
   .res-grid-tm { grid-template-columns: repeat(2, 1fr); padding: 10px 12px; gap: 12px; }
-  .res-grid-xb { grid-template-columns: repeat(2, 1fr); padding: 10px 12px; gap: 10px; }
-  .res-card-body { padding: 10px; }
-  .res-card-name { font-size: 13px; }
+  .res-grid-tm .res-card-body { padding: 10px; }
+  .res-grid-tm .res-card-name { font-size: 13px; }
+  
+  /* 2. 小兵改为一行3个，极限紧凑排版 */
+  .res-grid-xb { grid-template-columns: repeat(3, 1fr); padding: 10px 12px; gap: 6px; }
+  .res-grid-xb .res-card-body { padding: 8px 6px; }
+  .res-grid-xb .res-card-name { font-size: 12px; margin-bottom: 4px; gap: 4px; }
+  
+  /* 缩小底部徽章、联动和日期的字号，防止由于卡片变窄导致文字溢出或强行换行 */
+  .res-grid-xb .badge { padding: 1px 4px !important; font-size: 9px !important; }
+  .res-grid-xb span[style*="font-size:11px"] { font-size: 9px !important; }
 }
 
 #mobile-list, #mobile-hero-list { display: none; }
