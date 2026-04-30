@@ -2356,30 +2356,27 @@ function renderResourceGrid(list) {
   }
   
   grid.innerHTML = list.map(r => {
-    const imgWidth = currentResType === '天幕' ? 500 : 200;
-    const imgSrc = r.img_url ? `${toCdnUrl(r.img_url)}?width=${imgWidth}&quality=80` : null;
-
-    const badgeColor = currentResType === '天幕' ? 'rgba(74,124,191,0.15)' : 'rgba(74,191,138,0.15)';
-    const textColor = currentResType === '天幕' ? 'var(--accent2)' : 'var(--green)';
+    // 核心修复：移除 ?width 和 quality 参数，直接获取原始图片，避免服务器强制裁剪
+    const imgSrc = r.img_url ? toCdnUrl(r.img_url) : null;
     
-    // 如果有联动信息，生成联动标签
+    // 联动标签
     const collabHtml = r.collab 
-      ? `<span class="badge" style="background:rgba(201,168,76,0.15); color:var(--gold); border:1px solid rgba(201,168,76,0.3); font-size:10px; margin-left:6px; padding: 2px 5px;">${r.collab}</span>` 
+      ? `<span class="badge" style="background:rgba(201,168,76,0.15); color:var(--gold); border:1px solid rgba(201,168,76,0.3); font-size:10px; padding: 2px 5px; flex-shrink: 0; margin-top: 2px;">${r.collab}</span>` 
       : '';
     
-    // 注意：这里的 onclick 传入的是名称，用于在详情页拉取该资源的所有历史记录
     return `<div class="res-card" onclick="openResDetail('${esc(r.name)}')">
       <div class="res-card-img ${currentResType === '天幕' ? 'tm' : 'xb'}">
-        <!-- 强行加上 object-fit: contain 覆盖原来的 cover，保证图片不被截取 -->
+        <!-- 使用 object-fit: contain 保证列表页也能查看到 100% 完整的全图内容 -->
         ${imgSrc ? `<img src="${imgSrc}" loading="lazy" style="object-fit:contain; width:100%; height:100%;">` : `<div style="font-size:28px">✨</div>`}
       </div>
       <div class="res-card-body">
-        <div class="res-card-name" style="display:flex; align-items:center;">
-          <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${r.name}</span>
+        <div class="res-card-name" style="display:flex; align-items:flex-start; gap:8px; white-space:normal; overflow:visible;">
+          <span style="flex:1; line-height:1.4; word-break:break-word;">${r.name}</span>
           ${collabHtml}
         </div>
         <div style="display:flex; align-items:center; justify-content:space-between; margin-top:auto;">
-          <span class="badge" style="background:${badgeColor}; color:${textColor}; font-size:11px;">${r.quality||'—'}</span>
+          <!-- 统一品质配色：直接复用皮肤的 badge-{quality} 样式 -->
+          <span class="badge badge-${r.quality||'无'}" style="font-size:11px;">${r.quality||'—'}</span>
           <span style="font-size:11px; color:var(--text3);">${r.date||'—'}</span>
         </div>
       </div>
@@ -2388,11 +2385,9 @@ function renderResourceGrid(list) {
 }
 
 function openResDetail(name) {
-  // 1. 获取该资源的所有记录，并按时间正序排列
   const records = RESOURCES.filter(x => x.name === name && x.type === currentResType).sort((a,b) => a.date > b.date ? 1 : -1);
   if (!records.length) return;
   
-  // 2. 梳理首发与返场数据
   const first = records.find(x => x.release_type === '首发') || records[0];
   const returns = records.filter(x => x.release_type === '返场').sort((a,b) => a.date > b.date ? 1 : -1);
   const latestReturn = returns.length ? returns[returns.length-1] : null;
@@ -2402,7 +2397,8 @@ function openResDetail(name) {
   wrap.style.display = 'block';
   
   const isTm = first.type === '天幕';
-  const imgSrc = first.img_url ? `${toCdnUrl(first.img_url)}?width=${isTm ? 800 : 400}&quality=90` : null;
+  // 核心修复：同样移除宽高参数，请求原图，保证详情页全貌显示
+  const imgSrc = first.img_url ? toCdnUrl(first.img_url) : null;
   
   wrap.innerHTML = `
     <div class="hero-detail-header">
@@ -2413,9 +2409,9 @@ function openResDetail(name) {
     <div class="skin-detail-wrap">
       <div class="skin-detail-card">
         
-        <!-- 上半部分：信息展示 -->
         <div class="skin-detail-top" style="flex-direction: ${isMobile() ? 'column' : 'row'};">
-          <div class="skin-detail-img-wrap" style="width:${isMobile()?'100%':(isTm?'460px':'240px')}; padding:20px; background:var(--bg4);">
+          <!-- 容器锁定 21:10 比例，图片使用 object-fit: contain 居中显示全貌 -->
+          <div class="skin-detail-img-wrap" style="width:${isMobile()?'100%':(isTm?'460px':'240px')}; aspect-ratio:${isTm?'21/10':'1/1'}; padding:10px; background:var(--bg4); display:flex; align-items:center; justify-content:center;">
             ${imgSrc 
               ? `<img src="${imgSrc}" style="width:100%; height:100%; object-fit:contain; border-radius:8px; box-shadow:var(--shadow);">` 
               : `<div style="font-size:50px; color:var(--text3);">✨</div>`}
@@ -2428,7 +2424,8 @@ function openResDetail(name) {
             </div>
             
             <div class="skin-detail-attrs">
-              <div class="attr-item"><label>资源品质</label><div class="val"><span class="badge badge-史诗" style="border:none;">${first.quality||'未知'}</span></div></div>
+              <!-- 统一品质配色：直接复用皮肤的 badge-{quality} 样式 -->
+              <div class="attr-item"><label>资源品质</label><div class="val"><span class="badge badge-${first.quality||'无'}" style="border:none;">${first.quality||'未知'}</span></div></div>
               <div class="attr-item"><label>首发日期</label><div class="val" style="color:var(--green)">${first.date||'—'}</div></div>
               <div class="attr-item"><label>获取方式</label><div class="val" style="font-size:12px;color:var(--text2)">${first.obtain||'—'}</div></div>
               <div class="attr-item"><label>首发价格</label><div class="val" style="color:var(--gold)">${first.price||'—'}</div></div>
@@ -2446,7 +2443,6 @@ function openResDetail(name) {
           <div style="font-size:14px; color:var(--text2); line-height:1.6;">${first.notes}</div>
         </div>` : ''}
 
-        <!-- 下半部分：复刻皮肤的时间线 -->
         <div class="skin-timeline">
           <div class="timeline-title">🕐 上线 &amp; 返场记录（共 ${records.length} 条）</div>
           <div class="timeline-list">
