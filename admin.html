@@ -130,21 +130,6 @@ a { color: var(--blue); text-decoration: none; }
   padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px;
   font-size: 14px; cursor: pointer; outline: none; font-family: inherit; background: var(--white);
 }
-
-/* Custom Search Select list */
-.search-select-list {
-  position: absolute; top: 100%; left: 0; right: 0;
-  background: #fff; border: 1px solid var(--border); border-radius: 8px;
-  max-height: 200px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  margin-top: 4px; display: none;
-}
-.search-select-opt {
-  padding: 8px 12px; cursor: pointer; font-size: 13px; color: var(--text2);
-  border-bottom: 1px solid var(--border);
-}
-.search-select-opt:last-child { border-bottom: none; }
-.search-select-opt:hover { background: #fffbeb; color: var(--gold); }
-
 .batch-bar {
   display: none; background: #fffbeb; border: 1px solid #fde68a;
   border-radius: 8px; padding: 10px 16px; align-items: center; gap: 12px;
@@ -167,12 +152,11 @@ tr.selected td { background: #fffbeb; }
 input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color: var(--gold); }
 
 /* Inline edit */
-.editable { cursor: pointer; transition: background 0.2s; }
-.editable:hover { background: #f0f7ff; border-radius: 4px; box-shadow: inset 0 0 0 1px #bee3f8; }
+.editable { cursor: pointer; }
+.editable:hover { background: #f0f7ff; border-radius: 4px; }
 .inline-input {
   width: 100%; padding: 4px 8px; border: 1px solid var(--gold);
   border-radius: 4px; font-size: 13px; outline: none; font-family: inherit;
-  background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
 
 /* BADGES */
@@ -226,6 +210,9 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
 .log-line.ok  { color: #68d391; }
 .log-line.err { color: #fc8181; }
 .log-line.info { color: #63b3ed; }
+
+/* USERS */
+.user-table td { vertical-align: middle; }
 
 /* MODAL */
 .modal-bg {
@@ -321,6 +308,9 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
         </div>
         <div class="nav-item" data-page="heroes" onclick="navTo('heroes',this)">
           <span class="icon">🎭</span> 英雄管理
+        </div>
+        <div class="nav-item" data-page="resources" onclick="navTo('resources',this)">
+          <span class="icon">🌌</span> 资源管理
         </div>
         <div class="nav-item" data-page="import" onclick="navTo('import',this)">
           <span class="icon">📥</span> Excel 导入
@@ -425,61 +415,6 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
         </div>
       </div>
 
-      <div class="page" id="page-heroes">
-        <div class="page-header">
-          <div><div class="page-title">英雄管理</div><div class="page-subtitle">管理英雄基础信息</div></div>
-          <div style="display:flex;gap:8px">
-            <button class="btn btn-outline btn-sm" onclick="loadHeroes()">刷新</button>
-            <button class="btn btn-primary btn-sm" onclick="showAddHero()">+ 新增英雄</button>
-          </div>
-        </div>
-        <div class="page-body">
-          <div class="batch-bar" id="hero-batch-bar">
-            <span class="batch-count" id="hero-batch-count">已选 0 条</span>
-            <button class="btn btn-danger btn-sm" onclick="doHeroBatchDelete()">批量删除</button>
-            <button class="btn btn-outline btn-sm" onclick="clearHeroSelection()">取消选择</button>
-          </div>
-
-          <div class="table-toolbar">
-            <input class="search-input" id="hero-search" placeholder="搜索英雄名称…" oninput="debounceHeroSearch()" style="width:200px">
-            <select class="filter-select" id="hero-role-filter" onchange="loadHeroes()">
-              <option value="">全部职业</option>
-              <option>法师</option><option>战士</option><option>射手</option>
-              <option>刺客</option><option>坦克</option><option>辅助</option>
-            </select>
-            <select class="filter-select" id="hero-lane-filter" onchange="loadHeroes()">
-              <option value="">全部分路</option>
-              <option>中路</option><option>对抗路</option><option>发育路</option>
-              <option>打野</option><option>游走</option>
-            </select>
-            <span style="color:var(--text3);font-size:12px;margin-left:auto" id="hero-total-label"></span>
-          </div>
-
-          <div class="data-table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th class="check-col"><input type="checkbox" id="hero-check-all" onchange="toggleAllHeroes(this)"></th>
-                  <th style="width:50px">头像</th>
-                  <th>英雄名称</th>
-                  <th>性别</th>
-                  <th>职业</th>
-                  <th>分路</th>
-                  <th>上线日期</th>
-                  <th>备注</th>
-                  <th style="width:130px">操作</th>
-                </tr>
-              </thead>
-              <tbody id="hero-tbody"></tbody>
-            </table>
-          </div>
-          <div class="pagination">
-            <div class="pg-info" id="hero-pg-info"></div>
-            <div class="pg-btns" id="hero-pg-btns"></div>
-          </div>
-        </div>
-      </div>
-
       <div class="page" id="page-import">
         <div class="page-header">
           <div><div class="page-title">Excel 导入</div><div class="page-subtitle">上传 Excel 文件更新数据</div></div>
@@ -528,6 +463,83 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
                 开始导入
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ 资源管理页 ══ -->
+      <div class="page" id="page-resources">
+        <div class="page-header">
+          <div><div class="page-title">资源管理</div><div class="page-subtitle">管理天幕、小兵等个性资源，共 <span id="res-total-label">—</span> 条</div></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-outline btn-sm" onclick="loadResources()">刷新</button>
+            <button class="btn btn-primary btn-sm" onclick="showAddResource()">+ 新增资源</button>
+          </div>
+        </div>
+        <div class="page-body">
+          <div class="table-toolbar">
+            <input class="search-input" id="res-search" placeholder="搜索资源名称…" oninput="debounceResSearch()" style="width:200px">
+            <select class="filter-select" id="res-type-filter" onchange="loadResources()">
+              <option value="">全部类型</option>
+              <option>天幕</option><option>小兵</option>
+            </select>
+            <select class="filter-select" id="res-release-filter" onchange="loadResources()">
+              <option value="">全部首发/返场</option>
+              <option>首发</option><option>返场</option>
+            </select>
+          </div>
+          <div class="data-table-wrap" style="border-top:none;border-radius:0 0 var(--radius) var(--radius)">
+            <table>
+              <thead><tr>
+                <th style="width:60px">图片</th>
+                <th>名称</th><th>类型</th><th>品质</th>
+                <th>上线日期</th><th>首发/返场</th><th>获取方式</th>
+                <th>价格</th><th>常驻</th><th>备注</th>
+                <th style="width:120px">操作</th>
+              </tr></thead>
+              <tbody id="res-tbody"></tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <span class="pg-info" id="res-pg-info"></span>
+            <div class="pg-btns" id="res-pg-btns"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ 英雄管理页 ══ -->
+      <div class="page" id="page-heroes">
+        <div class="page-header">
+          <div><div class="page-title">英雄管理</div><div class="page-subtitle">管理英雄基础信息</div></div>
+          <button class="btn btn-primary btn-sm" onclick="showAddHero()">+ 新增英雄</button>
+        </div>
+        <div class="page-body">
+          <div class="table-toolbar">
+            <input class="search-input" id="hero-search" placeholder="搜索英雄名称…" oninput="filterHeroTable()" style="width:200px">
+            <select class="filter-select" id="hero-role-filter" onchange="filterHeroTable()">
+              <option value="">全部职业</option>
+              <option>法师</option><option>战士</option><option>射手</option>
+              <option>刺客</option><option>坦克</option><option>辅助</option>
+            </select>
+            <select class="filter-select" id="hero-lane-filter" onchange="filterHeroTable()">
+              <option value="">全部分路</option>
+              <option>中路</option><option>对抗路</option><option>发育路</option>
+              <option>打野</option><option>游走</option>
+            </select>
+          </div>
+          <div class="data-table-wrap" style="border-top:none;border-radius:0 0 var(--radius) var(--radius)">
+            <table>
+              <thead><tr>
+                <th style="width:50px">头像</th>
+                <th>英雄名称</th><th>职业</th><th>分路</th><th>性别</th>
+                <th>上线日期</th><th>备注</th><th style="width:130px">操作</th>
+              </tr></thead>
+              <tbody id="hero-tbody"></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="hero-pagination">
+            <span class="pg-info" id="hero-pg-info"></span>
+            <div class="pg-btns" id="hero-pg-btns"></div>
           </div>
         </div>
       </div>
@@ -607,11 +619,9 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
       <div class="form-group"><label>获取方式</label><input type="text" id="es-obtain" placeholder="如：直售"></div>
       <div class="form-group">
         <label>关联英雄</label>
-        <div class="search-select-wrap" style="position:relative">
-          <input type="text" id="es-hero-search" class="filter-select" style="width:100%" placeholder="— 不关联 (输入搜索) —" autocomplete="off">
-          <input type="hidden" id="es-hero-id">
-          <div id="es-hero-list" class="search-select-list"></div>
-        </div>
+        <select id="es-hero-id" class="filter-select" style="width:100%">
+          <option value="">— 不关联 —</option>
+        </select>
       </div>
       <div class="form-group">
         <label>类型</label>
@@ -669,6 +679,7 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
   </div>
 </div>
 
+<!-- ══ 英雄 Modal ══ -->
 <div class="modal-bg" id="modal-hero">
   <div class="modal" style="width:560px;max-width:96vw">
     <h3 id="modal-hero-title">新增英雄</h3>
@@ -738,22 +749,11 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
 const API = '/api/admin';  // Vercel serverless endpoint
 let token = localStorage.getItem('admin_token') || '';
 let currentUser = null;
-
-// Skin Variables
-let skinPage = 1; 
-const SKIN_PER_PAGE = 50;
+let skinPage = 1; const SKIN_PER_PAGE = 50;
 let selectedIds = new Set();
 let importMode = 'append';
 let importFile = null;
 let searchTimer = null;
-
-// Hero Variables (New)
-let allHeroes = [];
-let filteredHeroes = [];
-let heroPage = 1;
-const HERO_PER_PAGE = 50;
-let selectedHeroIds = new Set();
-let heroSearchTimer = null;
 
 // ── Auth ─────────────────────────────────────────────────────
 async function doLogin() {
@@ -780,6 +780,7 @@ async function enterApp() {
   document.getElementById('user-name').textContent = currentUser.display_name || currentUser.username;
   document.getElementById('user-role').textContent = currentUser.role === 'admin' ? '管理员' : '编辑者';
   document.getElementById('user-avatar').textContent = (currentUser.display_name || currentUser.username)[0].toUpperCase();
+  // Show/hide admin-only elements
   document.querySelectorAll('.admin-only').forEach(el => {
     el.style.display = currentUser.role === 'admin' ? '' : 'none';
   });
@@ -797,11 +798,12 @@ function navTo(page, el) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   if (el) el.classList.add('active');
   document.getElementById('page-' + page).classList.add('active');
-  if (page === 'skins')    loadSkins();
-  if (page === 'heroes')   loadHeroes();
-  if (page === 'users')    loadUsers();
-  if (page === 'logs')     loadLogs();
-  if (page === 'overview') loadOverview();
+  if (page === 'skins')     loadSkins();
+  if (page === 'users')     loadUsers();
+  if (page === 'logs')      loadLogs();
+  if (page === 'overview')  loadOverview();
+  if (page === 'heroes')    { heroSkinCountCache={}; loadHeroes(); }
+  if (page === 'resources') loadResources();
 }
 
 // ── Overview ─────────────────────────────────────────────────
@@ -871,8 +873,8 @@ function goPage(p) { skinPage = p; loadSkins(); }
 function debounceSearch() { clearTimeout(searchTimer); searchTimer = setTimeout(() => { skinPage=1; loadSkins(); }, 400); }
 
 // ── Add / Edit Skin ───────────────────────────────────────────
-let pendingSkinImgB64 = null;
-let pendingTagImgB64  = null;
+let pendingSkinImgB64 = null;  // 待上传的皮肤图片 base64
+let pendingTagImgB64  = null;  // 待上传的标签图片 base64
 
 function resetSkinModal() {
   document.getElementById('es-id').value = '';
@@ -889,9 +891,7 @@ function resetSkinModal() {
   document.getElementById('es-notes').value = '';
   document.getElementById('es-type').value = '首发';
   document.getElementById('es-permanent').value = '否';
-  document.getElementById('es-hero-search').value = '';
-  document.getElementById('es-hero-list').style.display = 'none';
-
+  // 重置图片预览
   ['skin','tag'].forEach(t => {
     document.getElementById(`${t}-img-preview`).style.display = 'none';
     document.getElementById(`${t}-img-preview`).src = '';
@@ -918,6 +918,7 @@ function openEditSkin(s) {
   document.getElementById('es-id').value          = s.id;
   document.getElementById('es-skin-img-url').value = s.skin_img_url || '';
   document.getElementById('es-tag-img-url').value  = s.tag_img_url  || '';
+  // 如果已有图片 URL，显示预览
   if (s.skin_img_url) {
     document.getElementById('skin-img-preview').src = s.skin_img_url;
     document.getElementById('skin-img-preview').style.display = 'block';
@@ -950,7 +951,7 @@ function previewImg(type) {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = e => {
-    const b64 = e.target.result;
+    const b64 = e.target.result; // data:image/...;base64,...
     document.getElementById(`${type}-img-preview`).src = b64;
     document.getElementById(`${type}-img-preview`).style.display = 'block';
     document.getElementById(`${type}-img-placeholder`).style.display = 'none';
@@ -961,9 +962,12 @@ function previewImg(type) {
   reader.readAsDataURL(file);
 }
 
+// 上传图片到 Storage，返回公开 URL
 async function uploadImg(b64, imgType) {
   if (!b64) return null;
+  // 生成唯一 ID（时间戳+随机）
   const imgId = Date.now().toString(16).toUpperCase() + Math.random().toString(16).slice(2,10).toUpperCase();
+  // 取出纯 base64 和 mime
   const [meta, data] = b64.split(',');
   const mime = meta.match(/:(.*?);/)[1];
   const res = await api('POST', '/images', { img_id: imgId, img_type: imgType, data, mime_type: mime });
@@ -983,15 +987,16 @@ async function doSaveSkin() {
     let skinImgUrl = document.getElementById('es-skin-img-url').value;
     let tagImgUrl  = document.getElementById('es-tag-img-url').value;
 
+    // 关键修复：加入 return 进行错误阻断
     if (pendingSkinImgB64) {
       const uploadedSkinUrl = await uploadImg(pendingSkinImgB64, 'skin');
-      if (!uploadedSkinUrl) return; 
+      if (!uploadedSkinUrl) return; // 上传失败（内部已 toast 报错），直接终止流程
       skinImgUrl = uploadedSkinUrl;
     }
     
     if (pendingTagImgB64) {
       const uploadedTagUrl = await uploadImg(pendingTagImgB64, 'tag');
-      if (!uploadedTagUrl) return; 
+      if (!uploadedTagUrl) return; // 上传失败，直接终止流程
       tagImgUrl = uploadedTagUrl;
     }
 
@@ -1039,7 +1044,7 @@ async function doDeleteSkin(id, name) {
   loadSkins(); toast('已删除', 'ok');
 }
 
-// Selection & batch for Skins
+// Selection & batch
 function toggleRow(id, cb) {
   if (cb.checked) selectedIds.add(id); else selectedIds.delete(id);
   document.getElementById(`row-${id}`).classList.toggle('selected', cb.checked);
@@ -1188,6 +1193,203 @@ async function loadLogs() {
     </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text3)">暂无日志</td></tr>';
 }
 
+// ── 资源管理 ─────────────────────────────────────────────────
+let resSearchTimerInner = null;
+function debounceResSearch() {
+  clearTimeout(resSearchTimerInner);
+  resSearchTimerInner = setTimeout(() => { resPage=1; loadResources(); }, 400);
+}
+
+async function loadResources() {
+  const search = (document.getElementById('res-search')?.value||'').trim();
+  const type   =  document.getElementById('res-type-filter')?.value||'';
+  const release=  document.getElementById('res-release-filter')?.value||'';
+  let url = '/resources?per_page=200';
+  if (type)   url += `&type=${encodeURIComponent(type)}`;
+  if (search) url += `&search=${encodeURIComponent(search)}`;
+  const res = await api('GET', url);
+  if (!res.resources) return;
+  let list = res.resources;
+  if (release) list = list.filter(r => r.release_type === release);
+  allResources = list; filteredResources = list; resPage = 1;
+  const el = document.getElementById('res-total-label');
+  if (el) el.textContent = list.length;
+  renderResTable();
+}
+
+function renderResTable() {
+  const total = filteredResources.length;
+  const totalPages = Math.ceil(total / RES_PER_PAGE) || 1;
+  const start = (resPage - 1) * RES_PER_PAGE;
+  const rows  = filteredResources.slice(start, start + RES_PER_PAGE);
+  const CDN     = 'https://skinsdata.top/img';
+  const STORAGE = 'https://erphrsydujqrcvtpdtnf.supabase.co/storage/v1/object/public/skin-images';
+  
+  const thumb = url => {
+    if (!url) return null;
+    const cdn = url.startsWith(CDN) ? url : url.replace(STORAGE, CDN);
+    // 把请求宽度稍微调大一点，适应横版长图的清晰度
+    return `${cdn}?width=160&quality=75`; 
+  };
+  
+  document.getElementById('res-tbody').innerHTML = rows.map(r => {
+    const isSmall = r.type === '小兵';
+    // 关键改动：如果是天幕，缩略图改为横向长图比例 (约 84x40)；小兵保持方图 (44x44)
+    const imgWidth = isSmall ? '44px' : '84px';
+    const imgHeight = isSmall ? '44px' : '40px';
+    
+    const imgHtml = r.img_url
+      ? `<img src="${thumb(r.img_url)}" style="width:${imgWidth};height:${imgHeight};object-fit:${isSmall?'cover':'contain'};border-radius:${isSmall?'6px':'4px'};border:1px solid var(--border)" loading="lazy">`
+      : `<div style="width:${imgWidth};height:${imgHeight};background:var(--bg4);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:20px">🌌</div>`;
+      
+    const notesHtml = r.notes
+      ? `<span title="${(r.notes).replace(/"/g,'&quot;')}" style="cursor:help">${r.notes.length>16?r.notes.slice(0,16)+'…':r.notes}</span>`
+      : '<span style="color:var(--text3)">—</span>';
+      
+    const tc = r.type==='天幕'
+      ? {bg:'rgba(74,124,191,0.12)',color:'#4a7cbf',border:'rgba(74,124,191,0.3)'}
+      : {bg:'rgba(74,191,138,0.12)',color:'#2a9060',border:'rgba(74,191,138,0.3)'};
+      
+    return `<tr>
+      <td>${imgHtml}</td>
+      <td style="font-weight:600">${r.name}</td>
+      <td><span class="badge" style="background:${tc.bg};color:${tc.color};border:1px solid ${tc.border}">${r.type}</span></td>
+      <td style="font-size:12px">${r.quality||'—'}</td>
+      <td style="font-size:12px;color:var(--text3);white-space:nowrap">${r.date||'—'}</td>
+      <td style="font-size:12px">${r.release_type||'—'}</td>
+      <td style="font-size:12px;color:var(--text2)">${r.obtain||'—'}</td>
+      <td style="font-size:12px;color:var(--gold)">${r.price||'—'}</td>
+      <td style="font-size:12px;text-align:center">${r.permanent||'—'}</td>
+      <td style="font-size:12px;color:var(--text2);max-width:120px">${notesHtml}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-outline btn-sm" onclick='editResource(${JSON.stringify(JSON.stringify(r))})'>编辑</button>
+        <button class="btn btn-danger  btn-sm" onclick="doDeleteResource(${r.id},'${r.name.replace(/'/g,"\'")}')">删除</button>
+      </td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--text3)">暂无资源数据</td></tr>';
+
+  document.getElementById('res-pg-info').textContent =
+    `共 ${total} 条 · 第 ${start+1}–${Math.min(start+RES_PER_PAGE,total)} 条`;
+  let btns = `<button class="pg-btn" onclick="goResPage(${resPage-1})" ${resPage<=1?'disabled':''}>‹</button>`;
+  const rs=Math.max(1,resPage-2), re=Math.min(totalPages,resPage+2);
+  if(rs>1) btns+=`<button class="pg-btn" onclick="goResPage(1)">1</button>`;
+  for(let i=rs;i<=re;i++) btns+=`<button class="pg-btn${i===resPage?' active':''}" onclick="goResPage(${i})">${i}</button>`;
+  if(re<totalPages) btns+=`<button class="pg-btn" onclick="goResPage(${totalPages})">${totalPages}</button>`;
+  btns+=`<button class="pg-btn" onclick="goResPage(${resPage+1})" ${resPage>=totalPages?'disabled':''}>›</button>`;
+  document.getElementById('res-pg-btns').innerHTML = btns;
+}
+
+function goResPage(p) {
+  const t=Math.ceil(filteredResources.length/RES_PER_PAGE)||1;
+  if(p<1||p>t) return; resPage=p; renderResTable();
+}
+
+function updateResImgHint() {
+  const type = document.getElementById('er-type').value;
+  const hint = document.getElementById('res-img-type-hint');
+  if(!hint) return;
+  // 关键改动：提示文案改为 21:10 横向长图
+  if (type === '天幕') {
+    hint.textContent = '天幕图片比例约 21:10（横向长图），建议上传原始尺寸';
+  } else if (type === '小兵') {
+    hint.textContent = '小兵图片为正方形，建议上传 1:1 比例';
+  } else {
+    hint.textContent = '';
+  }
+}
+
+function showAddResource() {
+  document.getElementById('modal-res-title').textContent='新增资源';
+  ['er-id','er-name','er-quality','er-tag','er-collab','er-obtain','er-price','er-notes','er-img-url'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  document.getElementById('er-type').value='天幕';
+  document.getElementById('er-release-type').value='首发';
+  document.getElementById('er-permanent').value='否';
+  document.getElementById('res-img-preview').style.display='none';
+  document.getElementById('res-img-placeholder').style.display='block';
+  resImgFile=null; updateResImgHint();
+  document.getElementById('er-type').onchange=updateResImgHint;
+  document.getElementById('modal-resource').classList.add('show');
+}
+
+function previewResImg(e) {
+  const file=e.target.files[0]; if(!file) return;
+  resImgFile=file;
+  const r=new FileReader();
+  r.onload=ev=>{
+    const img=document.getElementById('res-img-preview');
+    img.src=ev.target.result; img.style.display='block';
+    document.getElementById('res-img-placeholder').style.display='none';
+  };
+  r.readAsDataURL(file);
+}
+
+function editResource(jsonStr) {
+  const r=JSON.parse(jsonStr);
+  document.getElementById('modal-res-title').textContent='编辑资源';
+  document.getElementById('er-id').value          =r.id;
+  document.getElementById('er-type').value        =r.type||'天幕';
+  document.getElementById('er-name').value        =r.name;
+  document.getElementById('er-date').value        =r.date||'';
+  document.getElementById('er-release-type').value=r.release_type||'首发';
+  document.getElementById('er-quality').value     =r.quality||'';
+  document.getElementById('er-tag').value         =r.tag||'';
+  document.getElementById('er-collab').value      =r.collab||'';
+  document.getElementById('er-obtain').value      =r.obtain||'';
+  document.getElementById('er-price').value       =r.price||'';
+  document.getElementById('er-permanent').value   =r.permanent||'否';
+  document.getElementById('er-notes').value       =r.notes||'';
+  document.getElementById('er-img-url').value     =r.img_url||'';
+  resImgFile=null;
+  const img=document.getElementById('res-img-preview');
+  if(r.img_url){img.src=r.img_url;img.style.display='block';document.getElementById('res-img-placeholder').style.display='none';}
+  else{img.style.display='none';document.getElementById('res-img-placeholder').style.display='block';}
+  updateResImgHint();
+  document.getElementById('er-type').onchange=updateResImgHint;
+  document.getElementById('modal-resource').classList.add('show');
+}
+
+async function doSaveResource() {
+  const id   =document.getElementById('er-id').value;
+  const name =document.getElementById('er-name').value.trim();
+  const type =document.getElementById('er-type').value;
+  const date =document.getElementById('er-date').value;
+  if(!name) return toast('资源名称不能为空','err');
+  if(!date) return toast('上线日期不能为空','err');
+  let imgUrl=document.getElementById('er-img-url').value;
+  if(resImgFile){
+    const b64=await new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(',')[1]);r.readAsDataURL(resImgFile);});
+    const up=await api('POST','/images',{img_id:`res_${Date.now()}`,img_type:'resource',data:b64,mime_type:resImgFile.type});
+    if(up.error) return toast('图片上传失败：'+up.error,'err');
+    imgUrl=up.url;
+  }
+  const body={
+    type,name,date,
+    release_type:document.getElementById('er-release-type').value,
+    quality:     document.getElementById('er-quality').value.trim()||null,
+    tag:         document.getElementById('er-tag').value.trim()||null,
+    collab:      document.getElementById('er-collab').value.trim()||null,
+    obtain:      document.getElementById('er-obtain').value.trim()||null,
+    price:       document.getElementById('er-price').value.trim()||null,
+    permanent:   document.getElementById('er-permanent').value,
+    notes:       document.getElementById('er-notes').value.trim()||null,
+    img_url:     imgUrl||null,
+    is_available:true,
+  };
+  const res=id?await api('PUT',`/resources/${id}`,body):await api('POST','/resources',body);
+  if(res.error) return toast(res.error,'err');
+  closeModal(); loadResources();
+  toast(id?'资源已更新':'资源新增成功','ok');
+}
+
+async function doDeleteResource(id,name){
+  if(!confirm(`确认删除资源「${name}」？`)) return;
+  const res=await api('DELETE',`/resources/${id}`);
+  if(res.error) return toast(res.error,'err');
+  loadResources(); toast('已删除','ok');
+}
+
 // ── 英雄管理 ─────────────────────────────────────────────────
 
 async function populateHeroSelect(selectId, selectedId) {
@@ -1195,49 +1397,10 @@ async function populateHeroSelect(selectId, selectedId) {
     const res = await api('GET', '/heroes?per_page=200');
     allHeroes = res.heroes || [];
   }
-  
-  if (selectId === 'es-hero-id') {
-    const searchInp = document.getElementById('es-hero-search');
-    const hiddenInp = document.getElementById('es-hero-id');
-    const listWrap  = document.getElementById('es-hero-list');
-    
-    if (!listWrap) return;
-    
-    hiddenInp.value = selectedId || '';
-    const selHero = allHeroes.find(h => String(h.id) === String(selectedId));
-    searchInp.value = selHero ? selHero.name : '';
-    
-    const renderList = (filterTxt = '') => {
-      const txt = filterTxt.toLowerCase();
-      const filtered = allHeroes.filter(h => h.name.toLowerCase().includes(txt) || (h.pinyin && h.pinyin.includes(txt)));
-      let html = `<div class="search-select-opt" onclick="selectHeroUI('', '')">— 不关联 —</div>`;
-      filtered.forEach(h => {
-        html += `<div class="search-select-opt" onclick="selectHeroUI('${h.id}', '${h.name.replace(/'/g, "\\'")}')">${h.name}</div>`;
-      });
-      listWrap.innerHTML = html;
-    };
-    
-    renderList('');
-    
-    searchInp.onfocus = () => { listWrap.style.display = 'block'; renderList(searchInp.value); };
-    searchInp.oninput = (e) => { 
-      listWrap.style.display = 'block'; 
-      renderList(e.target.value); 
-      hiddenInp.value = ''; 
-    };
-  }
-}
-
-// 暴露到全局以供 UI 选择时调用
-window.selectHeroUI = function(id, name) {
-  document.getElementById('es-hero-id').value = id;
-  document.getElementById('es-hero-search').value = name;
-  document.getElementById('es-hero-list').style.display = 'none';
-};
-
-function debounceHeroSearch() { 
-  clearTimeout(heroSearchTimer); 
-  heroSearchTimer = setTimeout(() => { heroPage = 1; loadHeroes(); }, 400); 
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— 不关联 —</option>' +
+    allHeroes.map(h => `<option value="${h.id}" ${String(h.id)===String(selectedId)?'selected':''}>${h.name}</option>`).join('');
 }
 
 async function loadHeroes() {
@@ -1253,9 +1416,9 @@ async function loadHeroes() {
     if (lane   && !(h.lanes||[]).includes(lane)) return false;
     return true;
   });
-  heroPage = 1; 
-  renderHeroTable();
+  heroPage = 1; renderHeroTable();
 }
+function filterHeroTable() { loadHeroes(); }
 
 function renderHeroTable() {
   const total = filteredHeroes.length;
@@ -1269,137 +1432,36 @@ function renderHeroTable() {
     const cdn = url.startsWith(CDN) ? url : url.replace(STORAGE, CDN);
     return `${cdn}?width=60&height=60&quality=75&resize=cover`;
   };
-  
   document.getElementById('hero-tbody').innerHTML = rows.map(h => `
-    <tr id="hero-row-${h.id}" class="${selectedHeroIds.has(h.id) ? 'selected' : ''}">
-      <td><input type="checkbox" ${selectedHeroIds.has(h.id) ? 'checked' : ''} onchange="toggleHeroRow(${h.id}, this)"></td>
-      <td>
-        ${h.avatar_url
-          ? `<img src="${thumb(h.avatar_url)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;cursor:pointer;border:1px solid var(--border)" onclick='editHero(${JSON.stringify(JSON.stringify(h))})' loading="lazy">`
-          : `<div style="width:36px;height:36px;border-radius:50%;background:#f0f2f5;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer" onclick='editHero(${JSON.stringify(JSON.stringify(h))})'>🎭</div>`}
-      </td>
-      <td class="editable" onclick="makeEditable(${h.id}, 'name', this)" title="点击修改">${h.name}</td>
-      <td class="editable" onclick="makeEditable(${h.id}, 'gender', this)" title="点击修改">${h.gender || '—'}</td>
-      <td>${(h.roles || []).map(r=>`<span class="badge badge-史诗" style="margin-right:3px">${r}</span>`).join('')||'—'}</td>
-      <td style="font-size:12px;color:var(--text2)">${(h.lanes || []).join(' · ') || '—'}</td>
-      <td class="editable" onclick="makeEditable(${h.id}, 'release_date', this, 'date')" style="font-size:12px;color:var(--text3)" title="点击修改">${h.release_date || '—'}</td>
-      <td class="editable" onclick="makeEditable(${h.id}, 'notes', this)" style="font-size:12px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(h.notes||'').replace(/"/g,'&quot;')} (点击修改)">${h.notes || '—'}</td>
+    <tr>
+      <td>${h.avatar_url
+        ? `<img src="${thumb(h.avatar_url)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1px solid var(--border)" loading="lazy">`
+        : `<div style="width:36px;height:36px;border-radius:50%;background:#f0f2f5;display:flex;align-items:center;justify-content:center;font-size:18px">🎭</div>`}</td>
+      <td style="font-weight:600">${h.name}</td>
+      <td>${(h.roles||[]).map(r=>`<span class="badge badge-史诗" style="margin-right:3px">${r}</span>`).join('')||'—'}</td>
+      <td style="font-size:12px;color:var(--text2)">${(h.lanes||[]).join(' · ')||'—'}</td>
+      <td style="font-size:12px">${h.gender||'—'}</td>
+      <td style="font-size:12px;color:var(--text3)">${h.release_date||'—'}</td>
+      <td style="font-size:12px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(h.notes||'').replace(/"/g,'&quot;')}">${h.notes||'—'}</td>
       <td>
         <button class="btn btn-outline btn-sm" onclick='editHero(${JSON.stringify(JSON.stringify(h))})'>编辑</button>
-        <button class="btn btn-danger btn-sm" onclick="doDeleteHero(${h.id}, '${h.name.replace(/'/g,"\\'")}')">删除</button>
+        <button class="btn btn-danger  btn-sm" onclick="doDeleteHero(${h.id},'${h.name.replace(/'/g,"\\'")}')">删除</button>
       </td>
-    </tr>`).join('') || '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text3)">暂无英雄数据</td></tr>';
+    </tr>`).join('') || '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text3)">暂无英雄数据</td></tr>';
 
-  document.getElementById('hero-total-label').textContent = `共 ${total} 条`;
-  document.getElementById('hero-pg-info').textContent = `共 ${total} 位英雄 · 第 ${start+1}–${Math.min(start+HERO_PER_PAGE,total)} 条`;
-  
+  document.getElementById('hero-pg-info').textContent =
+    `共 ${total} 位英雄 · 第 ${start+1}–${Math.min(start+HERO_PER_PAGE,total)} 条`;
   let btns = `<button class="pg-btn" onclick="goHeroPage(${heroPage-1})" ${heroPage<=1?'disabled':''}>‹</button>`;
-  const rs = Math.max(1, heroPage-2), re = Math.min(totalPages, heroPage+2);
-  if (rs > 1) btns += `<button class="pg-btn" onclick="goHeroPage(1)">1</button>${rs>2?'<span style="padding:4px;color:var(--text3)">…</span>':''}`;
-  for (let i = rs; i <= re; i++) btns += `<button class="pg-btn${i===heroPage?' active':''}" onclick="goHeroPage(${i})">${i}</button>`;
-  if (re < totalPages) btns += `${re<totalPages-1?'<span style="padding:4px;color:var(--text3)">…</span>':''}<button class="pg-btn" onclick="goHeroPage(${totalPages})">${totalPages}</button>`;
-  btns += `<button class="pg-btn" onclick="goHeroPage(${heroPage+1})" ${heroPage>=totalPages?'disabled':''}>›</button>`;
+  const rs=Math.max(1,heroPage-2), re=Math.min(totalPages,heroPage+2);
+  if(rs>1) btns+=`<button class="pg-btn" onclick="goHeroPage(1)">1</button>`;
+  for(let i=rs;i<=re;i++) btns+=`<button class="pg-btn${i===heroPage?' active':''}" onclick="goHeroPage(${i})">${i}</button>`;
+  if(re<totalPages) btns+=`<button class="pg-btn" onclick="goHeroPage(${totalPages})">${totalPages}</button>`;
+  btns+=`<button class="pg-btn" onclick="goHeroPage(${heroPage+1})" ${heroPage>=totalPages?'disabled':''}>›</button>`;
   document.getElementById('hero-pg-btns').innerHTML = btns;
 }
-
 function goHeroPage(p) {
   const t = Math.ceil(filteredHeroes.length / HERO_PER_PAGE)||1;
   if (p<1||p>t) return; heroPage=p; renderHeroTable();
-}
-
-// 行内编辑逻辑
-function makeEditable(id, field, el, type = 'text') {
-  if (el.querySelector('input')) return; // 防止重复触发
-  const originalValue = el.textContent === '—' ? '' : el.textContent;
-  const input = document.createElement('input');
-  input.type = type;
-  input.className = 'inline-input';
-  input.value = originalValue;
-  
-  el.innerHTML = '';
-  el.appendChild(input);
-  input.focus();
-
-  const save = async () => {
-    const newValue = input.value.trim();
-    if (newValue !== originalValue) {
-      const res = await api('PUT', `/heroes/${id}`, { [field]: newValue });
-      if (res.error) {
-        toast(res.error, 'err');
-        el.textContent = originalValue || '—';
-      } else {
-        el.textContent = newValue || '—';
-        toast('更新成功', 'ok');
-        // 默默更新本地缓存状态，不重新渲染表格以保持用户位置
-        allHeroes = allHeroes.map(h => h.id === id ? {...h, [field]: newValue} : h);
-        filteredHeroes = filteredHeroes.map(h => h.id === id ? {...h, [field]: newValue} : h);
-      }
-    } else {
-      el.textContent = originalValue || '—';
-    }
-  };
-
-  input.onblur = save;
-  input.onkeydown = (e) => {
-    if (e.key === 'Enter') save();
-    if (e.key === 'Escape') {
-      input.onblur = null; // 防止 blur 二次触发
-      el.textContent = originalValue || '—';
-    }
-  };
-}
-
-// 英雄批量操作逻辑
-function toggleHeroRow(id, cb) {
-  if (cb.checked) selectedHeroIds.add(id); else selectedHeroIds.delete(id);
-  document.getElementById(`hero-row-${id}`).classList.toggle('selected', cb.checked);
-  updateHeroBatchBar();
-}
-
-function toggleAllHeroes(cb) {
-  document.querySelectorAll('#hero-tbody input[type=checkbox]').forEach(box => {
-    const id = parseInt(box.closest('tr').id.replace('hero-row-', ''));
-    box.checked = cb.checked;
-    if (cb.checked) selectedHeroIds.add(id); else selectedHeroIds.delete(id);
-    box.closest('tr').classList.toggle('selected', cb.checked);
-  });
-  updateHeroBatchBar();
-}
-
-function updateHeroBatchBar() {
-  const bar = document.getElementById('hero-batch-bar');
-  bar.classList.toggle('show', selectedHeroIds.size > 0);
-  document.getElementById('hero-batch-count').textContent = `已选 ${selectedHeroIds.size} 条`;
-}
-
-function clearHeroSelection() {
-  selectedHeroIds.clear();
-  const checkAll = document.getElementById('hero-check-all');
-  if (checkAll) checkAll.checked = false;
-  document.querySelectorAll('#hero-tbody input[type=checkbox]').forEach(cb => cb.checked = false);
-  document.querySelectorAll('#hero-tbody tr').forEach(tr => tr.classList.remove('selected'));
-  updateHeroBatchBar();
-}
-
-async function doHeroBatchDelete() {
-  if (!confirm(`确定删除选中的 ${selectedHeroIds.size} 位英雄吗？\n注意：此操作不可撤销，相关皮肤的归属将置空。`)) return;
-  
-  const btn = document.querySelector('#hero-batch-bar .btn-danger');
-  btn.disabled = true;
-  btn.textContent = '删除中...';
-  
-  let successCount = 0;
-  for (let id of selectedHeroIds) {
-    const res = await api('DELETE', `/heroes/${id}`);
-    if (!res.error) successCount++;
-  }
-  
-  btn.disabled = false;
-  btn.textContent = '批量删除';
-  toast(`批量删除完成，成功删除 ${successCount} 条`, 'ok');
-  
-  clearHeroSelection();
-  loadHeroes(); // 刷新表格
 }
 
 function showAddHero() {
@@ -1450,55 +1512,35 @@ async function doSaveHero() {
   const id=document.getElementById('eh-id').value;
   const name=document.getElementById('eh-name').value.trim();
   if(!name) return toast('英雄名称不能为空','err');
-  
   const roles=[...document.querySelectorAll('#eh-roles input:checked')].map(cb=>cb.value);
   const lanes=[...document.querySelectorAll('#eh-lanes input:checked')].map(cb=>cb.value);
-  
-  const btn = document.querySelector('#modal-hero .btn-primary');
-  btn.disabled = true;
-  btn.textContent = '保存中...';
+  let avatarUrl=document.getElementById('eh-avatar-url').value;
 
-  try {
-    let avatar_url = document.getElementById('eh-avatar-url').value;
-    if (heroAvatarFile) {
-      const reader = new FileReader();
-      const b64 = await new Promise(resolve => {
-        reader.onload = e => resolve(e.target.result);
-        reader.readAsDataURL(heroAvatarFile);
-      });
-      const uploadedUrl = await uploadImg(b64, 'hero');
-      if (uploadedUrl) avatar_url = uploadedUrl;
-    }
-
-    const data = {
-      name,
-      gender: document.getElementById('eh-gender').value,
-      roles,
-      lanes,
-      release_date: document.getElementById('eh-release-date').value || null,
-      is_available: document.getElementById('eh-available').value === 'true',
-      notes: document.getElementById('eh-notes').value.trim(),
-      avatar_url
-    };
-
-    const res = id ? await api('PUT', `/heroes/${id}`, data) : await api('POST', '/heroes', data);
-    if (res.error) return toast(res.error, 'err');
-
-    closeModal();
-    loadHeroes();
-    toast(id ? '英雄更新成功' : '英雄新增成功', 'ok');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = '保存';
+  if(heroAvatarFile){
+    const b64=await new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(',')[1]);r.readAsDataURL(heroAvatarFile);});
+    const up=await api('POST','/images',{img_id:`hero_${id||name}`,img_type:'hero',data:b64,mime_type:heroAvatarFile.type});
+    if(up.error) return toast('头像上传失败：'+up.error,'err');
+    avatarUrl=up.url;
   }
+
+  const body={name,roles,lanes,
+    gender:      document.getElementById('eh-gender').value,
+    release_date:document.getElementById('eh-release-date').value||null,
+    is_available:document.getElementById('eh-available').value==='true',
+    notes:       document.getElementById('eh-notes').value.trim()||null,
+    avatar_url:  avatarUrl||null,
+  };
+  const res=id?await api('PUT',`/heroes/${id}`,body):await api('POST','/heroes',body);
+  if(res.error) return toast(res.error,'err');
+  closeModal(); allHeroes=[]; loadHeroes();
+  toast(id?'英雄信息已更新':'英雄新增成功','ok');
 }
 
-async function doDeleteHero(id, name) {
-  if (!confirm(`确定删除英雄"${name}"吗？此操作不可撤销！`)) return;
-  const res = await api('DELETE', `/heroes/${id}`);
-  if (res.error) return toast(res.error, 'err');
-  toast('英雄已删除', 'ok');
-  loadHeroes();
+async function doDeleteHero(id,name){
+  if(!confirm(`确认删除英雄「${name}」？相关皮肤的 hero_id 将置为空，皮肤数据本身不会删除。`)) return;
+  const res=await api('DELETE',`/heroes/${id}`);
+  if(res.error) return toast(res.error,'err');
+  allHeroes=[]; loadHeroes(); toast('已删除','ok');
 }
 
 // ── API helper ────────────────────────────────────────────────
@@ -1516,27 +1558,32 @@ async function api(method, path, body, skipAuth = false) {
   }
 }
 
+// ── Add logs endpoint call ────────────────────────────────────
+// (Extend API to support GET /logs — add to admin.py)
+
 // ── UI Helpers ────────────────────────────────────────────────
 function closeModal() {
   document.querySelectorAll('.modal-bg').forEach(m => m.classList.remove('show'));
 }
-
 function toast(msg, type = 'ok') {
   const el = document.getElementById('toast');
   el.textContent = (type === 'ok' ? '✓ ' : '✕ ') + msg;
   el.className = `toast show ${type}`;
   setTimeout(() => el.className = 'toast', 3000);
-  if (type === 'ok' && (msg.includes('保存') || msg.includes('更新') || msg.includes('新增') || msg.includes('删除') || msg.includes('导入') || msg.includes('修改'))) {
+  // 数据变更时通知前台页面自动刷新
+  if (type === 'ok' && (msg.includes('保存') || msg.includes('新增') || msg.includes('删除') || msg.includes('导入') || msg.includes('修改'))) {
     localStorage.setItem('skin_db_updated', Date.now().toString());
   }
 }
-
 function fmtTime(str) {
   if (!str) return '—';
-  return new Date(str).toLocaleString('zh-CN', {month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  return new Date(str).toLocaleString('zh-CN', {month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
 }
 
-// 页面初始化时检查鉴权态
+// ── Init ─────────────────────────────────────────────────────
+document.addEventListener('click', e => {
+  if (e.target.classList.contains('modal-bg')) closeModal();
+});
 checkAuth();
 </script>
 </body>
