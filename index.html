@@ -2367,6 +2367,7 @@ function renderResourceGrid(list) {
   grid.innerHTML = list.map(r => {
     // 核心修复：移除 ?width 和 quality 参数，直接获取原始图片，避免服务器强制裁剪
     const imgSrc = r.img_url ? toCdnUrl(r.img_url) : null;
+    const tagImgSrc = r.tag_img_url ? toCdnUrl(r.tag_img_url) : null;
     
     // 联动标签
     const collabHtml = r.collab 
@@ -2388,6 +2389,7 @@ function renderResourceGrid(list) {
           <span class="badge badge-${r.quality||'无'}" style="font-size:11px;">${r.quality||'—'}</span>
           <span style="font-size:11px; color:var(--text3);">${r.date||'—'}</span>
         </div>
+        ${tagImgSrc ? `<div style="margin-top:8px; height:18px; display:flex; align-items:center;"><img src="${tagImgSrc}" loading="lazy" style="max-height:18px; max-width:100%; object-fit:contain;" alt="${r.tag||'资源标签'}"></div>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -2408,6 +2410,7 @@ function openResDetail(name) {
   const isTm = first.type === '天幕';
   // 核心修复：同样移除宽高参数，请求原图，保证详情页全貌显示
   const imgSrc = first.img_url ? toCdnUrl(first.img_url) : null;
+  const tagImgSrc = first.tag_img_url ? toCdnUrl(first.tag_img_url) : null;
   
   wrap.innerHTML = `
     <div class="hero-detail-header">
@@ -2439,7 +2442,7 @@ function openResDetail(name) {
               <div class="attr-item"><label>获取方式</label><div class="val" style="font-size:12px;color:var(--text2)">${first.obtain||'—'}</div></div>
               <div class="attr-item"><label>首发价格</label><div class="val" style="color:var(--gold)">${first.price||'—'}</div></div>
               <div class="attr-item"><label>是否常驻</label><div class="val"><span class="badge badge-${first.permanent||'否'}">${first.permanent||'否'}</span></div></div>
-              <div class="attr-item"><label>资源标签</label><div class="val" style="font-size:12px;">${first.tag||'无'}</div></div>
+              <div class="attr-item"><label>资源标签</label><div class="val" style="font-size:12px;">${tagImgSrc ? `<img src="${tagImgSrc}" style="height:28px;max-width:100%;object-fit:contain;" alt="${first.tag||'资源标签'}">` : (first.tag||'无')}</div></div>
               <div class="attr-item"><label>返场次数</label><div class="val" style="color:var(--accent2);font-size:20px;font-weight:700">${returns.length}</div></div>
               ${latestReturn ? `<div class="attr-item" style="grid-column:1/-1"><label>最近返场</label><div class="val" style="color:var(--gold)">${latestReturn.date} · ${latestReturn.obtain}</div></div>` : ''}
             </div>

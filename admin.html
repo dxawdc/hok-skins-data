@@ -765,16 +765,29 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
       </div>
     </div>
     
-    <div class="form-group" style="margin-top:12px">
-      <label>资源图片 <span style="color:var(--text3);font-weight:400" id="res-img-type-hint">天幕图片比例约 21:10（横向长图），建议上传原始尺寸</span></label>
-      <div class="img-upload-box" id="res-img-box" style="height:auto; min-height:100px; aspect-ratio:21/10; overflow:hidden;" onclick="document.getElementById('res-img-input').click()">
-        <img id="res-img-preview" style="display:none;width:100%;height:100%;object-fit:contain;border-radius:6px">
-        <div id="res-img-placeholder">
-          <div style="font-size:24px">🖼️</div>
-          <div style="font-size:12px;color:var(--text3);margin-top:4px">点击上传</div>
+    <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:12px;margin-top:12px">
+      <div class="form-group">
+        <label>资源图片 <span style="color:var(--text3);font-weight:400" id="res-img-type-hint">天幕图片比例约 21:10（横向长图），建议上传原始尺寸</span></label>
+        <div class="img-upload-box" id="res-img-box" style="height:auto; min-height:100px; aspect-ratio:21/10; overflow:hidden;" onclick="document.getElementById('res-img-input').click()">
+          <img id="res-img-preview" style="display:none;width:100%;height:100%;object-fit:contain;border-radius:6px">
+          <div id="res-img-placeholder">
+            <div style="font-size:24px">🖼️</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:4px">点击上传</div>
+          </div>
         </div>
+        <input type="file" id="res-img-input" accept="image/*" style="display:none" onchange="previewResImg(event)">
       </div>
-      <input type="file" id="res-img-input" accept="image/*" style="display:none" onchange="previewResImg(event)">
+      <div class="form-group">
+        <label>标签图片 <span style="color:var(--text3);font-weight:400">类似皮肤标签图</span></label>
+        <div class="img-upload-box" id="res-tag-img-box" style="height:100px;overflow:hidden;" onclick="document.getElementById('res-tag-img-input').click()">
+          <img id="res-tag-img-preview" style="display:none;width:100%;height:100%;object-fit:contain;border-radius:6px">
+          <div id="res-tag-img-placeholder">
+            <div style="font-size:24px">🏷️</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:4px">点击上传</div>
+          </div>
+        </div>
+        <input type="file" id="res-tag-img-input" accept="image/*" style="display:none" onchange="previewResTagImg(event)">
+      </div>
     </div>
     
     <div class="form-group">
@@ -784,6 +797,7 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
     
     <input type="hidden" id="er-id">
     <input type="hidden" id="er-img-url">
+    <input type="hidden" id="er-tag-img-url">
     
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal()">取消</button>
@@ -811,6 +825,7 @@ let heroPage = 1; const HERO_PER_PAGE = 20;
 let allResources = [], filteredResources = [];
 let resPage = 1; const RES_PER_PAGE = 20;
 let resImgFile = null;
+let resTagImgFile = null;
 let heroSkinCountCache = {};
 
 // ── Auth ─────────────────────────────────────────────────────
@@ -1357,15 +1372,15 @@ function updateResImgHint() {
 
 function showAddResource() {
   document.getElementById('modal-res-title').textContent='新增资源';
-  ['er-id','er-name','er-date','er-quality','er-tag','er-collab','er-obtain','er-price','er-notes','er-img-url'].forEach(id=>{
+  ['er-id','er-name','er-date','er-quality','er-tag','er-collab','er-obtain','er-price','er-notes','er-img-url','er-tag-img-url'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
   });
   document.getElementById('er-type').value='天幕';
   document.getElementById('er-release-type').value='首发';
   document.getElementById('er-permanent').value='否';
-  document.getElementById('res-img-preview').style.display='none';
-  document.getElementById('res-img-placeholder').style.display='block';
-  resImgFile=null; updateResImgHint();
+  resetResourceImagePreview('res');
+  resetResourceImagePreview('res-tag');
+  resImgFile=null; resTagImgFile=null; updateResImgHint();
   document.getElementById('er-type').onchange=updateResImgHint;
   document.getElementById('modal-resource').classList.add('show');
 }
@@ -1378,8 +1393,33 @@ function previewResImg(e) {
     const img=document.getElementById('res-img-preview');
     img.src=ev.target.result; img.style.display='block';
     document.getElementById('res-img-placeholder').style.display='none';
+    document.getElementById('res-img-box').classList.add('has-img');
   };
   r.readAsDataURL(file);
+}
+
+function previewResTagImg(e) {
+  const file=e.target.files[0]; if(!file) return;
+  resTagImgFile=file;
+  const r=new FileReader();
+  r.onload=ev=>{
+    const img=document.getElementById('res-tag-img-preview');
+    img.src=ev.target.result; img.style.display='block';
+    document.getElementById('res-tag-img-placeholder').style.display='none';
+    document.getElementById('res-tag-img-box').classList.add('has-img');
+  };
+  r.readAsDataURL(file);
+}
+
+function resetResourceImagePreview(prefix) {
+  const img = document.getElementById(`${prefix}-img-preview`);
+  const placeholder = document.getElementById(`${prefix}-img-placeholder`);
+  const box = document.getElementById(`${prefix}-img-box`);
+  const input = document.getElementById(`${prefix}-img-input`);
+  if (img) { img.style.display='none'; img.src=''; }
+  if (placeholder) placeholder.style.display='block';
+  if (box) box.classList.remove('has-img');
+  if (input) input.value='';
 }
 
 function editResource(jsonStr) {
@@ -1398,10 +1438,16 @@ function editResource(jsonStr) {
   document.getElementById('er-permanent').value   =r.permanent||'否';
   document.getElementById('er-notes').value       =r.notes||'';
   document.getElementById('er-img-url').value     =r.img_url||'';
-  resImgFile=null;
+  document.getElementById('er-tag-img-url').value =r.tag_img_url||'';
+  resImgFile=null; resTagImgFile=null;
   const img=document.getElementById('res-img-preview');
   if(r.img_url){img.src=r.img_url;img.style.display='block';document.getElementById('res-img-placeholder').style.display='none';}
   else{img.style.display='none';document.getElementById('res-img-placeholder').style.display='block';}
+  document.getElementById('res-img-box').classList.toggle('has-img', !!r.img_url);
+  const tagImg=document.getElementById('res-tag-img-preview');
+  if(r.tag_img_url){tagImg.src=r.tag_img_url;tagImg.style.display='block';document.getElementById('res-tag-img-placeholder').style.display='none';}
+  else{tagImg.style.display='none';document.getElementById('res-tag-img-placeholder').style.display='block';}
+  document.getElementById('res-tag-img-box').classList.toggle('has-img', !!r.tag_img_url);
   updateResImgHint();
   document.getElementById('er-type').onchange=updateResImgHint;
   document.getElementById('modal-resource').classList.add('show');
@@ -1415,11 +1461,18 @@ async function doSaveResource() {
   if(!name) return toast('资源名称不能为空','err');
   if(!date) return toast('上线日期不能为空','err');
   let imgUrl=document.getElementById('er-img-url').value;
+  let tagImgUrl=document.getElementById('er-tag-img-url').value;
   if(resImgFile){
     const b64=await new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(',')[1]);r.readAsDataURL(resImgFile);});
     const up=await api('POST','/images',{img_id:`res_${Date.now()}`,img_type:'resource',data:b64,mime_type:resImgFile.type});
     if(up.error) return toast('图片上传失败：'+up.error,'err');
     imgUrl=up.url;
+  }
+  if(resTagImgFile){
+    const b64=await new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(',')[1]);r.readAsDataURL(resTagImgFile);});
+    const up=await api('POST','/images',{img_id:`res_tag_${Date.now()}`,img_type:'tag',data:b64,mime_type:resTagImgFile.type});
+    if(up.error) return toast('标签图片上传失败：'+up.error,'err');
+    tagImgUrl=up.url;
   }
   const body={
     type,name,date,
@@ -1432,6 +1485,7 @@ async function doSaveResource() {
     permanent:   document.getElementById('er-permanent').value,
     notes:       document.getElementById('er-notes').value.trim()||null,
     img_url:     imgUrl||null,
+    tag_img_url: tagImgUrl||null,
     is_available:true,
   };
   const res=id?await api('PUT',`/resources/${id}`,body):await api('POST','/resources',body);

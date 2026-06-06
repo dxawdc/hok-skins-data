@@ -468,7 +468,7 @@ async function listResources(params) {
 
 // ── 新增资源 ─────────────────────────────────────────────────
 async function insertResource(data, user) {
-  const ALLOWED = new Set(['type','name','quality','tag','collab','obtain','price','release_type','permanent','date','img_url','notes','is_available']);
+  const ALLOWED = new Set(['type','name','quality','tag','tag_img_url','collab','obtain','price','release_type','permanent','date','img_url','notes','is_available']);
   const clean = Object.fromEntries(Object.entries(data || {}).filter(([k]) => ALLOWED.has(k)));
   if (!clean.type) return fail('资源类型为必填项');
   if (!clean.name) return fail('资源名称为必填项');
@@ -485,7 +485,7 @@ async function insertResource(data, user) {
 
 // ── 编辑资源 ─────────────────────────────────────────────────
 async function updateResource(id, updates, user) {
-  const ALLOWED = new Set(['type','name','quality','tag','collab','obtain','price','release_type','permanent','date','img_url','notes','is_available']);
+  const ALLOWED = new Set(['type','name','quality','tag','tag_img_url','collab','obtain','price','release_type','permanent','date','img_url','notes','is_available']);
   const clean = Object.fromEntries(Object.entries(updates).filter(([k]) => ALLOWED.has(k)));
   if (!Object.keys(clean).length) return fail('没有可更新的字段');
 
