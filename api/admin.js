@@ -10,6 +10,15 @@ const JWT_SECRET   = process.env.JWT_SECRET           || 'change-me';
 
 // Storage bucket 名称，需在 Supabase 控制台提前创建并设为 Public
 const BUCKET = 'skin-images';
+const OLD_COMPANION_QUALITY = '\u4f34\u751f';
+
+function normalizeQuality(q) {
+  return q === OLD_COMPANION_QUALITY ? '其他' : q;
+}
+
+function normalizeSkinRecord(row) {
+  return row ? { ...row, quality: normalizeQuality(row.quality) } : row;
+}
 
 function getClient() {
   return createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -162,18 +171,22 @@ async function listSkins(params) {
   const offset  = (page - 1) * perPage;
   let q = getClient().from('skins').select('*', { count: 'exact' });
   if (params.hero)    q = q.eq('hero',    decodeURIComponent(params.hero));
-  if (params.quality) q = q.eq('quality', decodeURIComponent(params.quality));
+  if (params.quality) {
+    const quality = decodeURIComponent(params.quality);
+    q = quality === '其他' ? q.in('quality', ['其他', OLD_COMPANION_QUALITY]) : q.eq('quality', quality);
+  }
   if (params.type)    q = q.eq('type',    decodeURIComponent(params.type));
   if (params.search)  q = q.or(`name.ilike.%${decodeURIComponent(params.search)}%,hero.ilike.%${decodeURIComponent(params.search)}%`);
   q = q.order('date', { ascending: false }).range(offset, offset + perPage - 1);
   const { data, count, error } = await q;
   if (error) return fail(error.message);
-  return ok({ skins: data || [], total: count || 0, page, per_page: perPage });
+  return ok({ skins: (data || []).map(normalizeSkinRecord), total: count || 0, page, per_page: perPage });
 }
 
 async function updateSkin(id, updates, user) {
   const ALLOWED = new Set(['date','name','quality','tag','hero','price','obtain','type','permanent','skin_img_url','tag_img_url','hero_id','notes']);
   const clean = Object.fromEntries(Object.entries(updates).filter(([k]) => ALLOWED.has(k)));
+  if (clean.quality) clean.quality = normalizeQuality(clean.quality);
   if (!Object.keys(clean).length) return fail('没有可更新的字段');
   const client = getClient();
   const { data: before } = await client.from('skins').select('*').eq('id', id).maybeSingle();
@@ -198,6 +211,7 @@ async function batchUpdate({ ids, updates }, user) {
   if (!ids?.length || !updates) return fail('请提供 ids 和 updates');
   const ALLOWED = new Set(['quality','tag','hero','price','obtain','type','permanent','hero_id','notes']);
   const clean = Object.fromEntries(Object.entries(updates).filter(([k]) => ALLOWED.has(k)));
+  if (clean.quality) clean.quality = normalizeQuality(clean.quality);
   if (!Object.keys(clean).length) return fail('没有可更新的字段');
   const client = getClient();
   const { data, error } = await client.from('skins').update(clean).in('id', ids).select();
@@ -210,6 +224,7 @@ async function batchUpdate({ ids, updates }, user) {
 async function insertSkin(data, user) {
   const ALLOWED = new Set(['date','name','quality','tag','hero','price','obtain','type','permanent','skin_img_url','tag_img_url','hero_id','notes']);
   const clean = Object.fromEntries(Object.entries(data||{}).filter(([k]) => ALLOWED.has(k)));
+  if (clean.quality) clean.quality = normalizeQuality(clean.quality);
   if (!clean.date || !clean.name || !clean.hero) return fail('日期、皮肤名称、归属英雄为必填项');
   const client = getClient();
   const { data: inserted, error } = await client.from('skins').insert(clean).select().maybeSingle();
@@ -333,7 +348,7 @@ function parseExcel(buf) {
   return rows.map(r => ({
     date:         fmtDate(r['日期']),
     name:         safe(r['皮肤名称']),
-    quality:      safe(r['皮肤品质']),
+    quality:      normalizeQuality(safe(r['皮肤品质'])),
     tag:          safe(r['皮肤标签']),
     hero:         safe(r['归属英雄']),
     job:          safe(r['英雄职业']),

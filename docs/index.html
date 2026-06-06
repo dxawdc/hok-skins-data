@@ -163,7 +163,7 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
 .badge-史诗 { background: rgba(123,94,167,0.12); color: #7b5ea7; border: 1px solid rgba(123,94,167,0.3); }
 .badge-传说 { background: rgba(180,130,20,0.1); color: #b07a10; border: 1px solid rgba(180,130,20,0.3); }
 .badge-勇者 { background: rgba(50,110,200,0.1); color: #3264c8; border: 1px solid rgba(50,110,200,0.28); }
-.badge-伴生 { background: rgba(30,160,100,0.1); color: #1a9060; border: 1px solid rgba(30,160,100,0.28); }
+.badge-其他 { background: rgba(30,160,100,0.1); color: #1a9060; border: 1px solid rgba(30,160,100,0.28); }
 .badge-无双 { background: rgba(190,50,50,0.1); color: #c03030; border: 1px solid rgba(190,50,50,0.3); }
 .badge-荣耀典藏 { background: rgba(190,100,20,0.1); color: #b05a10; border: 1px solid rgba(190,100,20,0.3); }
 .badge-珍品传说 { background: rgba(180,130,20,0.15); color: #9a6a00; border: 1px solid rgba(180,130,20,0.4); }
@@ -177,7 +177,7 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
 [data-theme="dark"] .badge-史诗 { background: rgba(123,94,167,0.2); color: #b090d8; border-color: rgba(123,94,167,0.35); }
 [data-theme="dark"] .badge-传说 { background: rgba(201,168,76,0.15); color: var(--gold); border-color: rgba(201,168,76,0.3); }
 [data-theme="dark"] .badge-勇者 { background: rgba(74,124,191,0.15); color: #6ea4d8; border-color: rgba(74,124,191,0.3); }
-[data-theme="dark"] .badge-伴生 { background: rgba(74,191,138,0.12); color: #50c090; border-color: rgba(74,191,138,0.25); }
+[data-theme="dark"] .badge-其他 { background: rgba(74,191,138,0.12); color: #50c090; border-color: rgba(74,191,138,0.25); }
 [data-theme="dark"] .badge-无双 { background: rgba(191,74,74,0.15); color: #d07070; border-color: rgba(191,74,74,0.3); }
 [data-theme="dark"] .badge-荣耀典藏 { background: rgba(201,120,30,0.15); color: #d4944a; border-color: rgba(201,120,30,0.3); }
 [data-theme="dark"] .badge-珍品传说 { background: rgba(201,168,76,0.2); color: var(--gold); border-color: rgba(201,168,76,0.45); }
@@ -660,7 +660,7 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
       <select class="filter-select" id="f-quality" onchange="filterList()">
         <option value="">全部品质</option>
         <option>史诗</option><option>传说</option><option>勇者</option>
-        <option>伴生</option><option>无双</option><option>荣耀典藏</option>
+        <option>其他</option><option>无双</option><option>荣耀典藏</option>
         <option>珍品传说</option><option>珍品无双</option>
       </select>
       <div class="filter-chips">
@@ -1407,8 +1407,8 @@ let trendDataType = '首发';
 let selectedMonthYear = null;
 let compareYears = new Set();
 
-const Q_ORDER  = ['伴生','勇者','史诗','传说','珍品传说','无双','珍品无双','荣耀典藏'];
-const Q_COLORS = {'史诗':'#b090d8','传说':'#d4a830','勇者':'#6ea4d8','伴生':'#50c090','无双':'#d07070','荣耀典藏':'#d4944a','珍品传说':'#c8a000','珍品无双':'#c04040'};
+const Q_ORDER  = ['其他','勇者','史诗','传说','珍品传说','无双','珍品无双','荣耀典藏'];
+const Q_COLORS = {'史诗':'#b090d8','传说':'#d4a830','勇者':'#6ea4d8','其他':'#50c090','无双':'#d07070','荣耀典藏':'#d4944a','珍品传说':'#c8a000','珍品无双':'#c04040'};
 
 // ECharts 实例缓存
 const _charts = {};
@@ -2072,8 +2072,10 @@ function goRankingPage(p) {
 
 // ── Helpers ──
 function esc(s) { return (s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+const OLD_COMPANION_QUALITY = '\u4f34\u751f';
+function normalizeQuality(q) { return q === OLD_COMPANION_QUALITY ? '其他' : q; }
 function qualityEmoji(q) {
-  return {'史诗':'💜','传说':'🌟','勇者':'💙','伴生':'💚','无双':'❤️','荣耀典藏':'🧡','珍品传说':'✨','珍品无双':'🔥'}[q]||'🎨';
+  return {'史诗':'💜','传说':'🌟','勇者':'💙','其他':'💚','无双':'❤️','荣耀典藏':'🧡','珍品传说':'✨','珍品无双':'🔥'}[normalizeQuality(q)]||'🎨';
 }
 </script>
 </body>
