@@ -1,4 +1,37 @@
+# 王者荣耀皮肤展示项目
 
+这是网页版代码仓库，包含公开展示页、后台管理页和 Vercel 后台管理接口。小程序版本位于同级目录 `D:\AI\Hok\miniprogram`，两者保持独立 Git 边界。
+
+## 目录
+
+- `index.html`：网页版公开展示页
+- `admin.html`：网页版后台管理页
+- `api/admin.js`：后台管理 API
+- `docs/ARCHITECTURE.md`：架构、同步边界和部署现状
+- `01_supabase_schema.sql`：历史建表脚本，当前不等同于完整生产 schema
+- `02_import_data.py`：历史数据导入脚本
+- `03_create_admin.sql`：后台账号初始化脚本
+
+## 本地检查
+
+```bash
+npm install
+npm run check
+```
+
+`npm run check` 会对 `api/admin.js` 做 Node.js 语法检查。
+
+## 同步策略
+
+网页版需要提交到本地 Git 并推送 GitHub：
+
+```bash
+git add .
+git commit -m "..."
+git push origin main
+```
+
+小程序版本只维护本地 Git，不推送 GitHub。
 
 ## 常见问题
 
