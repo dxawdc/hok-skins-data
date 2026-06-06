@@ -870,7 +870,7 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 // ── 数据拉取：走 Cloudflare CDN 缓存 ──────────────────────────
 const CACHE_KEY       = 'wzry_skin_data_v3';   
 const CACHE_KEY_HERO  = 'wzry_hero_data_v1';
-const CACHE_KEY_RES   = 'wzry_res_data_v1';
+const CACHE_KEY_RES   = 'wzry_res_data_v2';
 const CACHE_TTL       = 30 * 60 * 1000;
 const HERO_CACHE_TTL  = 2  * 60 * 60 * 1000;
 const RES_CACHE_TTL   = 30 * 60 * 1000;
@@ -948,7 +948,7 @@ async function fetchAllResources() {
       if (Date.now() - ts < RES_CACHE_TTL) return data;
     }
   } catch (e) {}
-  const res = await fetch(`${API_BASE}/api/resources`);
+  const res = await fetch(`${API_BASE}/api/resources?v=tag-img-v1`);
   if (!res.ok) return [];
   const data = await res.json();
   try { sessionStorage.setItem(CACHE_KEY_RES, JSON.stringify({ data, ts: Date.now() })); } catch (e) {}
