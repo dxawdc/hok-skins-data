@@ -951,6 +951,7 @@ async function fetchAllResources() {
   const res = await fetch(`${API_BASE}/api/resources?v=tag-img-v1`);
   if (!res.ok) return [];
   const data = await res.json();
+  if (!Array.isArray(data)) return [];
   try { sessionStorage.setItem(CACHE_KEY_RES, JSON.stringify({ data, ts: Date.now() })); } catch (e) {}
   return data;
 }
@@ -2303,9 +2304,23 @@ function goRankingPage(p) {
 }
 
 // ── Resource Logic ──────────────────────────────────────────────────
-function openResourcesView() {
+async function openResourcesView() {
   document.getElementById('view-ranking').classList.remove('active');
   document.getElementById('view-resources').classList.add('active');
+  if (!RESOURCES.length) {
+    const grid = document.getElementById('resource-grid');
+    if (grid) {
+      grid.className = 'res-grid-tm';
+      grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="icon">🌌</div><p>资源数据加载中...</p></div>`;
+    }
+    try {
+      RESOURCES = await fetchAllResources();
+    } catch (e) {
+      console.warn('资源数据重新加载失败:', e);
+      if (grid) grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="icon">⚠️</div><p>资源数据加载失败，请刷新重试</p></div>`;
+      return;
+    }
+  }
   setResType('天幕');
 }
 
