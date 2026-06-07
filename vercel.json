@@ -13,6 +13,7 @@
   "routes": [
     { "src": "/api/admin(.*)", "dest": "/api/admin.js" },
     { "src": "/api/skins",      "dest": "/api/skins.js" },
+    { "src": "/api/heroes",     "dest": "/api/heroes.js" },
     { "src": "/api/resources",  "dest": "/api/resources.js" },
     { "src": "/admin",         "dest": "/admin.html" },
     { "src": "/",              "dest": "/index.html" },
