@@ -891,7 +891,7 @@ async function fetchAllHeroes() {
       if (Date.now() - ts < HERO_CACHE_TTL) return data;
     }
   } catch (e) {}
-  const res = await fetch(`${API_BASE}/api/heroes`);
+  const res = await fetch(`${API_BASE}/api/heroes?v=heroes-v1`);
   if (!res.ok) throw new Error(`/api/heroes 请求失败: ${res.status}`);
   const heroes = await res.json();
   try { sessionStorage.setItem(CACHE_KEY_HERO, JSON.stringify({ data: heroes, ts: Date.now() })); } catch (e) {}
