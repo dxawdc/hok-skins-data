@@ -610,6 +610,7 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
       <div class="form-group"><label>获取方式</label><input type="text" id="es-obtain" placeholder="如：直售"></div>
       <div class="form-group">
         <label>关联英雄</label>
+        <input type="text" id="es-hero-id-search" class="search-input" placeholder="搜索英雄名称 / 职业 / 分路..." style="width:100%;margin-bottom:6px" oninput="filterHeroSelect('es-hero-id', this.value)">
         <select id="es-hero-id" class="filter-select" style="width:100%">
           <option value="">— 不关联 —</option>
         </select>
@@ -967,6 +968,7 @@ function resetSkinModal() {
   document.getElementById('es-price').value = '';
   document.getElementById('es-obtain').value = '';
   document.getElementById('es-hero-id').value = '';
+  document.getElementById('es-hero-id-search').value = '';
   document.getElementById('es-notes').value = '';
   document.getElementById('es-type').value = '首发';
   document.getElementById('es-permanent').value = '否';
@@ -1510,8 +1512,45 @@ async function populateHeroSelect(selectId, selectedId) {
   }
   const sel = document.getElementById(selectId);
   if (!sel) return;
+  renderHeroSelectOptions(selectId, allHeroes, selectedId);
+  const search = document.getElementById(`${selectId}-search`);
+  const selectedHero = allHeroes.find(h => String(h.id) === String(selectedId));
+  if (search) search.value = selectedHero ? selectedHero.name : '';
+}
+
+function renderHeroSelectOptions(selectId, heroes, selectedId) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
   sel.innerHTML = '<option value="">— 不关联 —</option>' +
-    allHeroes.map(h => `<option value="${h.id}" ${String(h.id)===String(selectedId)?'selected':''}>${h.name}</option>`).join('');
+    heroes.map(h => {
+      const meta = [...(h.roles || []), ...(h.lanes || [])].join(' / ');
+      const label = meta ? `${h.name}（${meta}）` : h.name;
+      return `<option value="${h.id}" ${String(h.id)===String(selectedId)?'selected':''}>${label}</option>`;
+    }).join('');
+}
+
+function filterHeroSelect(selectId, keyword) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  const current = sel.value;
+  const kw = (keyword || '').trim().toLowerCase();
+  const matched = kw
+    ? allHeroes.filter(h => {
+        const haystack = [
+          h.name,
+          ...(h.roles || []),
+          ...(h.lanes || []),
+          h.gender || '',
+        ].join(' ').toLowerCase();
+        return haystack.includes(kw);
+      })
+    : allHeroes;
+  renderHeroSelectOptions(selectId, matched, current);
+  if (current && matched.some(h => String(h.id) === String(current))) {
+    sel.value = current;
+  } else if (matched.length === 1) {
+    sel.value = matched[0].id;
+  }
 }
 
 async function loadHeroes() {
