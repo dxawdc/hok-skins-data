@@ -874,7 +874,7 @@ const CACHE_KEY_RES   = 'wzry_res_data_v2';
 const CACHE_TTL       = 30 * 60 * 1000;
 const HERO_CACHE_TTL  = 2  * 60 * 60 * 1000;
 const RES_CACHE_TTL   = 30 * 60 * 1000;
-const API_BASE        = 'https://skinsdata.top';
+const API_BASE        = window.location.origin;
 
 // 全局英雄数组 & 按 id/name 查找的 Map
 let HEROES = [];
