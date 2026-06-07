@@ -597,6 +597,14 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
       <div class="form-group"><label>日期</label><input type="date" id="es-date"></div>
       <div class="form-group"><label>皮肤名称</label><input type="text" id="es-name" placeholder="皮肤名称"></div>
+      <div class="form-group" id="es-profile-wrap" style="grid-column:1/-1;display:none">
+        <label>选择已有皮肤资料 <span style="color:var(--red)">*</span></label>
+        <input type="text" id="es-profile-search" class="search-input" placeholder="搜索皮肤名 / 英雄名..." style="width:100%;margin-bottom:6px" oninput="filterSkinProfileSelect(this.value)">
+        <select id="es-profile-id" class="filter-select" style="width:100%" onchange="applySelectedSkinProfile()">
+          <option value="">— 请选择已有皮肤 —</option>
+        </select>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">返场记录复用已有皮肤资料，只需要填写日期、价格、获取方式和备注。</div>
+      </div>
       <div class="form-group">
         <label>皮肤品质</label>
         <select id="es-quality" class="filter-select" style="width:100%">
@@ -616,7 +624,7 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
       </div>
       <div class="form-group">
         <label>类型</label>
-        <select id="es-type" class="filter-select" style="width:100%">
+        <select id="es-type" class="filter-select" style="width:100%" onchange="updateSkinTypeMode()">
           <option>首发</option><option>返场</option>
         </select>
       </div>
@@ -663,6 +671,7 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
     <input type="hidden" id="es-id">
     <input type="hidden" id="es-skin-img-url">
     <input type="hidden" id="es-tag-img-url">
+    <input type="hidden" id="es-current-profile-id">
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal()">取消</button>
       <button class="btn btn-primary" id="es-save-btn" onclick="doSaveSkin()">保存</button>
@@ -821,6 +830,7 @@ let searchTimer = null;
 
 // ▼ 补全英雄与资源管理的全局变量
 let allHeroes = [], filteredHeroes = [];
+let allSkinProfiles = [];
 let heroPage = 1; const HERO_PER_PAGE = 20;
 let allResources = [], filteredResources = [];
 let resPage = 1; const RES_PER_PAGE = 20;
@@ -955,8 +965,99 @@ function debounceSearch() { clearTimeout(searchTimer); searchTimer = setTimeout(
 let pendingSkinImgB64 = null;  // 待上传的皮肤图片 base64
 let pendingTagImgB64  = null;  // 待上传的标签图片 base64
 
+async function ensureSkinProfiles() {
+  if (allSkinProfiles.length) return allSkinProfiles;
+  const res = await api('GET', '/skin-profiles?per_page=1000');
+  allSkinProfiles = res.profiles || [];
+  return allSkinProfiles;
+}
+
+function renderSkinProfileOptions(list, selectedId) {
+  const sel = document.getElementById('es-profile-id');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— 请选择已有皮肤 —</option>' +
+    list.map(p => `<option value="${p.id}" ${String(p.id)===String(selectedId)?'selected':''}>${p.hero} · ${p.name}（${normalizeQuality(p.quality||'')}）</option>`).join('');
+}
+
+async function filterSkinProfileSelect(keyword) {
+  await ensureSkinProfiles();
+  const current = document.getElementById('es-profile-id').value;
+  const kw = (keyword || '').trim().toLowerCase();
+  const matched = kw
+    ? allSkinProfiles.filter(p => `${p.hero || ''} ${p.name || ''}`.toLowerCase().includes(kw))
+    : allSkinProfiles;
+  renderSkinProfileOptions(matched, current);
+  if (!current && matched.length === 1) {
+    document.getElementById('es-profile-id').value = matched[0].id;
+    applySelectedSkinProfile();
+  }
+}
+
+function getSelectedSkinProfile() {
+  const id = document.getElementById('es-profile-id')?.value;
+  if (!id) return null;
+  return allSkinProfiles.find(p => String(p.id) === String(id)) || null;
+}
+
+function applySelectedSkinProfile() {
+  const p = getSelectedSkinProfile();
+  if (!p) return;
+  document.getElementById('es-current-profile-id').value = p.id;
+  document.getElementById('es-name').value = p.name || '';
+  document.getElementById('es-quality').value = normalizeQuality(p.quality || '');
+  document.getElementById('es-tag').value = p.tag || '';
+  document.getElementById('es-permanent').value = p.permanent || '否';
+  document.getElementById('es-skin-img-url').value = p.skin_img_url || '';
+  document.getElementById('es-tag-img-url').value = p.tag_img_url || '';
+  populateHeroSelect('es-hero-id', p.hero_id || '', p.hero || '');
+  setImagePreview('skin', p.skin_img_url || '');
+  setImagePreview('tag', p.tag_img_url || '');
+}
+
+function setImagePreview(type, url) {
+  const img = document.getElementById(`${type}-img-preview`);
+  const ph = document.getElementById(`${type}-img-placeholder`);
+  const box = document.getElementById(`${type}-img-box`);
+  if (!img || !ph || !box) return;
+  if (url) {
+    img.src = url;
+    img.style.display = 'block';
+    ph.style.display = 'none';
+    box.classList.add('has-img');
+  } else {
+    img.style.display = 'none';
+    img.src = '';
+    ph.style.display = '';
+    box.classList.remove('has-img');
+  }
+}
+
+async function updateSkinTypeMode() {
+  const isReturn = document.getElementById('es-type').value === '返场';
+  document.getElementById('es-profile-wrap').style.display = isReturn ? '' : 'none';
+  ['es-name','es-quality','es-tag','es-hero-id-search','es-hero-id','es-permanent'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = isReturn;
+  });
+  ['skin-img-box','tag-img-box'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.style.pointerEvents = isReturn ? 'none' : '';
+      el.style.opacity = isReturn ? '0.65' : '';
+    }
+  });
+  if (isReturn) {
+    await ensureSkinProfiles();
+    renderSkinProfileOptions(allSkinProfiles, document.getElementById('es-current-profile-id').value);
+  }
+}
+
 function resetSkinModal() {
   document.getElementById('es-id').value = '';
+  document.getElementById('es-current-profile-id').value = '';
+  document.getElementById('es-profile-id').value = '';
+  document.getElementById('es-profile-search').value = '';
+  document.getElementById('es-profile-wrap').style.display = 'none';
   document.getElementById('es-skin-img-url').value = '';
   document.getElementById('es-tag-img-url').value = '';
   document.getElementById('es-date').value = '';
@@ -980,6 +1081,7 @@ function resetSkinModal() {
   });
   pendingSkinImgB64 = null;
   pendingTagImgB64  = null;
+  updateSkinTypeMode();
 }
 
 function openAddSkin() {
@@ -990,11 +1092,12 @@ function openAddSkin() {
   document.getElementById('modal-skin').classList.add('show');
 }
 
-function openEditSkin(s) {
+async function openEditSkin(s) {
   resetSkinModal();
   document.getElementById('modal-skin-title').textContent = '编辑皮肤记录';
   document.getElementById('es-save-btn').textContent = '保存';
   document.getElementById('es-id').value          = s.id;
+  document.getElementById('es-current-profile-id').value = s.skin_profile_id || '';
   document.getElementById('es-skin-img-url').value = s.skin_img_url || '';
   document.getElementById('es-tag-img-url').value  = s.tag_img_url  || '';
   // 如果已有图片 URL，显示预览
@@ -1020,6 +1123,12 @@ function openEditSkin(s) {
   document.getElementById('es-permanent').value = s.permanent;
   document.getElementById('es-notes').value     = s.notes || '';
   populateHeroSelect('es-hero-id', s.hero_id || '', s.hero || '');
+  await updateSkinTypeMode();
+  if (s.type === '返场' && s.skin_profile_id) {
+    document.getElementById('es-profile-id').value = s.skin_profile_id;
+    const p = allSkinProfiles.find(x => String(x.id) === String(s.skin_profile_id));
+    if (p) document.getElementById('es-profile-search').value = `${p.hero} ${p.name}`;
+  }
   document.getElementById('modal-skin').classList.add('show');
 }
 
@@ -1062,17 +1171,19 @@ async function doSaveSkin() {
   btn.textContent = '保存中…';
 
   try {
+    const type = document.getElementById('es-type').value;
+    const isReturn = type === '返场';
     let skinImgUrl = document.getElementById('es-skin-img-url').value;
     let tagImgUrl  = document.getElementById('es-tag-img-url').value;
 
     // 关键修复：加入 return 进行错误阻断
-    if (pendingSkinImgB64) {
+    if (!isReturn && pendingSkinImgB64) {
       const uploadedSkinUrl = await uploadImg(pendingSkinImgB64, 'skin');
       if (!uploadedSkinUrl) return; // 上传失败（内部已 toast 报错），直接终止流程
       skinImgUrl = uploadedSkinUrl;
     }
     
-    if (pendingTagImgB64) {
+    if (!isReturn && pendingTagImgB64) {
       const uploadedTagUrl = await uploadImg(pendingTagImgB64, 'tag');
       if (!uploadedTagUrl) return; // 上传失败，直接终止流程
       tagImgUrl = uploadedTagUrl;
@@ -1090,13 +1201,30 @@ async function doSaveSkin() {
       obtain:       document.getElementById('es-obtain').value.trim(),
       hero_id:      heroId,
       notes:        document.getElementById('es-notes').value.trim() || null,
-      type:         document.getElementById('es-type').value,
+      type,
       permanent:    document.getElementById('es-permanent').value,
       skin_img_url: skinImgUrl,
       tag_img_url:  tagImgUrl,
+      skin_profile_id: document.getElementById('es-current-profile-id').value || document.getElementById('es-profile-id').value || null,
     };
 
-    if (!data.date || !data.name || !data.hero_id || !data.hero) {
+    if (isReturn) {
+      const p = getSelectedSkinProfile();
+      if (!data.skin_profile_id || !p) {
+        toast('返场记录请选择已有皮肤资料', 'err');
+        return;
+      }
+      data.name = p.name;
+      data.hero = p.hero;
+      data.hero_id = p.hero_id;
+      data.quality = p.quality;
+      data.tag = p.tag || '';
+      data.permanent = p.permanent || '否';
+      data.skin_img_url = p.skin_img_url || '';
+      data.tag_img_url = p.tag_img_url || '';
+    }
+
+    if (!data.date || (!isReturn && (!data.name || !data.hero_id || !data.hero))) {
       toast('日期、皮肤名称、归属英雄为必填项', 'err');
       return;
     }
@@ -1109,6 +1237,7 @@ async function doSaveSkin() {
     }
     if (res.error) return toast(res.error, 'err');
     closeModal();
+    allSkinProfiles = [];
     loadSkins();
     toast(isAdd ? '新增成功' : '保存成功', 'ok');
   } finally {

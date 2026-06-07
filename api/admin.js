@@ -11,13 +11,40 @@ const JWT_SECRET   = process.env.JWT_SECRET           || 'change-me';
 // Storage bucket 名称，需在 Supabase 控制台提前创建并设为 Public
 const BUCKET = 'skin-images';
 const OLD_COMPANION_QUALITY = '\u4f34\u751f';
+const QUALITY_OTHER = '\u5176\u4ed6';
+const TYPE_FIRST = '\u9996\u53d1';
+const TYPE_RETURN = '\u8fd4\u573a';
+const PERMANENT_NO = '\u5426';
 
 function normalizeQuality(q) {
-  return q === OLD_COMPANION_QUALITY ? '其他' : q;
+  return q === OLD_COMPANION_QUALITY ? QUALITY_OTHER : q;
 }
 
 function normalizeSkinRecord(row) {
-  return row ? { ...row, quality: normalizeQuality(row.quality) } : row;
+  return flattenSkinRow(row);
+}
+
+function flattenSkinRow(row) {
+  if (!row) return row;
+  const profile = Array.isArray(row.skin_profiles) ? row.skin_profiles[0] : row.skin_profiles;
+  if (!profile) return { ...row, quality: normalizeQuality(row.quality) };
+  const flat = {
+    ...row,
+    skin_profile_id: row.skin_profile_id || profile.id || null,
+    name: profile.name || row.name,
+    hero: profile.hero || row.hero,
+    hero_id: profile.hero_id || row.hero_id || null,
+    quality: normalizeQuality(profile.quality || row.quality),
+    tag: profile.tag ?? row.tag ?? '',
+    permanent: profile.permanent || row.permanent || PERMANENT_NO,
+    skin_img_url: profile.skin_img_url || row.skin_img_url || '',
+    tag_img_url: profile.tag_img_url || row.tag_img_url || '',
+    profile_notes: profile.notes || '',
+    first_release_date: profile.first_release_date || null,
+    notes: row.notes || profile.notes || '',
+  };
+  delete flat.skin_profiles;
+  return flat;
 }
 
 async function syncSkinHeroName(client, clean) {
@@ -30,8 +57,105 @@ async function syncSkinHeroName(client, clean) {
   if (data?.name) clean.hero = data.name;
 }
 
+async function getHeroName(client, heroId) {
+  if (!heroId) return '';
+  const { data } = await client
+    .from('heroes')
+    .select('name')
+    .eq('id', parseInt(heroId))
+    .maybeSingle();
+  return data?.name || '';
+}
+
+async function getSkinProfile(client, id) {
+  if (!id) return null;
+  const { data } = await client
+    .from('skin_profiles')
+    .select('*')
+    .eq('id', parseInt(id))
+    .maybeSingle();
+  return data || null;
+}
+
+async function findSkinProfile(client, data) {
+  if (data.skin_profile_id) return getSkinProfile(client, data.skin_profile_id);
+  if (!data.hero_id || !data.name) return null;
+  const { data: profile } = await client
+    .from('skin_profiles')
+    .select('*')
+    .eq('hero_id', parseInt(data.hero_id))
+    .eq('name', data.name)
+    .maybeSingle();
+  return profile || null;
+}
+
+async function upsertSkinProfile(client, data, existingId = null) {
+  const heroId = data.hero_id ? parseInt(data.hero_id) : null;
+  const heroName = data.hero || await getHeroName(client, heroId);
+  const profile = {
+    name: data.name,
+    hero_id: heroId,
+    hero: heroName,
+    quality: normalizeQuality(data.quality) || QUALITY_OTHER,
+    tag: data.tag || '',
+    permanent: data.permanent || PERMANENT_NO,
+    skin_img_url: data.skin_img_url || null,
+    tag_img_url: data.tag_img_url || null,
+    notes: data.notes || null,
+  };
+  if (data.date && data.type === TYPE_FIRST) profile.first_release_date = data.date;
+
+  if (existingId) {
+    const { data: updated, error } = await client
+      .from('skin_profiles')
+      .update(profile)
+      .eq('id', parseInt(existingId))
+      .select()
+      .maybeSingle();
+    if (error) throw error;
+    return updated;
+  }
+
+  const { data: upserted, error } = await client
+    .from('skin_profiles')
+    .upsert(profile, { onConflict: 'hero_id,name' })
+    .select()
+    .maybeSingle();
+  if (error) throw error;
+  return upserted;
+}
+
+function legacyFieldsFromProfile(profile) {
+  return {
+    name: profile.name,
+    hero: profile.hero,
+    hero_id: profile.hero_id,
+    quality: normalizeQuality(profile.quality) || QUALITY_OTHER,
+    tag: profile.tag || '',
+    permanent: profile.permanent || PERMANENT_NO,
+    skin_img_url: profile.skin_img_url || null,
+    tag_img_url: profile.tag_img_url || null,
+  };
+}
+
 function getClient() {
   return createClient(SUPABASE_URL, SUPABASE_KEY);
+}
+
+async function fetchAllSkinRows(client, select = '*, skin_profiles:skin_profile_id(*)') {
+  const rows = [];
+  const pageSize = 1000;
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await client
+      .from('skins')
+      .select(select)
+      .order('date', { ascending: false })
+      .range(from, from + pageSize - 1);
+    if (error) throw error;
+    rows.push(...(data || []));
+    if (!data || data.length < pageSize) break;
+  }
+  return rows;
 }
 
 // ── CORS ──────────────────────────────────────────────────────
@@ -108,6 +232,7 @@ module.exports = async function handler(req, res) {
   if (path.endsWith('/users')        && m === 'GET')    { const [u,e]=requireAdmin(h); if(e) return send(e); return send(await listUsers()); }
   if (path.endsWith('/users')        && m === 'POST')   { const [u,e]=requireAdmin(h); if(e) return send(e); return send(await createUser(body,u)); }
   if (/\/users\/\d+$/.test(path)     && m === 'DELETE') { const [u,e]=requireAdmin(h); if(e) return send(e); return send(await deleteUser(path.split('/').pop(),u)); }
+  if (path.endsWith('/skin-profiles') && m === 'GET')   { const [u,e]=requireAuth(h); if(e) return send(e); return send(await listSkinProfiles(qs)); }
   if (path.endsWith('/skins')        && m === 'GET')    { const [u,e]=requireAuth(h); if(e) return send(e); return send(await listSkins(qs)); }
   if (path.endsWith('/skins')        && m === 'POST')   { const [u,e]=requireAuth(h); if(e) return send(e); return send(await insertSkin(body,u)); }
   if (/\/skins\/\d+$/.test(path)     && m === 'PUT')    { const [u,e]=requireAuth(h); if(e) return send(e); return send(await updateSkin(path.split('/').pop(),body,u)); }
@@ -179,35 +304,106 @@ async function listSkins(params) {
   const page    = Math.max(1, parseInt(params.page    || '1'));
   const perPage = Math.min(200, parseInt(params.per_page || '50'));
   const offset  = (page - 1) * perPage;
-  let q = getClient().from('skins').select('*', { count: 'exact' });
-  if (params.hero)    q = q.eq('hero',    decodeURIComponent(params.hero));
+  const client = getClient();
+  let data;
+  try {
+    data = await fetchAllSkinRows(client);
+  } catch (e) {
+    return fail(e.message);
+  }
+
+  let rows = (data || []).map(normalizeSkinRecord);
+  if (params.hero) {
+    const hero = decodeURIComponent(params.hero);
+    rows = rows.filter(r => r.hero === hero);
+  }
   if (params.quality) {
     const quality = decodeURIComponent(params.quality);
-    q = quality === '其他' ? q.in('quality', ['其他', OLD_COMPANION_QUALITY]) : q.eq('quality', quality);
+    rows = rows.filter(r => normalizeQuality(r.quality) === normalizeQuality(quality));
   }
-  if (params.type)    q = q.eq('type',    decodeURIComponent(params.type));
-  if (params.search)  q = q.or(`name.ilike.%${decodeURIComponent(params.search)}%,hero.ilike.%${decodeURIComponent(params.search)}%`);
-  q = q.order('date', { ascending: false }).range(offset, offset + perPage - 1);
-  const { data, count, error } = await q;
+  if (params.type) {
+    const type = decodeURIComponent(params.type);
+    rows = rows.filter(r => r.type === type);
+  }
+  if (params.search) {
+    const search = decodeURIComponent(params.search).toLowerCase();
+    rows = rows.filter(r =>
+      String(r.name || '').toLowerCase().includes(search) ||
+      String(r.hero || '').toLowerCase().includes(search)
+    );
+  }
+  const total = rows.length;
+  return ok({ skins: rows.slice(offset, offset + perPage), total, page, per_page: perPage });
+}
+
+async function listSkinProfiles(params) {
+  const perPage = Math.min(1000, parseInt(params.per_page || '1000'));
+  const search = params.search ? decodeURIComponent(params.search).toLowerCase() : '';
+  let q = getClient()
+    .from('skin_profiles')
+    .select('*')
+    .order('first_release_date', { ascending: false, nullsFirst: false })
+    .limit(perPage);
+  const { data, error } = await q;
   if (error) return fail(error.message);
-  return ok({ skins: (data || []).map(normalizeSkinRecord), total: count || 0, page, per_page: perPage });
+  let profiles = (data || []).map(p => ({ ...p, quality: normalizeQuality(p.quality) }));
+  if (search) {
+    profiles = profiles.filter(p =>
+      String(p.name || '').toLowerCase().includes(search) ||
+      String(p.hero || '').toLowerCase().includes(search)
+    );
+  }
+  return ok({ profiles, total: profiles.length });
 }
 
 async function updateSkin(id, updates, user) {
-  const ALLOWED = new Set(['date','name','quality','tag','hero','price','obtain','type','permanent','skin_img_url','tag_img_url','hero_id','notes']);
+  const ALLOWED = new Set(['date','name','quality','tag','hero','price','obtain','type','permanent','skin_img_url','tag_img_url','hero_id','notes','skin_profile_id']);
   const clean = Object.fromEntries(Object.entries(updates).filter(([k]) => ALLOWED.has(k)));
   if (clean.quality) clean.quality = normalizeQuality(clean.quality);
   if (!Object.keys(clean).length) return fail('没有可更新的字段');
   const client = getClient();
   await syncSkinHeroName(client, clean);
-  const { data: before } = await client.from('skins').select('*').eq('id', id).maybeSingle();
-  const { data, error } = await client.from('skins').update(clean).eq('id', id).select().maybeSingle();
+  const { data: before } = await client
+    .from('skins')
+    .select('*, skin_profiles:skin_profile_id(*)')
+    .eq('id', id)
+    .maybeSingle();
+  if (!before) return fail('记录不存在', 404);
+
+  const targetType = clean.type || before.type;
+  let profile = null;
+  if (targetType === TYPE_RETURN) {
+    profile = await findSkinProfile(client, clean) || before.skin_profiles;
+    if (!profile) return fail('返场记录必须选择已有皮肤资料');
+  } else {
+    try {
+      profile = await upsertSkinProfile(client, { ...flattenSkinRow(before), ...clean }, before.skin_profile_id);
+    } catch (e) {
+      return fail('皮肤资料保存失败：' + e.message);
+    }
+  }
+
+  const event = {
+    date: clean.date ?? before.date,
+    price: clean.price ?? before.price ?? '',
+    obtain: clean.obtain ?? before.obtain ?? '',
+    type: targetType,
+    skin_profile_id: profile.id,
+    notes: targetType === TYPE_RETURN ? (clean.notes ?? before.notes ?? null) : null,
+    ...legacyFieldsFromProfile(profile),
+  };
+  const { data, error } = await client
+    .from('skins')
+    .update(event)
+    .eq('id', id)
+    .select('*, skin_profiles:skin_profile_id(*)')
+    .maybeSingle();
   if (error) return fail(error.message);
   await log(client, user.username, 'update', parseInt(id), {
-    before: Object.fromEntries(Object.keys(clean).map(k => [k, before?.[k]])),
+    before: flattenSkinRow(before),
     after:  clean,
   });
-  return ok({ skin: data });
+  return ok({ skin: normalizeSkinRecord(data) });
 }
 
 async function deleteSkin(id, user) {
@@ -226,24 +422,103 @@ async function batchUpdate({ ids, updates }, user) {
   if (!Object.keys(clean).length) return fail('没有可更新的字段');
   const client = getClient();
   await syncSkinHeroName(client, clean);
-  const { data, error } = await client.from('skins').update(clean).in('id', ids).select();
-  if (error) return fail(error.message);
+
+  const profileUpdates = Object.fromEntries(
+    Object.entries(clean).filter(([k]) => ['quality','tag','hero','hero_id','permanent'].includes(k))
+  );
+  const eventUpdates = Object.fromEntries(
+    Object.entries(clean).filter(([k]) => ['price','obtain','type','notes'].includes(k))
+  );
+
+  if (Object.keys(profileUpdates).length) {
+    const { data: selected } = await client.from('skins').select('skin_profile_id').in('id', ids);
+    const profileIds = [...new Set((selected || []).map(r => r.skin_profile_id).filter(Boolean))];
+    if (profileIds.length) {
+      const { error: profileError } = await client.from('skin_profiles').update(profileUpdates).in('id', profileIds);
+      if (profileError) return fail(profileError.message);
+    }
+  }
+
+  let updated = 0;
+  if (Object.keys(eventUpdates).length) {
+    const { data, error } = await client.from('skins').update(eventUpdates).in('id', ids).select();
+    if (error) return fail(error.message);
+    updated = data?.length || 0;
+  } else {
+    updated = ids.length;
+  }
   await log(client, user.username, 'batch_update', null, { ids, updates: clean });
-  return ok({ updated: data?.length || 0 });
+  return ok({ updated });
 }
 
 // ── 新增皮肤 ─────────────────────────────────────────────────
 async function insertSkin(data, user) {
-  const ALLOWED = new Set(['date','name','quality','tag','hero','price','obtain','type','permanent','skin_img_url','tag_img_url','hero_id','notes']);
+  const ALLOWED = new Set(['date','name','quality','tag','hero','price','obtain','type','permanent','skin_img_url','tag_img_url','hero_id','notes','skin_profile_id']);
   const clean = Object.fromEntries(Object.entries(data||{}).filter(([k]) => ALLOWED.has(k)));
   if (clean.quality) clean.quality = normalizeQuality(clean.quality);
   const client = getClient();
   await syncSkinHeroName(client, clean);
-  if (!clean.date || !clean.name || !clean.hero) return fail('日期、皮肤名称、归属英雄为必填项');
-  const { data: inserted, error } = await client.from('skins').insert(clean).select().maybeSingle();
+  if (!clean.date) return fail('日期为必填项');
+
+  let profile;
+  if (clean.type === TYPE_RETURN) {
+    profile = await findSkinProfile(client, clean);
+    if (!profile) return fail('返场记录必须选择已有皮肤资料');
+  } else {
+    if (!clean.name || !clean.hero_id || !clean.hero) return fail('日期、皮肤名称、归属英雄为必填项');
+    try {
+      profile = await upsertSkinProfile(client, clean);
+    } catch (e) {
+      return fail('皮肤资料保存失败：' + e.message);
+    }
+  }
+
+  const row = {
+    date: clean.date,
+    price: clean.price || '',
+    obtain: clean.obtain || '',
+    type: clean.type || TYPE_FIRST,
+    skin_profile_id: profile.id,
+    notes: clean.type === TYPE_RETURN ? (clean.notes || null) : null,
+    ...legacyFieldsFromProfile(profile),
+  };
+  const { data: inserted, error } = await client
+    .from('skins')
+    .insert(row)
+    .select('*, skin_profiles:skin_profile_id(*)')
+    .maybeSingle();
   if (error) return fail(error.message);
-  await log(client, user.username, 'insert', inserted?.id || null, { name: clean.name, hero: clean.hero });
-  return ok({ skin: inserted });
+  await log(client, user.username, 'insert', inserted?.id || null, { name: profile.name, hero: profile.hero, profile_id: profile.id });
+  return ok({ skin: normalizeSkinRecord(inserted) });
+}
+
+async function resolveHeroIdByName(client, heroName) {
+  if (!heroName) return null;
+  const { data } = await client
+    .from('heroes')
+    .select('id')
+    .eq('name', heroName)
+    .maybeSingle();
+  return data?.id || null;
+}
+
+async function insertImportedSkin(client, record) {
+  const clean = { ...record };
+  clean.quality = normalizeQuality(clean.quality);
+  if (!clean.hero_id) clean.hero_id = await resolveHeroIdByName(client, clean.hero);
+  let profile = await findSkinProfile(client, clean);
+  if (!profile) profile = await upsertSkinProfile(client, clean);
+  const row = {
+    date: clean.date,
+    price: clean.price || '',
+    obtain: clean.obtain || '',
+    type: clean.type || TYPE_FIRST,
+    skin_profile_id: profile.id,
+    notes: clean.type === TYPE_RETURN ? (clean.notes || null) : null,
+    ...legacyFieldsFromProfile(profile),
+  };
+  const { error } = await client.from('skins').insert(row);
+  if (error) throw error;
 }
 
 // ── 上传图片（改为 Supabase Storage，包含精确大小校验）────────────────────────
@@ -329,15 +604,18 @@ async function doImport({ file_b64, mode = 'append' }, user) {
 
   if (mode === 'overwrite') {
     await client.from('skins').delete().neq('id', 0);
-    for (let i = 0; i < records.length; i += BATCH)
-      await client.from('skins').insert(records.slice(i, i + BATCH));
+    await client.from('skin_profiles').delete().neq('id', 0);
+    for (const record of records) {
+      await insertImportedSkin(client, record);
+    }
     inserted = records.length;
   } else {
     const { data: existing } = await client.from('skins').select('hero,name,date,type');
     const keys = new Set((existing || []).map(r => `${r.hero}|${r.name}|${r.date}|${r.type}`));
     const newR = records.filter(r => !keys.has(`${r.hero}|${r.name}|${r.date}|${r.type}`));
-    for (let i = 0; i < newR.length; i += BATCH)
-      await client.from('skins').insert(newR.slice(i, i + BATCH));
+    for (const record of newR) {
+      await insertImportedSkin(client, record);
+    }
     inserted = newR.length;
     skipped  = records.length - newR.length;
   }
@@ -456,11 +734,12 @@ async function deleteHero(id, user) {
 async function listHeroSkins(heroId) {
   const { data, error } = await getClient()
     .from('skins')
-    .select('*')
+    .select('*, skin_profiles:skin_profile_id(*)')
     .eq('hero_id', parseInt(heroId))
     .order('date', { ascending: false });
   if (error) return fail(error.message);
-  return ok({ skins: data || [], total: data?.length || 0 });
+  const skins = (data || []).map(normalizeSkinRecord);
+  return ok({ skins, total: skins.length });
 }
 
 // ── 资源列表 ─────────────────────────────────────────────────
