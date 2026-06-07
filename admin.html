@@ -597,7 +597,6 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
       <div class="form-group"><label>日期</label><input type="date" id="es-date"></div>
       <div class="form-group"><label>皮肤名称</label><input type="text" id="es-name" placeholder="皮肤名称"></div>
-      <div class="form-group"><label>归属英雄</label><input type="text" id="es-hero" placeholder="英雄名称"></div>
       <div class="form-group">
         <label>皮肤品质</label>
         <select id="es-quality" class="filter-select" style="width:100%">
@@ -609,10 +608,10 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
       <div class="form-group"><label>价格</label><input type="text" id="es-price" placeholder="如：888"></div>
       <div class="form-group"><label>获取方式</label><input type="text" id="es-obtain" placeholder="如：直售"></div>
       <div class="form-group">
-        <label>关联英雄</label>
+        <label>归属英雄 <span style="color:var(--red)">*</span></label>
         <input type="text" id="es-hero-id-search" class="search-input" placeholder="搜索英雄名称 / 职业 / 分路..." style="width:100%;margin-bottom:6px" oninput="filterHeroSelect('es-hero-id', this.value)">
         <select id="es-hero-id" class="filter-select" style="width:100%">
-          <option value="">— 不关联 —</option>
+          <option value="">— 请选择英雄 —</option>
         </select>
       </div>
       <div class="form-group">
@@ -962,7 +961,6 @@ function resetSkinModal() {
   document.getElementById('es-tag-img-url').value = '';
   document.getElementById('es-date').value = '';
   document.getElementById('es-name').value = '';
-  document.getElementById('es-hero').value = '';
   document.getElementById('es-quality').value = '史诗';
   document.getElementById('es-tag').value = '';
   document.getElementById('es-price').value = '';
@@ -1014,7 +1012,6 @@ function openEditSkin(s) {
   }
   document.getElementById('es-date').value      = s.date;
   document.getElementById('es-name').value      = s.name;
-  document.getElementById('es-hero').value      = s.hero;
   document.getElementById('es-quality').value   = normalizeQuality(s.quality);
   document.getElementById('es-tag').value       = s.tag   || '';
   document.getElementById('es-price').value     = s.price || '';
@@ -1022,7 +1019,7 @@ function openEditSkin(s) {
   document.getElementById('es-type').value      = s.type;
   document.getElementById('es-permanent').value = s.permanent;
   document.getElementById('es-notes').value     = s.notes || '';
-  populateHeroSelect('es-hero-id', s.hero_id || '');
+  populateHeroSelect('es-hero-id', s.hero_id || '', s.hero || '');
   document.getElementById('modal-skin').classList.add('show');
 }
 
@@ -1081,15 +1078,17 @@ async function doSaveSkin() {
       tagImgUrl = uploadedTagUrl;
     }
 
+    const heroId = document.getElementById('es-hero-id').value ? parseInt(document.getElementById('es-hero-id').value) : null;
+    const heroName = getSelectedHeroName('es-hero-id');
     const data = {
       date:         document.getElementById('es-date').value,
       name:         document.getElementById('es-name').value.trim(),
-      hero:         document.getElementById('es-hero').value.trim(),
+      hero:         heroName,
       quality:      document.getElementById('es-quality').value,
       tag:          document.getElementById('es-tag').value.trim(),
       price:        document.getElementById('es-price').value.trim(),
       obtain:       document.getElementById('es-obtain').value.trim(),
-      hero_id:      document.getElementById('es-hero-id').value ? parseInt(document.getElementById('es-hero-id').value) : null,
+      hero_id:      heroId,
       notes:        document.getElementById('es-notes').value.trim() || null,
       type:         document.getElementById('es-type').value,
       permanent:    document.getElementById('es-permanent').value,
@@ -1097,7 +1096,7 @@ async function doSaveSkin() {
       tag_img_url:  tagImgUrl,
     };
 
-    if (!data.date || !data.name || !data.hero) {
+    if (!data.date || !data.name || !data.hero_id || !data.hero) {
       toast('日期、皮肤名称、归属英雄为必填项', 'err');
       return;
     }
@@ -1505,10 +1504,14 @@ async function doDeleteResource(id,name){
 
 // ── 英雄管理 ─────────────────────────────────────────────────
 
-async function populateHeroSelect(selectId, selectedId) {
+async function populateHeroSelect(selectId, selectedId, selectedName = '') {
   if (!allHeroes.length) {
     const res = await api('GET', '/heroes?per_page=200');
     allHeroes = res.heroes || [];
+  }
+  if (!selectedId && selectedName) {
+    const matched = allHeroes.find(h => h.name === selectedName);
+    if (matched) selectedId = matched.id;
   }
   const sel = document.getElementById(selectId);
   if (!sel) return;
@@ -1521,7 +1524,7 @@ async function populateHeroSelect(selectId, selectedId) {
 function renderHeroSelectOptions(selectId, heroes, selectedId) {
   const sel = document.getElementById(selectId);
   if (!sel) return;
-  sel.innerHTML = '<option value="">— 不关联 —</option>' +
+  sel.innerHTML = '<option value="">— 请选择英雄 —</option>' +
     heroes.map(h => {
       const meta = [...(h.roles || []), ...(h.lanes || [])].join(' / ');
       const label = meta ? `${h.name}（${meta}）` : h.name;
@@ -1551,6 +1554,13 @@ function filterHeroSelect(selectId, keyword) {
   } else if (matched.length === 1) {
     sel.value = matched[0].id;
   }
+}
+
+function getSelectedHeroName(selectId) {
+  const sel = document.getElementById(selectId);
+  if (!sel || !sel.value) return '';
+  const hero = allHeroes.find(h => String(h.id) === String(sel.value));
+  return hero?.name || '';
 }
 
 async function loadHeroes() {

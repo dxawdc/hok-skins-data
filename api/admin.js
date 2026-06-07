@@ -20,6 +20,16 @@ function normalizeSkinRecord(row) {
   return row ? { ...row, quality: normalizeQuality(row.quality) } : row;
 }
 
+async function syncSkinHeroName(client, clean) {
+  if (!clean || clean.hero_id === undefined || clean.hero_id === null || clean.hero_id === '') return;
+  const { data } = await client
+    .from('heroes')
+    .select('name')
+    .eq('id', parseInt(clean.hero_id))
+    .maybeSingle();
+  if (data?.name) clean.hero = data.name;
+}
+
 function getClient() {
   return createClient(SUPABASE_URL, SUPABASE_KEY);
 }
@@ -189,6 +199,7 @@ async function updateSkin(id, updates, user) {
   if (clean.quality) clean.quality = normalizeQuality(clean.quality);
   if (!Object.keys(clean).length) return fail('没有可更新的字段');
   const client = getClient();
+  await syncSkinHeroName(client, clean);
   const { data: before } = await client.from('skins').select('*').eq('id', id).maybeSingle();
   const { data, error } = await client.from('skins').update(clean).eq('id', id).select().maybeSingle();
   if (error) return fail(error.message);
@@ -214,6 +225,7 @@ async function batchUpdate({ ids, updates }, user) {
   if (clean.quality) clean.quality = normalizeQuality(clean.quality);
   if (!Object.keys(clean).length) return fail('没有可更新的字段');
   const client = getClient();
+  await syncSkinHeroName(client, clean);
   const { data, error } = await client.from('skins').update(clean).in('id', ids).select();
   if (error) return fail(error.message);
   await log(client, user.username, 'batch_update', null, { ids, updates: clean });
@@ -225,8 +237,9 @@ async function insertSkin(data, user) {
   const ALLOWED = new Set(['date','name','quality','tag','hero','price','obtain','type','permanent','skin_img_url','tag_img_url','hero_id','notes']);
   const clean = Object.fromEntries(Object.entries(data||{}).filter(([k]) => ALLOWED.has(k)));
   if (clean.quality) clean.quality = normalizeQuality(clean.quality);
-  if (!clean.date || !clean.name || !clean.hero) return fail('日期、皮肤名称、归属英雄为必填项');
   const client = getClient();
+  await syncSkinHeroName(client, clean);
+  if (!clean.date || !clean.name || !clean.hero) return fail('日期、皮肤名称、归属英雄为必填项');
   const { data: inserted, error } = await client.from('skins').insert(clean).select().maybeSingle();
   if (error) return fail(error.message);
   await log(client, user.username, 'insert', inserted?.id || null, { name: clean.name, hero: clean.hero });
