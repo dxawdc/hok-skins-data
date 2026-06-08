@@ -868,7 +868,7 @@ const SUPABASE_URL = 'https://erphrsydujqrcvtpdtnf.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVycGhyc3lkdWpxcmN2dHBkdG5mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3MDU2ODQsImV4cCI6MjA4OTI4MTY4NH0.O6h3Eeq9gNfGAMYkZ5_1GY5lFBiJrF8fJat0Pxz868U';
 
 // ── 数据拉取：走 Cloudflare CDN 缓存 ──────────────────────────
-const CACHE_KEY       = 'wzry_skin_data_v4';   
+const CACHE_KEY       = 'wzry_skin_data_v5';   
 const CACHE_KEY_HERO  = 'wzry_hero_data_v1';
 const CACHE_KEY_RES   = 'wzry_res_data_v2';
 const CACHE_TTL       = 30 * 60 * 1000;
@@ -911,7 +911,7 @@ async function fetchAllSkins() {
   } catch (e) {}
 
   console.log('[L1缓存未命中] 请求 CDN /api/skins…');
-  const res = await fetch(`${API_BASE}/api/skins?v=profile-v1`);
+  const res = await fetch(`${API_BASE}/api/skins?v=profile-v2`);
   if (!res.ok) throw new Error(`/api/skins 请求失败: ${res.status}`);
   const all = await res.json();
 
