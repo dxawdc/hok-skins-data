@@ -16,7 +16,7 @@ async function fetchAllSkinRows(client) {
   for (let from = 0; ; from += pageSize) {
     const { data, error } = await client
       .from('skins')
-      .select('*, skin_profiles:skin_profile_id(*), heroes:hero_id(id,name,roles,lanes,gender,avatar_url,release_date,notes)')
+      .select('*, skin_profiles:skin_profile_id(*)')
       .order('date', { ascending: false })
       .range(from, from + pageSize - 1);
     if (error) throw error;
@@ -48,7 +48,6 @@ function flattenSkin(row) {
     tag_img_url: profile?.tag_img_url || row.tag_img_url || '',
     notes: row.notes || profile?.notes || null,
     skin_profile_id: row.skin_profile_id || profile?.id || null,
-    heroes: row.heroes || null,
   };
 }
 
