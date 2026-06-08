@@ -10,7 +10,34 @@ function getClient() {
   return createClient(SUPABASE_URL, SUPABASE_KEY);
 }
 
-async function fetchAllSkinRows(client) {
+function getQuery(req) {
+  if (req.query) return req.query;
+  try {
+    return Object.fromEntries(new URL(req.url || '', 'http://localhost').searchParams.entries());
+  } catch (e) {
+    return {};
+  }
+}
+
+function toPositiveInt(value, fallback, max) {
+  const n = parseInt(value, 10);
+  if (!Number.isFinite(n) || n < 0) return fallback;
+  return max ? Math.min(n, max) : n;
+}
+
+async function fetchAllSkinRows(client, options = {}) {
+  const pageLimit = options.limit;
+  const pageOffset = options.offset || 0;
+  if (pageLimit) {
+    const { data, error } = await client
+      .from('skins')
+      .select('*, skin_profiles:skin_profile_id(*)')
+      .order('date', { ascending: false })
+      .range(pageOffset, pageOffset + pageLimit - 1);
+    if (error) throw error;
+    return data || [];
+  }
+
   const rows = [];
   const pageSize = 1000;
   for (let from = 0; ; from += pageSize) {
@@ -67,9 +94,13 @@ module.exports = async function handler(req, res) {
     return;
   }
 
+  const query = getQuery(req);
+  const limit = query.limit === undefined ? null : toPositiveInt(query.limit, null, 1000);
+  const offset = toPositiveInt(query.offset, 0);
+
   let data;
   try {
-    data = await fetchAllSkinRows(getClient());
+    data = await fetchAllSkinRows(getClient(), { limit, offset });
   } catch (error) {
     res.status(500).json({ error: error.message });
     return;
@@ -78,5 +109,9 @@ module.exports = async function handler(req, res) {
   const rows = (data || []).map(flattenSkin);
   res.setHeader('Cache-Control', 'public, max-age=14400, s-maxage=1800');
   res.setHeader('X-Total', String(rows.length));
+  if (limit) {
+    res.setHeader('X-Limit', String(limit));
+    res.setHeader('X-Offset', String(offset));
+  }
   res.status(200).json(rows);
 };
