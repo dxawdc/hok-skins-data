@@ -425,12 +425,14 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
       <div class="page" id="page-series">
         <div class="page-header">
           <div><div class="page-title">套系管理</div><div class="page-subtitle">维护皮肤套系，一个皮肤可属于多个套系</div></div>
-          <button class="btn btn-primary btn-sm" onclick="showAddSeries()">+ 新增套系</button>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-outline btn-sm" onclick="loadSeries(true)">刷新</button>
+            <button class="btn btn-primary btn-sm" onclick="showAddSeries()">+ 新增套系</button>
+          </div>
         </div>
         <div class="page-body">
           <div class="table-toolbar">
             <input type="text" class="search-input" id="series-search" placeholder="搜索套系名称/说明..." oninput="debounceSeriesSearch()">
-            <button class="btn btn-outline btn-sm" onclick="loadSeries(true)">刷新</button>
             <span style="color:var(--text3);font-size:12px;margin-left:auto" id="series-total-label"></span>
           </div>
           <div class="data-table-wrap">
