@@ -5,6 +5,7 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_AN
 const OLD_COMPANION_QUALITY = '\u4f34\u751f';
 const QUALITY_OTHER = '\u5176\u4ed6';
 const PERMANENT_NO = '\u5426';
+const SKIN_SELECT = '*, skin_profiles:skin_profile_id(*, skin_profile_series(series:series_id(*)))';
 
 function getClient() {
   return createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -28,33 +29,54 @@ function toPositiveInt(value, fallback, max) {
 async function fetchAllSkinRows(client, options = {}) {
   const pageLimit = options.limit;
   const pageOffset = options.offset || 0;
-  if (pageLimit) {
-    const { data, error } = await client
-      .from('skins')
-      .select('*, skin_profiles:skin_profile_id(*)')
-      .order('date', { ascending: false })
-      .range(pageOffset, pageOffset + pageLimit - 1);
-    if (error) throw error;
-    return data || [];
-  }
+  const selectRows = async (select) => {
+    if (pageLimit) {
+      const { data, error } = await client
+        .from('skins')
+        .select(select)
+        .order('date', { ascending: false })
+        .range(pageOffset, pageOffset + pageLimit - 1);
+      if (error) throw error;
+      return data || [];
+    }
 
-  const rows = [];
-  const pageSize = 1000;
-  for (let from = 0; ; from += pageSize) {
-    const { data, error } = await client
-      .from('skins')
-      .select('*, skin_profiles:skin_profile_id(*)')
-      .order('date', { ascending: false })
-      .range(from, from + pageSize - 1);
-    if (error) throw error;
-    rows.push(...(data || []));
-    if (!data || data.length < pageSize) break;
+    const rows = [];
+    const pageSize = 1000;
+    for (let from = 0; ; from += pageSize) {
+      const { data, error } = await client
+        .from('skins')
+        .select(select)
+        .order('date', { ascending: false })
+        .range(from, from + pageSize - 1);
+      if (error) throw error;
+      rows.push(...(data || []));
+      if (!data || data.length < pageSize) break;
+    }
+    return rows;
+  };
+
+  try {
+    return await selectRows(SKIN_SELECT);
+  } catch (error) {
+    return await selectRows('*, skin_profiles:skin_profile_id(*)');
   }
-  return rows;
 }
 
 function normalizeQuality(q) {
   return q === OLD_COMPANION_QUALITY ? QUALITY_OTHER : q;
+}
+
+function profileSeries(profile) {
+  return (profile?.skin_profile_series || [])
+    .map(item => item.series || item.skin_series || null)
+    .filter(Boolean)
+    .map(s => ({
+      id: s.id,
+      name: s.name,
+      description: s.description || '',
+      sort_order: s.sort_order || 0,
+    }))
+    .sort((a, b) => (a.sort_order - b.sort_order) || String(a.name).localeCompare(String(b.name), 'zh-Hans-CN'));
 }
 
 function flattenSkin(row) {
@@ -75,6 +97,7 @@ function flattenSkin(row) {
     tag_img_url: profile?.tag_img_url || row.tag_img_url || '',
     notes: row.notes || profile?.notes || null,
     skin_profile_id: row.skin_profile_id || profile?.id || null,
+    series: profileSeries(profile),
   };
 }
 

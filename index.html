@@ -263,6 +263,14 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
 .skin-detail-attrs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .attr-item label { font-size: 12px; color: var(--text3); display: block; margin-bottom: 4px; }
 .attr-item .val { font-size: 14px; font-weight: 500; }
+.series-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.series-chip {
+  display: inline-flex; align-items: center; gap: 4px; padding: 5px 10px;
+  border-radius: 999px; border: 1px solid rgba(201,168,76,.35);
+  color: var(--gold); background: rgba(201,168,76,.1); cursor: pointer;
+  font-size: 12px; font-weight: 700;
+}
+.series-chip:hover { border-color: var(--gold); background: rgba(201,168,76,.18); }
 .skin-timeline { padding: 20px 22px; border-top: 1px solid var(--border); }
 .timeline-title { font-size: 14px; color: var(--text3); font-weight: 500; margin-bottom: 12px; }
 .timeline-list { display: flex; flex-direction: column; gap: 7px; }
@@ -868,7 +876,7 @@ const SUPABASE_URL = 'https://erphrsydujqrcvtpdtnf.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVycGhyc3lkdWpxcmN2dHBkdG5mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3MDU2ODQsImV4cCI6MjA4OTI4MTY4NH0.O6h3Eeq9gNfGAMYkZ5_1GY5lFBiJrF8fJat0Pxz868U';
 
 // ── 数据拉取：走 Cloudflare CDN 缓存 ──────────────────────────
-const CACHE_KEY       = 'wzry_skin_data_v5';   
+const CACHE_KEY       = 'wzry_skin_data_v6';   
 const CACHE_KEY_HERO  = 'wzry_hero_data_v1';
 const CACHE_KEY_RES   = 'wzry_res_data_v2';
 const CACHE_TTL       = 30 * 60 * 1000;
@@ -911,7 +919,7 @@ async function fetchAllSkins() {
   } catch (e) {}
 
   console.log('[L1缓存未命中] 请求 CDN /api/skins…');
-  const res = await fetch(`${API_BASE}/api/skins?v=profile-v2`);
+  const res = await fetch(`${API_BASE}/api/skins?v=profile-v4`);
   if (!res.ok) throw new Error(`/api/skins 请求失败: ${res.status}`);
   const all = await res.json();
 
@@ -929,6 +937,7 @@ async function fetchAllSkins() {
     permanent: r.permanent || '否',
     si:        r.skin_img_url || '',
     qi:        r.tag_img_url  || '',
+    series:    Array.isArray(r.series) ? r.series : [],
   }));
 
   try {
@@ -1551,6 +1560,62 @@ function goSkinDetail(hero, skinName) {
   showView('heroes', document.getElementById('tab-heroes'), 'heroes');
   openSkinDetail(hero, skinName);
 }
+
+function firstReleaseRecord(records) {
+  return records.find(r => r.type === '首发') || records[0] || {};
+}
+
+function skinSeriesList(record) {
+  return Array.isArray(record?.series) ? record.series : [];
+}
+
+function openSeriesDetail(seriesId, seriesName) {
+  document.getElementById('heroes-list-wrap').style.display='none';
+  const skinMap = new Map();
+  RAW.forEach(r => {
+    if (!skinSeriesList(r).some(s => String(s.id) === String(seriesId))) return;
+    const key = r.hero + '|' + r.name;
+    if (!skinMap.has(key)) skinMap.set(key, []);
+    skinMap.get(key).push(r);
+  });
+  const skins = [...skinMap.values()].map(records => {
+    records.sort((a,b)=>a.date>b.date?1:-1);
+    const first = firstReleaseRecord(records);
+    return { ...first, records, returnCount: records.filter(r=>r.type==='返场').length };
+  }).sort((a,b)=>(b.date || '').localeCompare(a.date || ''));
+
+  const wrap = document.getElementById('hero-detail-wrap');
+  wrap.style.display='block';
+  wrap.innerHTML = `
+    <div class="hero-detail-header">
+      <div class="breadcrumb"><a onclick="backToHeroes()">← 返回英雄皮肤</a> / 套系</div>
+      <div class="hero-detail-title">${seriesName}</div>
+      <div class="hero-detail-meta"><span>共 ${skins.length} 款皮肤</span><span>按首发日期倒序</span></div>
+    </div>
+    <div class="hero-skins-grid">
+      ${skins.map(s => {
+        const imgSrc = thumbUrl(s.si, 200);
+        const tagSrc = thumbUrl(s.qi, 80);
+        return `<div class="skin-card" onclick="openSkinDetail('${esc(s.hero)}','${esc(s.name)}')">
+          <div class="skin-card-img">
+            ${imgSrc ? `<img class="skin-thumb" src="${imgSrc}" loading="lazy" alt="${s.name}">` : `<div class="img-ph">${qualityEmoji(s.quality)}</div>`}
+          </div>
+          <div class="skin-card-body">
+            <div class="skin-card-title">${s.name}</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+              <span style="color:var(--gold-light);font-size:12px">${s.hero}</span>
+              ${tagSrc ? `<img src="${tagSrc}" style="height:16px;object-fit:contain;image-rendering:pixelated" alt="${s.tag}">` : ''}
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:12px;color:var(--text3)">
+              <span>${s.date || '—'}</span>
+              <span>${s.returnCount ? `返场 ${s.returnCount}` : '首发'}</span>
+            </div>
+          </div>
+        </div>`;
+      }).join('') || '<div class="empty-state" style="grid-column:1/-1"><div class="icon">🎨</div><p>该套系暂无皮肤</p></div>'}
+    </div>`;
+}
+
 function openSkinDetail(hero, skinName) {
   document.getElementById('heroes-list-wrap').style.display='none';
   const records = RAW.filter(r=>r.hero===hero && r.name===skinName).sort((a,b)=>a.date>b.date?1:-1);
@@ -1561,6 +1626,7 @@ function openSkinDetail(hero, skinName) {
   const skinImgSrc = fullUrl(first.si || records.find(r=>r.si)?.si || null);
   const qImgSrc = first.qi || records.find(r=>r.qi)?.qi || null;
   const tagImgUrl = thumbUrl(qImgSrc, 120);
+  const series = skinSeriesList(first);
   const wrap = document.getElementById('hero-detail-wrap');
   wrap.style.display='block';
   wrap.innerHTML = `
@@ -1597,6 +1663,9 @@ function openSkinDetail(hero, skinName) {
               <div class="attr-item"><label>首发价格</label><div class="val">${first.price&&first.price!=='/'&&first.price!=='nan'?first.price:'-'}</div></div>
               <div class="attr-item"><label>获取方式</label><div class="val" style="font-size:12px;color:var(--text2)">${first.obtain}</div></div>
               <div class="attr-item"><label>是否常驻</label><div class="val"><span class="badge badge-${first.permanent}">${first.permanent}</span></div></div>
+              ${series.length ? `<div class="attr-item" style="grid-column:1/-1"><label>皮肤套系</label><div class="val series-chips">
+                ${series.map(s => `<span class="series-chip" onclick="openSeriesDetail(${s.id}, '${esc(s.name)}')">${s.name} →</span>`).join('')}
+              </div></div>` : ''}
               <div class="attr-item"><label>返场次数</label><div class="val" style="color:var(--accent2);font-size:20px;font-weight:700">${returns.length}</div></div>
               ${latestReturn?`<div class="attr-item" style="grid-column:1/-1"><label>最近返场</label><div class="val" style="color:var(--gold)">${latestReturn.date} · ${latestReturn.obtain}</div></div>`:''}
             </div>

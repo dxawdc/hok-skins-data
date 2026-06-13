@@ -309,6 +309,9 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
         <div class="nav-item" data-page="skins" onclick="navTo('skins',this)">
           <span class="icon">🎨</span> 皮肤数据
         </div>
+        <div class="nav-item" data-page="series" onclick="navTo('series',this)">
+          <span class="icon">🧩</span> 套系管理
+        </div>
         <div class="nav-item" data-page="heroes" onclick="navTo('heroes',this)">
           <span class="icon">🎭</span> 英雄管理
         </div>
@@ -401,6 +404,7 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
                   <th>皮肤名称</th>
                   <th>品质</th>
                   <th>归属英雄</th>
+                  <th>套系</th>
                   <th>价格</th>
                   <th>获取方式</th>
                   <th>类型</th>
@@ -414,6 +418,26 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
           <div class="pagination">
             <div class="pg-info" id="skin-pg-info"></div>
             <div class="pg-btns" id="skin-pg-btns"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="page" id="page-series">
+        <div class="page-header">
+          <div><div class="page-title">套系管理</div><div class="page-subtitle">维护皮肤套系，一个皮肤可属于多个套系</div></div>
+          <button class="btn btn-primary btn-sm" onclick="showAddSeries()">+ 新增套系</button>
+        </div>
+        <div class="page-body">
+          <div class="table-toolbar">
+            <input type="text" class="search-input" id="series-search" placeholder="搜索套系名称/说明..." oninput="debounceSeriesSearch()">
+            <button class="btn btn-outline btn-sm" onclick="loadSeries(true)">刷新</button>
+            <span style="color:var(--text3);font-size:12px;margin-left:auto" id="series-total-label"></span>
+          </div>
+          <div class="data-table-wrap">
+            <table>
+              <thead><tr><th>套系名称</th><th>说明</th><th>排序</th><th>操作</th></tr></thead>
+              <tbody id="series-tbody"></tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -606,6 +630,30 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
   </div>
 </div>
 
+<div class="modal-bg" id="modal-series">
+  <div class="modal" style="width:480px;max-width:96vw">
+    <h3 id="modal-series-title">新增套系</h3>
+    <div class="form-group">
+      <label>套系名称 <span style="color:var(--red)">*</span></label>
+      <input type="text" id="series-name" placeholder="如：五五朋友节">
+    </div>
+    <div class="form-group">
+      <label>说明 <span style="color:var(--text3);font-weight:400">（可选）</span></label>
+      <textarea id="series-desc" placeholder="套系说明" rows="3"
+        style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;outline:none;font-family:inherit;resize:vertical"></textarea>
+    </div>
+    <div class="form-group">
+      <label>排序</label>
+      <input type="number" id="series-sort" value="0">
+    </div>
+    <input type="hidden" id="series-id">
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" id="series-save-btn" onclick="doSaveSeries()">保存</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="modal-skin">
   <div class="modal" style="width:560px;max-width:96vw">
     <h3 id="modal-skin-title">编辑皮肤记录</h3>
@@ -634,6 +682,11 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
         </select>
       </div>
       <div class="form-group"><label>皮肤标签说明</label><input type="text" id="es-tag" placeholder="如：史诗限定"></div>
+      <div class="form-group" id="es-series-wrap" style="grid-column:1/-1">
+        <label>皮肤套系 <span style="color:var(--text3);font-weight:400">（可多选）</span></label>
+        <select id="es-series" class="filter-select" style="width:100%;min-height:88px" multiple></select>
+        <div style="font-size:12px;color:var(--text3);margin-top:5px">按住 Ctrl / Command 可多选；没有套系时先到“套系管理”新增。</div>
+      </div>
       <div class="form-group" id="es-price-wrap"><label>价格</label><input type="text" id="es-price" placeholder="如：888"></div>
       <div class="form-group" id="es-obtain-wrap"><label>获取方式</label><input type="text" id="es-obtain" placeholder="如：直售"></div>
       <div class="form-group">
@@ -846,6 +899,7 @@ let searchTimer = null;
 // ▼ 补全英雄与资源管理的全局变量
 let allHeroes = [], filteredHeroes = [];
 let allSkinProfiles = [];
+let allSeries = [];
 let heroPage = 1; const HERO_PER_PAGE = 20;
 let allResources = [], filteredResources = [];
 let resPage = 1; const RES_PER_PAGE = 20;
@@ -900,6 +954,7 @@ function navTo(page, el) {
   if (el) el.classList.add('active');
   document.getElementById('page-' + page).classList.add('active');
   if (page === 'skins')     loadSkins();
+  if (page === 'series')    loadSeries();
   if (page === 'users')     loadUsers();
   if (page === 'logs')      loadLogs();
   if (page === 'overview')  loadOverview();
@@ -950,6 +1005,7 @@ function renderSkins(skins) {
       <td style="font-weight:600">${s.name}</td>
       <td><span class="badge badge-${s.quality}">${s.quality}</span></td>
       <td style="color:#3264c8">${s.hero}</td>
+      <td style="font-size:12px;color:var(--text3)">${(s.series || []).map(x => x.name).join('、') || '-'}</td>
       <td style="font-size:12px">${s.price||'-'}</td>
       <td style="font-size:12px;color:var(--text3)">${s.obtain}</td>
       <td><span class="badge badge-${s.type}">${s.type}</span></td>
@@ -959,7 +1015,7 @@ function renderSkins(skins) {
         <button class="btn btn-danger btn-sm" onclick="doDeleteSkin(${s.id},'${s.name}')">删除</button>
       </td>
     </tr>`;
-  }).join('') || '<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--text3)">暂无数据</td></tr>';
+  }).join('') || '<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--text3)">暂无数据</td></tr>';
 }
 function renderPagination(total, page, perPage) {
   document.getElementById('skin-total-label').textContent = `共 ${total} 条`;
@@ -975,6 +1031,113 @@ function renderPagination(total, page, perPage) {
 }
 function goPage(p) { skinPage = p; loadSkins(); }
 function debounceSearch() { clearTimeout(searchTimer); searchTimer = setTimeout(() => { skinPage=1; loadSkins(); }, 400); }
+
+// ── Series ───────────────────────────────────────────────────
+async function loadSeries(force=false) {
+  const search = (document.getElementById('series-search')?.value || '').trim();
+  let url = '/series';
+  if (search) url += `?search=${encodeURIComponent(search)}`;
+  const res = await api('GET', url);
+  if (!res.series) return;
+  allSeries = res.series;
+  renderSeriesTable(allSeries);
+  if (force) toast('套系列表已刷新');
+}
+
+async function ensureSeries() {
+  if (allSeries.length) return allSeries;
+  const res = await api('GET', '/series');
+  allSeries = res.series || [];
+  return allSeries;
+}
+
+function renderSeriesTable(list) {
+  const totalEl = document.getElementById('series-total-label');
+  if (totalEl) totalEl.textContent = `共 ${list.length} 个套系`;
+  const tbody = document.getElementById('series-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = list.map(s => `
+    <tr>
+      <td style="font-weight:600">${s.name}</td>
+      <td style="color:var(--text3);font-size:12px">${s.description || '-'}</td>
+      <td>${s.sort_order || 0}</td>
+      <td>
+        <button class="btn btn-outline btn-sm" onclick='editSeries(${JSON.stringify(JSON.stringify(s))})'>编辑</button>
+        <button class="btn btn-danger btn-sm" onclick="doDeleteSeries(${s.id},'${String(s.name).replace(/'/g,"\\'")}')">删除</button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="4" style="text-align:center;padding:30px;color:var(--text3)">暂无套系</td></tr>';
+}
+
+function debounceSeriesSearch() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => loadSeries(), 300);
+}
+
+function showAddSeries() {
+  document.getElementById('modal-series-title').textContent = '新增套系';
+  document.getElementById('series-id').value = '';
+  document.getElementById('series-name').value = '';
+  document.getElementById('series-desc').value = '';
+  document.getElementById('series-sort').value = '0';
+  document.getElementById('modal-series').classList.add('show');
+}
+
+function editSeries(jsonStr) {
+  const s = JSON.parse(jsonStr);
+  document.getElementById('modal-series-title').textContent = '编辑套系';
+  document.getElementById('series-id').value = s.id || '';
+  document.getElementById('series-name').value = s.name || '';
+  document.getElementById('series-desc').value = s.description || '';
+  document.getElementById('series-sort').value = s.sort_order || 0;
+  document.getElementById('modal-series').classList.add('show');
+}
+
+async function doSaveSeries() {
+  const id = document.getElementById('series-id').value;
+  const data = {
+    name: document.getElementById('series-name').value.trim(),
+    description: document.getElementById('series-desc').value.trim() || null,
+    sort_order: parseInt(document.getElementById('series-sort').value || '0', 10),
+  };
+  if (!data.name) return toast('套系名称不能为空', 'err');
+  const btn = document.getElementById('series-save-btn');
+  btn.disabled = true; btn.textContent = '保存中…';
+  try {
+    const res = await api(id ? 'PUT' : 'POST', id ? `/series/${id}` : '/series', data);
+    if (res.error) return toast(res.error, 'err');
+    allSeries = [];
+    allSkinProfiles = [];
+    await loadSeries();
+    closeModal();
+    toast('套系已保存');
+  } finally {
+    btn.disabled = false; btn.textContent = '保存';
+  }
+}
+
+async function doDeleteSeries(id, name) {
+  if (!confirm(`确认删除套系「${name}」？皮肤资料不会删除，只会解除套系关系。`)) return;
+  const res = await api('DELETE', `/series/${id}`);
+  if (res.error) return toast(res.error, 'err');
+  allSeries = [];
+  allSkinProfiles = [];
+  await loadSeries();
+  toast('套系已删除');
+}
+
+function renderSkinSeriesOptions(selected=[]) {
+  const sel = document.getElementById('es-series');
+  if (!sel) return;
+  const selectedSet = new Set((selected || []).map(v => String(typeof v === 'object' ? v.id : v)));
+  sel.innerHTML = allSeries.map(s =>
+    `<option value="${s.id}" ${selectedSet.has(String(s.id)) ? 'selected' : ''}>${s.name}</option>`
+  ).join('');
+}
+
+function selectedSeriesIds() {
+  const sel = document.getElementById('es-series');
+  return sel ? Array.from(sel.selectedOptions).map(o => parseInt(o.value, 10)).filter(Number.isFinite) : [];
+}
 
 // ── Add / Edit Skin ───────────────────────────────────────────
 let pendingSkinImgB64 = null;  // 待上传的皮肤图片 base64
@@ -1025,6 +1188,7 @@ function applySelectedSkinProfile() {
   document.getElementById('es-skin-img-url').value = p.skin_img_url || '';
   document.getElementById('es-tag-img-url').value = p.tag_img_url || '';
   populateHeroSelect('es-hero-id', p.hero_id || '', p.hero || '');
+  renderSkinSeriesOptions(p.series || []);
   setImagePreview('skin', p.skin_img_url || '');
   setImagePreview('tag', p.tag_img_url || '');
 }
@@ -1054,7 +1218,7 @@ async function updateSkinTypeMode() {
     const el = document.getElementById(id);
     if (el) el.classList.toggle('return-edit-highlight', isReturn);
   });
-  ['es-name','es-quality','es-tag','es-hero-id-search','es-hero-id','es-permanent'].forEach(id => {
+  ['es-name','es-quality','es-tag','es-hero-id-search','es-hero-id','es-permanent','es-series'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.disabled = isReturn;
   });
@@ -1090,6 +1254,7 @@ function resetSkinModal() {
   document.getElementById('es-notes').value = '';
   document.getElementById('es-type').value = '首发';
   document.getElementById('es-permanent').value = '否';
+  renderSkinSeriesOptions([]);
   // 重置图片预览
   ['skin','tag'].forEach(t => {
     document.getElementById(`${t}-img-preview`).style.display = 'none';
@@ -1103,16 +1268,19 @@ function resetSkinModal() {
   updateSkinTypeMode();
 }
 
-function openAddSkin() {
+async function openAddSkin() {
   resetSkinModal();
   document.getElementById('modal-skin-title').textContent = '新增皮肤记录';
   document.getElementById('es-save-btn').textContent = '新增';
+  await ensureSeries();
+  renderSkinSeriesOptions([]);
   populateHeroSelect('es-hero-id', '');
   document.getElementById('modal-skin').classList.add('show');
 }
 
 async function openEditSkin(s) {
   resetSkinModal();
+  await ensureSeries();
   document.getElementById('modal-skin-title').textContent = '编辑皮肤记录';
   document.getElementById('es-save-btn').textContent = '保存';
   document.getElementById('es-id').value          = s.id;
@@ -1141,6 +1309,7 @@ async function openEditSkin(s) {
   document.getElementById('es-type').value      = s.type;
   document.getElementById('es-permanent').value = s.permanent;
   document.getElementById('es-notes').value     = s.notes || '';
+  renderSkinSeriesOptions(s.series || []);
   populateHeroSelect('es-hero-id', s.hero_id || '', s.hero || '');
   await updateSkinTypeMode();
   if (s.type === '返场' && s.skin_profile_id) {
@@ -1224,6 +1393,7 @@ async function doSaveSkin() {
       permanent:    document.getElementById('es-permanent').value,
       skin_img_url: skinImgUrl,
       tag_img_url:  tagImgUrl,
+      series_ids:   selectedSeriesIds(),
       skin_profile_id: document.getElementById('es-current-profile-id').value || document.getElementById('es-profile-id').value || null,
     };
 
@@ -1241,6 +1411,7 @@ async function doSaveSkin() {
       data.permanent = p.permanent || '否';
       data.skin_img_url = p.skin_img_url || '';
       data.tag_img_url = p.tag_img_url || '';
+      data.series_ids = (p.series || []).map(s => s.id);
     }
 
     if (!data.date || (!isReturn && (!data.name || !data.hero_id || !data.hero))) {
