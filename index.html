@@ -2452,15 +2452,10 @@ function renderResourceGrid(list) {
     // 核心修复：移除 ?width 和 quality 参数，直接获取原始图片，避免服务器强制裁剪
     const imgSrc = r.img_url ? toCdnUrl(r.img_url) : null;
     const tagImgSrc = r.tag_img_url ? toCdnUrl(r.tag_img_url) : null;
-    const tagHtml = r.tag
+    const tagInlineHtml = r.tag
       ? (tagImgSrc
-        ? `<div style="margin-top:8px; height:18px; display:flex; align-items:center;"><img src="${tagImgSrc}" loading="lazy" style="max-height:18px; max-width:100%; object-fit:contain;" alt="${esc(r.tag)}" title="${esc(r.tag)}"></div>`
-        : `<div style="margin-top:8px; font-size:11px; line-height:18px; color:var(--text2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${esc(r.tag)}">${r.tag}</div>`)
-      : '';
-    
-    // 联动标签
-    const collabHtml = r.collab 
-      ? `<span class="badge" style="background:rgba(201,168,76,0.15); color:var(--gold); border:1px solid rgba(201,168,76,0.3); font-size:10px; padding: 2px 5px; flex-shrink: 0; margin-top: 2px;">${r.collab}</span>` 
+        ? `<span style="height:18px; max-width:86px; display:flex; align-items:center; flex-shrink:0; margin-top:2px;" title="${esc(r.tag)}"><img src="${tagImgSrc}" loading="lazy" style="max-height:18px; max-width:100%; object-fit:contain;" alt="${esc(r.tag)}"></span>`
+        : `<span class="badge" style="background:rgba(201,168,76,0.15); color:var(--gold); border:1px solid rgba(201,168,76,0.3); font-size:10px; padding:2px 5px; max-width:86px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex-shrink:0; margin-top:2px;" title="${esc(r.tag)}">${r.tag}</span>`)
       : '';
     
     return `<div class="res-card" onclick="openResDetail('${esc(r.name)}')">
@@ -2471,14 +2466,13 @@ function renderResourceGrid(list) {
       <div class="res-card-body">
         <div class="res-card-name" style="display:flex; align-items:flex-start; gap:8px; white-space:normal; overflow:visible;">
           <span style="flex:1; line-height:1.4; word-break:break-word;">${r.name}</span>
-          ${collabHtml}
+          ${tagInlineHtml}
         </div>
         <div style="display:flex; align-items:center; justify-content:space-between; margin-top:auto;">
           <!-- 统一品质配色：直接复用皮肤的 badge-{quality} 样式 -->
           <span class="badge badge-${r.quality||'无'}" style="font-size:11px;">${r.quality||'—'}</span>
           <span style="font-size:11px; color:var(--text3);">${r.date||'—'}</span>
         </div>
-        ${tagHtml}
       </div>
     </div>`;
   }).join('');
