@@ -432,13 +432,17 @@ async function listSkinProfiles(params) {
 
 async function listSeries(params) {
   const search = params.search ? decodeURIComponent(params.search).toLowerCase() : '';
-  const { data, error } = await getClient()
+  const client = getClient();
+  const { data, error } = await client
     .from('skin_series')
     .select('*')
     .order('sort_order', { ascending: true })
     .order('name', { ascending: true });
   if (error) return fail(error.message);
-  let series = data || [];
+  const { data: links } = await client.from('skin_profile_series').select('series_id');
+  const counts = {};
+  (links || []).forEach(l => { counts[l.series_id] = (counts[l.series_id] || 0) + 1; });
+  let series = (data || []).map(s => ({ ...s, skin_count: counts[s.id] || 0 }));
   if (search) {
     series = series.filter(s =>
       String(s.name || '').toLowerCase().includes(search) ||

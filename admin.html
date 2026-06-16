@@ -437,7 +437,7 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
           </div>
           <div class="data-table-wrap">
             <table>
-              <thead><tr><th>套系名称</th><th>说明</th><th>排序</th><th>操作</th></tr></thead>
+              <thead><tr><th>套系名称</th><th>说明</th><th>皮肤数</th><th>排序</th><th>操作</th></tr></thead>
               <tbody id="series-tbody"></tbody>
             </table>
           </div>
@@ -1085,13 +1085,14 @@ function renderSeriesTable(list) {
     <tr>
       <td style="font-weight:600">${s.name}</td>
       <td style="color:var(--text3);font-size:12px">${s.description || '-'}</td>
+      <td><span style="font-weight:600;color:var(--gold)">${s.skin_count || 0}</span></td>
       <td>${s.sort_order || 0}</td>
       <td>
         <button class="btn btn-outline btn-sm" onclick="openSeriesSkins(${s.id},'${String(s.name).replace(/'/g,"\\'")}')">管理皮肤</button>
         <button class="btn btn-outline btn-sm" onclick='editSeries(${JSON.stringify(JSON.stringify(s))})'>编辑</button>
         <button class="btn btn-danger btn-sm" onclick="doDeleteSeries(${s.id},'${String(s.name).replace(/'/g,"\\'")}')">删除</button>
       </td>
-    </tr>`).join('') || '<tr><td colspan="4" style="text-align:center;padding:30px;color:var(--text3)">暂无套系</td></tr>';
+    </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text3)">暂无套系</td></tr>';
 }
 
 function debounceSeriesSearch() {
@@ -1212,6 +1213,7 @@ async function doAddSeriesSkins() {
     await ensureSkinProfiles();    // 立即重载，保证本弹窗搜索仍可用
     filterSeriesAddSelect(document.getElementById('series-add-search').value);
     await loadSeriesBound();
+    await loadSeries();            // 刷新套系列表的皮肤数
     toast('套系皮肤已保存');
   } finally {
     btn.disabled = false; btn.textContent = '添加选中';
@@ -1223,6 +1225,7 @@ async function doRemoveSeriesSkin(profileId) {
   if (res.error) return toast(res.error, 'err');
   allSkinProfiles = [];
   await loadSeriesBound();
+  await loadSeries();            // 刷新套系列表的皮肤数
   toast('套系皮肤已删除');
 }
 

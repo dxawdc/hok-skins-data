@@ -758,7 +758,9 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
         </div>
         <span style="color:var(--text3);font-size:13px;white-space:nowrap" id="series-count-label"></span>
       </div>
-      <div class="hero-grid" id="series-grid"></div>
+      <div class="ranking-sub">按套系皮肤总数排名 · 皮肤按首发时间由早到晚排列 · 点击皮肤查看详情，点击套系名查看套系页</div>
+      <div class="ranking-table-wrap" id="series-table-wrap"></div>
+      <div class="pagination" id="series-pagination"></div>
     </div>
     <div id="series-detail-view" style="display:none"></div>
   </div>
@@ -1645,49 +1647,130 @@ function openSeriesDetail(seriesId, seriesName) {
     ${seriesSkinsGridHtml(skins)}`;
 }
 
-// ── 皮肤套系标签页（公开列表 + 详情）──
+// ── 皮肤套系标签页（皮肤盘点式表格 + 详情）──
 let seriesSearch = '';
+let seriesRows = [];
+let seriesPage = 1;
+const SERIES_PAGE_SIZE = 20;
 
-function buildSeriesIndex() {
+// 聚合所有套系：每个套系含皮肤列表（按首发时间由早到晚），按皮肤数倒序
+function buildSeriesRows() {
   const map = new Map();
   RAW.forEach(r => {
     const key = r.hero + '|' + r.name;
     skinSeriesList(r).forEach(s => {
       if (!s || s.id === undefined || s.id === null) return;
       let entry = map.get(s.id);
-      if (!entry) { entry = { id: s.id, name: s.name || '', skinKeys: new Set(), heroes: new Set(), samples: [] }; map.set(s.id, entry); }
-      entry.skinKeys.add(key);
+      if (!entry) { entry = { id: s.id, name: s.name || '', skinMap: new Map(), heroes: new Set() }; map.set(s.id, entry); }
+      if (!entry.skinMap.has(key)) entry.skinMap.set(key, []);
+      entry.skinMap.get(key).push(r);
       if (r.hero) entry.heroes.add(r.hero);
-      if (entry.samples.length < 4 && r.si && !entry.samples.some(x => x.key === key)) entry.samples.push({ key, si: r.si, quality: r.quality });
     });
   });
-  return [...map.values()].map(e => ({
-    ...e,
-    searchText: `${e.name} ${[...e.heroes].join(' ')} ${[...e.skinKeys].map(k => k.split('|')[1]).join(' ')}`.toLowerCase(),
-  })).sort((a, b) => b.skinKeys.size - a.skinKeys.size || String(a.name).localeCompare(String(b.name), 'zh-Hans-CN'));
+  return [...map.values()].map(e => {
+    const skins = [...e.skinMap.values()].map(records => {
+      records.sort((a, b) => a.date > b.date ? 1 : -1);
+      const first = firstReleaseRecord(records);
+      return { ...first, records };
+    }).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+    return {
+      id: e.id,
+      name: e.name,
+      count: skins.length,
+      heroCount: e.heroes.size,
+      skins,
+      searchText: `${e.name} ${[...e.heroes].join(' ')} ${skins.map(s => s.name).join(' ')}`.toLowerCase(),
+    };
+  }).sort((a, b) => b.count - a.count || String(a.name).localeCompare(String(b.name), 'zh-Hans-CN'));
 }
 
 function renderSeriesGrid() {
-  let list = buildSeriesIndex();
+  let list = buildSeriesRows();
   const kw = seriesSearch.trim().toLowerCase();
   if (kw) list = list.filter(e => e.searchText.includes(kw));
+  seriesRows = list;
   const label = document.getElementById('series-count-label');
   if (label) label.textContent = `共 ${list.length} 个套系`;
-  const grid = document.getElementById('series-grid');
-  if (!grid) return;
-  if (!list.length) { grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">🎨</div><p>未找到匹配的套系</p></div>'; return; }
-  grid.innerHTML = list.map(e => {
-    const thumbs = e.samples.map(s => {
-      const src = thumbUrl(s.si, 80);
-      return src ? `<img src="${src}" loading="lazy" alt="" style="width:38px;height:38px;border-radius:6px;object-fit:cover;border:1px solid var(--border)">` : '';
-    }).join('');
-    return `<div class="hero-card" onclick="openSeriesView(${e.id},'${esc(e.name)}')" style="cursor:pointer">
-      <div style="font-size:30px;margin-bottom:6px">🎨</div>
-      <div class="hero-name">${e.name}</div>
-      <div class="hero-skin-count"><b>${e.skinKeys.size}</b> 款皮肤 · <b>${e.heroes.size}</b> 位英雄</div>
-      ${thumbs ? `<div style="display:flex;gap:4px;justify-content:center;margin-top:8px;flex-wrap:wrap">${thumbs}</div>` : ''}
-    </div>`;
-  }).join('');
+  seriesPage = 1;
+  renderSeriesPage();
+}
+
+function renderSeriesPage() {
+  const wrap = document.getElementById('series-table-wrap');
+  const pg = document.getElementById('series-pagination');
+  if (!wrap) return;
+  const total = seriesRows.length;
+  if (!total) {
+    wrap.innerHTML = '<div class="empty-state"><div class="icon">🎨</div><p>未找到匹配的套系</p></div>';
+    if (pg) pg.innerHTML = '';
+    return;
+  }
+  const totalPages = Math.ceil(total / SERIES_PAGE_SIZE);
+  const start = (seriesPage - 1) * SERIES_PAGE_SIZE;
+  const pageRows = seriesRows.slice(start, start + SERIES_PAGE_SIZE);
+  const MAX_COLS = Math.max(...pageRows.map(r => r.count), 0);
+
+  const rankNumHtml = (idx) => {
+    if (idx === 0) return `<span class="rank-num rank-1">🥇</span>`;
+    if (idx === 1) return `<span class="rank-num rank-2">🥈</span>`;
+    if (idx === 2) return `<span class="rank-num rank-3">🥉</span>`;
+    return `<span class="rank-num rank-other">${idx+1}</span>`;
+  };
+  const skinCellHtml = (skin) => {
+    if (!skin) return `<td class="ranking-empty-td"><span class="ranking-empty-cell">—</span></td>`;
+    const firstRec = skin.records.find(r=>r.type==='首发') || skin.records[0];
+    const imgSrc = thumbUrl(skin.si, 60);
+    return `<td class="ranking-skin-td">
+      <div class="ranking-skin-cell" onclick="goSkinDetail('${esc(skin.hero||'')}','${esc(skin.name)}')">
+        <div class="ranking-skin-thumb">
+          ${imgSrc ? `<img src="${imgSrc}" loading="lazy" alt="">` : qualityEmoji(skin.quality)}
+        </div>
+        <div class="ranking-skin-info">
+          <div class="ranking-skin-name" title="${skin.name}">${skin.name}</div>
+          <div class="ranking-skin-date">${firstRec?.date?.slice(0,7)||''}</div>
+        </div>
+      </div>
+    </td>`;
+  };
+  const colHeaders = Array.from({length: MAX_COLS}, (_, i) => `<th class="ranking-col-th">第${i+1}款</th>`).join('');
+  const tableRows = pageRows.map((row, i) => `
+    <tr>
+      <td class="ranking-rank-td">${rankNumHtml(start + i)}</td>
+      <td class="ranking-hero-td">
+        <span class="ranking-hero-name" onclick="openSeriesView(${row.id},'${esc(row.name)}')">🎨 ${row.name}</span>
+      </td>
+      <td class="ranking-count-td">${row.count}</td>
+      ${Array.from({length: MAX_COLS}, (_, ci) => skinCellHtml(row.skins[ci])).join('')}
+    </tr>`).join('');
+
+  wrap.innerHTML = `
+    <table class="ranking-table">
+      <thead><tr>
+        <th class="ranking-rank-th">排名</th>
+        <th class="ranking-hero-th">套系</th>
+        <th class="ranking-count-th">皮肤数</th>
+        ${colHeaders}
+      </tr></thead>
+      <tbody>${tableRows}</tbody>
+    </table>`;
+
+  let pgBtns = `<button class="pg-btn" onclick="goSeriesPage(${seriesPage-1})" ${seriesPage<=1?'disabled':''}>‹</button>`;
+  const rs = Math.max(1, seriesPage-2), re = Math.min(totalPages, seriesPage+2);
+  if (rs > 1) pgBtns += `<button class="pg-btn" onclick="goSeriesPage(1)">1</button>${rs>2?'<span style="padding:4px;color:var(--text3)">…</span>':''}`;
+  for (let i=rs; i<=re; i++) pgBtns += `<button class="pg-btn${i===seriesPage?' active':''}" onclick="goSeriesPage(${i})">${i}</button>`;
+  if (re < totalPages) pgBtns += `${re<totalPages-1?'<span style="padding:4px;color:var(--text3)">…</span>':''}<button class="pg-btn" onclick="goSeriesPage(${totalPages})">${totalPages}</button>`;
+  pgBtns += `<button class="pg-btn" onclick="goSeriesPage(${seriesPage+1})" ${seriesPage>=totalPages?'disabled':''}>›</button>`;
+  if (pg) pg.innerHTML = `
+    <div class="pagination-info">共 ${total} 个套系 · 第 ${seriesPage}/${totalPages} 页</div>
+    <div class="pagination-btns">${pgBtns}</div>`;
+}
+
+function goSeriesPage(p) {
+  const totalPages = Math.ceil(seriesRows.length / SERIES_PAGE_SIZE);
+  if (p < 1 || p > totalPages) return;
+  seriesPage = p;
+  renderSeriesPage();
+  document.getElementById('view-series').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function filterSeries() {
@@ -1834,11 +1917,15 @@ function computeGapData(heroMap) {
   });
 }
 
+function sortToggleStyle() {
+  return 'cursor:pointer;font-size:11px;font-weight:500;padding:2px 10px;border-radius:6px;border:1px solid var(--gold);color:var(--gold);background:rgba(201,168,76,0.08);user-select:none';
+}
+function sortToggleLabel(dir) {
+  return dir === 'desc' ? '↓ 大到小' : '↑ 小到大';
+}
 function sortToggleHtml(prefix, dir) {
-  return `<span style="display:inline-flex;gap:4px;margin-left:8px;vertical-align:middle">
-    <span class="sort-toggle-btn ${dir==='desc'?'active':''}" id="${prefix}-desc" style="cursor:pointer;font-size:11px;font-weight:500;padding:2px 8px;border-radius:6px;border:1px solid var(--border);${dir==='desc'?'color:var(--gold);border-color:var(--gold)':'color:var(--text3)'}" onclick="${prefix==='topskin'?'setTopSkinSort':'setGapSort'}('desc')">大→小</span>
-    <span class="sort-toggle-btn ${dir==='asc'?'active':''}" id="${prefix}-asc" style="cursor:pointer;font-size:11px;font-weight:500;padding:2px 8px;border-radius:6px;border:1px solid var(--border);${dir==='asc'?'color:var(--gold);border-color:var(--gold)':'color:var(--text3)'}" onclick="${prefix==='topskin'?'setTopSkinSort':'setGapSort'}('asc')">小→大</span>
-  </span>`;
+  const fn = prefix === 'topskin' ? 'toggleTopSkinSort' : 'toggleGapSort';
+  return `<span id="${prefix}-toggle" style="${sortToggleStyle()};margin-left:8px;vertical-align:middle;display:inline-block" onclick="${fn}()" title="点击切换排序">${sortToggleLabel(dir)}</span>`;
 }
 
 function barChartHtml(rows, fmt, color, bg) {
@@ -1872,17 +1959,17 @@ function renderGapChart() {
   if (el) el.innerHTML = barChartHtml(rows, v => v + '天', '#b090d8', 'rgba(176,144,216,0.15)');
 }
 
-function setTopSkinSort(dir) {
-  topSkinSortDir = dir;
-  document.getElementById('topskin-desc').style.cssText = `cursor:pointer;font-size:11px;font-weight:500;padding:2px 8px;border-radius:6px;border:1px solid var(--border);${dir==='desc'?'color:var(--gold);border-color:var(--gold)':'color:var(--text3)'}`;
-  document.getElementById('topskin-asc').style.cssText = `cursor:pointer;font-size:11px;font-weight:500;padding:2px 8px;border-radius:6px;border:1px solid var(--border);${dir==='asc'?'color:var(--gold);border-color:var(--gold)':'color:var(--text3)'}`;
+function toggleTopSkinSort() {
+  topSkinSortDir = topSkinSortDir === 'desc' ? 'asc' : 'desc';
+  const btn = document.getElementById('topskin-toggle');
+  if (btn) btn.textContent = sortToggleLabel(topSkinSortDir);
   renderTopSkinChart();
 }
 
-function setGapSort(dir) {
-  gapSortDir = dir;
-  document.getElementById('gap-desc').style.cssText = `cursor:pointer;font-size:11px;font-weight:500;padding:2px 8px;border-radius:6px;border:1px solid var(--border);${dir==='desc'?'color:var(--gold);border-color:var(--gold)':'color:var(--text3)'}`;
-  document.getElementById('gap-asc').style.cssText = `cursor:pointer;font-size:11px;font-weight:500;padding:2px 8px;border-radius:6px;border:1px solid var(--border);${dir==='asc'?'color:var(--gold);border-color:var(--gold)':'color:var(--text3)'}`;
+function toggleGapSort() {
+  gapSortDir = gapSortDir === 'desc' ? 'asc' : 'desc';
+  const btn = document.getElementById('gap-toggle');
+  if (btn) btn.textContent = sortToggleLabel(gapSortDir);
   renderGapChart();
 }
 
