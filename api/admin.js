@@ -455,8 +455,6 @@ async function listSeries(params) {
 async function upsertSeries(data, user) {
   const clean = {
     name: String(data?.name || '').trim(),
-    description: data?.description ? String(data.description).trim() : null,
-    sort_order: Number.isFinite(parseInt(data?.sort_order, 10)) ? parseInt(data.sort_order, 10) : 0,
   };
   if (!clean.name) return fail('套系名称不能为空');
   const client = getClient();

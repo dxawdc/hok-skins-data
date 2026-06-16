@@ -347,6 +347,8 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
 .ranking-table tr:hover td { background: var(--table-hover); }
 .ranking-rank-th, .ranking-rank-td { width: 48px; text-align: center; }
 .ranking-hero-th, .ranking-hero-td { width: 72px; }
+.series-ranking-table .ranking-hero-th,
+.series-ranking-table .ranking-hero-td { width: 132px; min-width: 132px; }
 .ranking-count-th, .ranking-count-td { width: 44px; text-align: center; font-weight: 700; color: var(--gold); }
 .ranking-col-th { width: 110px; min-width: 110px; }
 .ranking-skin-td, .ranking-empty-td { width: 110px; min-width: 110px; }
@@ -1675,6 +1677,9 @@ function buildSeriesRows() {
       return { ...first, records };
     }).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
     const dates = skins.map(s => s.date).filter(Boolean);
+    const returnDates = skins
+      .flatMap(s => (s.records || []).filter(r => r.type === '返场').map(r => r.date).filter(Boolean))
+      .sort();
     return {
       id: e.id,
       name: e.name,
@@ -1683,6 +1688,7 @@ function buildSeriesRows() {
       heroCount: e.heroes.size,
       firstDate: dates[0] || '',
       lastDate: dates[dates.length - 1] || '',
+      latestReturnDate: returnDates[returnDates.length - 1] || '',
       skins,
       searchText: `${e.name} ${[...e.heroes].join(' ')} ${skins.map(s => s.name).join(' ')}`.toLowerCase(),
     };
@@ -1729,18 +1735,18 @@ function renderSeriesPage() {
       <td class="ranking-count-td">${row.count}</td>
       <td style="white-space:nowrap;color:var(--text2);font-size:13px">${row.firstDate || '—'}</td>
       <td style="white-space:nowrap;color:var(--text2);font-size:13px">${row.lastDate || '—'}</td>
-      <td style="color:var(--text3);font-size:12px;min-width:160px">${row.description || '—'}</td>
+      <td style="white-space:nowrap;color:var(--text2);font-size:13px">${row.latestReturnDate || '—'}</td>
     </tr>`).join('');
 
   wrap.innerHTML = `
-    <table class="ranking-table">
+    <table class="ranking-table series-ranking-table">
       <thead><tr>
         <th class="ranking-rank-th">排名</th>
         <th class="ranking-hero-th">套系</th>
         <th class="ranking-count-th">皮肤数</th>
         <th>首款皮肤上线日期</th>
         <th>最近一款皮肤上线日期</th>
-        <th>套系说明</th>
+        <th>最近返场皮肤上线日期</th>
       </tr></thead>
       <tbody>${tableRows}</tbody>
     </table>`;
