@@ -299,6 +299,9 @@ module.exports = async function handler(req, res) {
   if (path.endsWith('/series')       && m === 'POST')   { const [u,e]=requireAuth(h); if(e) return send(e); return send(await upsertSeries(body,u)); }
   if (/\/series\/\d+$/.test(path)    && m === 'PUT')    { const [u,e]=requireAuth(h); if(e) return send(e); return send(await upsertSeries({ ...body, id: path.split('/').pop() },u)); }
   if (/\/series\/\d+$/.test(path)    && m === 'DELETE') { const [u,e]=requireAuth(h); if(e) return send(e); return send(await deleteSeries(path.split('/').pop(),u)); }
+  if (/\/series\/\d+\/skins$/.test(path)      && m === 'GET')    { const [u,e]=requireAuth(h); if(e) return send(e); return send(await listSeriesSkins(path.split('/').slice(-2)[0])); }
+  if (/\/series\/\d+\/skins$/.test(path)      && m === 'POST')   { const [u,e]=requireAuth(h); if(e) return send(e); return send(await bindSeriesSkins(path.split('/').slice(-2)[0],body,u)); }
+  if (/\/series\/\d+\/skins\/\d+$/.test(path) && m === 'DELETE') { const [u,e]=requireAuth(h); if(e) return send(e); return send(await unbindSeriesSkin(path.split('/').slice(-3)[0],path.split('/').pop(),u)); }
   if (path.endsWith('/skins')        && m === 'GET')    { const [u,e]=requireAuth(h); if(e) return send(e); return send(await listSkins(qs)); }
   if (path.endsWith('/skins')        && m === 'POST')   { const [u,e]=requireAuth(h); if(e) return send(e); return send(await insertSkin(body,u)); }
   if (/\/skins\/\d+$/.test(path)     && m === 'PUT')    { const [u,e]=requireAuth(h); if(e) return send(e); return send(await updateSkin(path.split('/').pop(),body,u)); }
@@ -482,6 +485,52 @@ async function deleteSeries(id, user) {
   const { error } = await client.from('skin_series').delete().eq('id', id);
   if (error) return fail(error.message);
   await log(client, user.username, 'delete_series', parseInt(id, 10), { deleted: before });
+  return ok({ ok: true });
+}
+
+// ── 套系↔皮肤绑定 ─────────────────────────────────────────────
+async function listSeriesSkins(seriesId) {
+  const sid = parseInt(seriesId, 10);
+  const { data, error } = await getClient()
+    .from('skin_profile_series')
+    .select('skin_profiles:skin_profile_id(*)')
+    .eq('series_id', sid);
+  if (error) return fail(error.message);
+  const profiles = (data || [])
+    .map(r => r.skin_profiles)
+    .filter(Boolean)
+    .map(p => ({ ...p, quality: normalizeQuality(p.quality) }))
+    .sort((a, b) =>
+      String(a.hero || '').localeCompare(String(b.hero || ''), 'zh-Hans-CN') ||
+      String(a.name || '').localeCompare(String(b.name || ''), 'zh-Hans-CN'));
+  return ok({ profiles, total: profiles.length });
+}
+
+async function bindSeriesSkins(seriesId, body, user) {
+  const ids = normalizeSeriesIds(body?.skin_profile_ids);
+  if (!ids || !ids.length) return fail('请选择要添加的皮肤');
+  const sid = parseInt(seriesId, 10);
+  const rows = ids.map(pid => ({ skin_profile_id: pid, series_id: sid }));
+  const client = getClient();
+  const { error } = await client
+    .from('skin_profile_series')
+    .upsert(rows, { onConflict: 'skin_profile_id,series_id', ignoreDuplicates: true });
+  if (error) return fail(error.message);
+  await log(client, user.username, 'bind_series_skins', sid, { series_id: sid, skin_profile_ids: ids });
+  return ok({ added: ids.length });
+}
+
+async function unbindSeriesSkin(seriesId, profileId, user) {
+  const sid = parseInt(seriesId, 10);
+  const pid = parseInt(profileId, 10);
+  const client = getClient();
+  const { error } = await client
+    .from('skin_profile_series')
+    .delete()
+    .eq('series_id', sid)
+    .eq('skin_profile_id', pid);
+  if (error) return fail(error.message);
+  await log(client, user.username, 'unbind_series_skin', sid, { series_id: sid, skin_profile_id: pid });
   return ok({ ok: true });
 }
 

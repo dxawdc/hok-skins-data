@@ -656,6 +656,29 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
   </div>
 </div>
 
+<div class="modal-bg" id="modal-series-skins">
+  <div class="modal" style="width:560px;max-width:96vw">
+    <h3>管理套系皮肤 · <span id="series-skins-title" style="color:var(--gold)"></span></h3>
+
+    <div class="form-group">
+      <label>已绑定皮肤 <span style="color:var(--text3);font-weight:400">（点 × 移除，不会删除皮肤资料）</span></label>
+      <div id="series-bound-list" style="max-height:200px;overflow:auto;border:1px solid var(--border);border-radius:8px;padding:6px"></div>
+    </div>
+
+    <div class="form-group">
+      <label>添加皮肤 <span style="color:var(--text3);font-weight:400">（可多选）</span></label>
+      <input type="text" id="series-add-search" class="search-input" placeholder="搜索皮肤名 / 英雄名..." style="width:100%;margin-bottom:6px" oninput="filterSeriesAddSelect(this.value)">
+      <select id="series-add-select" class="filter-select" style="width:100%;min-height:140px" multiple></select>
+      <div style="font-size:12px;color:var(--text3);margin-top:5px">按住 Ctrl / Command 可多选。</div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">关闭</button>
+      <button class="btn btn-primary" id="series-add-btn" onclick="doAddSeriesSkins()">添加选中</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="modal-skin">
   <div class="modal" style="width:560px;max-width:96vw">
     <h3 id="modal-skin-title">编辑皮肤记录</h3>
@@ -1064,6 +1087,7 @@ function renderSeriesTable(list) {
       <td style="color:var(--text3);font-size:12px">${s.description || '-'}</td>
       <td>${s.sort_order || 0}</td>
       <td>
+        <button class="btn btn-outline btn-sm" onclick="openSeriesSkins(${s.id},'${String(s.name).replace(/'/g,"\\'")}')">管理皮肤</button>
         <button class="btn btn-outline btn-sm" onclick='editSeries(${JSON.stringify(JSON.stringify(s))})'>编辑</button>
         <button class="btn btn-danger btn-sm" onclick="doDeleteSeries(${s.id},'${String(s.name).replace(/'/g,"\\'")}')">删除</button>
       </td>
@@ -1125,6 +1149,81 @@ async function doDeleteSeries(id, name) {
   allSkinProfiles = [];
   await loadSeries();
   toast('套系已删除');
+}
+
+// ── 套系：管理皮肤 ─────────────────────────────────────────────
+let currentSeriesId = null;
+let currentSeriesName = '';
+
+async function openSeriesSkins(id, name) {
+  currentSeriesId = id;
+  currentSeriesName = name;
+  document.getElementById('series-skins-title').textContent = name;
+  document.getElementById('series-add-search').value = '';
+  await ensureSkinProfiles();
+  filterSeriesAddSelect('');
+  document.getElementById('modal-series-skins').classList.add('show');
+  await loadSeriesBound();
+}
+
+async function loadSeriesBound() {
+  const list = document.getElementById('series-bound-list');
+  list.innerHTML = '<div style="color:var(--text3);font-size:12px;padding:8px">加载中…</div>';
+  const res = await api('GET', `/series/${currentSeriesId}/skins`);
+  if (res.error) { list.innerHTML = `<div style="color:var(--red);font-size:12px;padding:8px">${res.error}</div>`; return; }
+  renderSeriesBoundSkins(res.profiles || []);
+}
+
+function renderSeriesBoundSkins(list) {
+  const box = document.getElementById('series-bound-list');
+  if (!list.length) {
+    box.innerHTML = '<div style="color:var(--text3);font-size:12px;padding:8px">该套系暂无皮肤，从下方添加。</div>';
+    return;
+  }
+  box.innerHTML = list.map(p => `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 8px;border-bottom:1px solid var(--border)">
+      <span style="font-size:13px">${p.hero} · ${p.name}<span style="color:var(--text3)">（${normalizeQuality(p.quality||'')}）</span></span>
+      <button class="btn btn-danger btn-sm" onclick="doRemoveSeriesSkin(${p.id})">×</button>
+    </div>`).join('');
+}
+
+function filterSeriesAddSelect(keyword) {
+  const sel = document.getElementById('series-add-select');
+  if (!sel) return;
+  const kw = (keyword || '').trim().toLowerCase();
+  const matched = kw
+    ? allSkinProfiles.filter(p => `${p.hero || ''} ${p.name || ''}`.toLowerCase().includes(kw))
+    : allSkinProfiles;
+  sel.innerHTML = matched.map(p =>
+    `<option value="${p.id}">${p.hero} · ${p.name}（${normalizeQuality(p.quality||'')}）</option>`
+  ).join('');
+}
+
+async function doAddSeriesSkins() {
+  const sel = document.getElementById('series-add-select');
+  const ids = Array.from(sel.selectedOptions).map(o => parseInt(o.value, 10)).filter(Number.isFinite);
+  if (!ids.length) return toast('请先选择要添加的皮肤', 'err');
+  const btn = document.getElementById('series-add-btn');
+  btn.disabled = true; btn.textContent = '添加中…';
+  try {
+    const res = await api('POST', `/series/${currentSeriesId}/skins`, { skin_profile_ids: ids });
+    if (res.error) return toast(res.error, 'err');
+    allSkinProfiles = [];          // 使皮肤编辑器的套系数据失效，下次重载
+    await ensureSkinProfiles();    // 立即重载，保证本弹窗搜索仍可用
+    filterSeriesAddSelect(document.getElementById('series-add-search').value);
+    await loadSeriesBound();
+    toast('套系皮肤已保存');
+  } finally {
+    btn.disabled = false; btn.textContent = '添加选中';
+  }
+}
+
+async function doRemoveSeriesSkin(profileId) {
+  const res = await api('DELETE', `/series/${currentSeriesId}/skins/${profileId}`);
+  if (res.error) return toast(res.error, 'err');
+  allSkinProfiles = [];
+  await loadSeriesBound();
+  toast('套系皮肤已删除');
 }
 
 function renderSkinSeriesOptions(selected=[]) {

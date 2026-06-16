@@ -575,6 +575,7 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
       <div class="nav-tab active" id="tab-list" onclick="showView('list',this)">皮肤明细</div>
       <div class="nav-tab" id="tab-hero-list" onclick="showView('hero-list',this)">英雄明细</div>
       <div class="nav-tab" id="tab-heroes" onclick="showView('heroes',this)">英雄皮肤</div>
+      <div class="nav-tab" id="tab-series" onclick="showView('series',this)">皮肤套系</div>
       <div class="nav-tab" id="tab-ranking" onclick="showView('ranking',this)">皮肤盘点</div>
       <div class="nav-tab" id="tab-stats" onclick="showView('stats',this)">统计分析</div>
     </div>
@@ -607,6 +608,7 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
         <div class="sidebar-nav-item active" id="snav-list" onclick="showView('list', null, 'list')">📋 皮肤明细</div>
         <div class="sidebar-nav-item" id="snav-hero-list" onclick="showView('hero-list', null, 'hero-list')">👤 英雄明细</div>
         <div class="sidebar-nav-item" id="snav-heroes" onclick="showView('heroes', null, 'heroes')">🎭 英雄皮肤</div>
+        <div class="sidebar-nav-item" id="snav-series" onclick="showView('series', null, 'series')">🎨 皮肤套系</div>
         <div class="sidebar-nav-item" id="snav-ranking" onclick="showView('ranking', null, 'ranking')">🏆 皮肤盘点</div>
         <div class="sidebar-nav-item" id="snav-stats" onclick="showView('stats', null, 'stats')">📊 统计分析</div>
         <div class="sidebar-nav-item" id="snav-contact" onclick="showView('contact', null, 'contact')">📬 联系我们</div>
@@ -747,6 +749,20 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
     <div id="hero-detail-wrap" style="display:none"></div>
   </div>
 
+  <div id="view-series" class="view">
+    <div id="series-list-wrap">
+      <div class="filter-bar">
+        <div class="search-box" style="flex:1;min-width:200px">
+          <span class="icon">🔍</span>
+          <input type="text" id="search-series" placeholder="搜索套系 / 皮肤 / 英雄..." oninput="filterSeries()">
+        </div>
+        <span style="color:var(--text3);font-size:13px;white-space:nowrap" id="series-count-label"></span>
+      </div>
+      <div class="hero-grid" id="series-grid"></div>
+    </div>
+    <div id="series-detail-view" style="display:none"></div>
+  </div>
+
   <div id="view-stats" class="view">
     <div class="stats-wrap" id="stats-content"></div>
   </div>
@@ -858,6 +874,9 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
     </div>
     <div class="bottom-nav-item" id="bnav-heroes" onclick="showView('heroes',null,'heroes');setBottomNav('heroes')">
       <span class="bn-icon">🎭</span>图鉴
+    </div>
+    <div class="bottom-nav-item" id="bnav-series" onclick="showView('series',null,'series');setBottomNav('series')">
+      <span class="bn-icon">🎨</span>套系
     </div>
     <div class="bottom-nav-item" id="bnav-ranking" onclick="showView('ranking',null,'ranking');setBottomNav('ranking')">
       <span class="bn-icon">🏆</span>盘点
@@ -1148,6 +1167,7 @@ function showView(v, el, snavId) {
     }, 50);
   }
   if (v === 'ranking') renderRanking();
+  if (v === 'series') { backToSeriesList(); renderSeriesGrid(); }
 }
 function resetToHome() {
   showView('list', document.getElementById('tab-list'), 'list');
@@ -1569,8 +1589,8 @@ function skinSeriesList(record) {
   return Array.isArray(record?.series) ? record.series : [];
 }
 
-function openSeriesDetail(seriesId, seriesName) {
-  document.getElementById('heroes-list-wrap').style.display='none';
+// 收集某套系下的皮肤（按英雄+名称聚合，按首发日期倒序）
+function collectSeriesSkins(seriesId) {
   const skinMap = new Map();
   RAW.forEach(r => {
     if (!skinSeriesList(r).some(s => String(s.id) === String(seriesId))) return;
@@ -1578,12 +1598,42 @@ function openSeriesDetail(seriesId, seriesName) {
     if (!skinMap.has(key)) skinMap.set(key, []);
     skinMap.get(key).push(r);
   });
-  const skins = [...skinMap.values()].map(records => {
+  return [...skinMap.values()].map(records => {
     records.sort((a,b)=>a.date>b.date?1:-1);
     const first = firstReleaseRecord(records);
     return { ...first, records, returnCount: records.filter(r=>r.type==='返场').length };
   }).sort((a,b)=>(b.date || '').localeCompare(a.date || ''));
+}
 
+function seriesSkinsGridHtml(skins) {
+  return `<div class="hero-skins-grid">
+    ${skins.map(s => {
+      const imgSrc = thumbUrl(s.si, 200);
+      const tagSrc = thumbUrl(s.qi, 80);
+      return `<div class="skin-card" onclick="goSkinDetail('${esc(s.hero)}','${esc(s.name)}')">
+        <div class="skin-card-img">
+          ${imgSrc ? `<img class="skin-thumb" src="${imgSrc}" loading="lazy" alt="${s.name}">` : `<div class="img-ph">${qualityEmoji(s.quality)}</div>`}
+        </div>
+        <div class="skin-card-body">
+          <div class="skin-card-title">${s.name}</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+            <span style="color:var(--gold-light);font-size:12px">${s.hero}</span>
+            ${tagSrc ? `<img src="${tagSrc}" style="height:16px;object-fit:contain;image-rendering:pixelated" alt="${s.tag}">` : ''}
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:12px;color:var(--text3)">
+            <span>${s.date || '—'}</span>
+            <span>${s.returnCount ? `返场 ${s.returnCount}` : '首发'}</span>
+          </div>
+        </div>
+      </div>`;
+    }).join('') || '<div class="empty-state" style="grid-column:1/-1"><div class="icon">🎨</div><p>该套系暂无皮肤</p></div>'}
+  </div>`;
+}
+
+// 皮肤详情里点击套系 chip：在「英雄皮肤」页内展示套系详情
+function openSeriesDetail(seriesId, seriesName) {
+  document.getElementById('heroes-list-wrap').style.display='none';
+  const skins = collectSeriesSkins(seriesId);
   const wrap = document.getElementById('hero-detail-wrap');
   wrap.style.display='block';
   wrap.innerHTML = `
@@ -1592,28 +1642,79 @@ function openSeriesDetail(seriesId, seriesName) {
       <div class="hero-detail-title">${seriesName}</div>
       <div class="hero-detail-meta"><span>共 ${skins.length} 款皮肤</span><span>按首发日期倒序</span></div>
     </div>
-    <div class="hero-skins-grid">
-      ${skins.map(s => {
-        const imgSrc = thumbUrl(s.si, 200);
-        const tagSrc = thumbUrl(s.qi, 80);
-        return `<div class="skin-card" onclick="openSkinDetail('${esc(s.hero)}','${esc(s.name)}')">
-          <div class="skin-card-img">
-            ${imgSrc ? `<img class="skin-thumb" src="${imgSrc}" loading="lazy" alt="${s.name}">` : `<div class="img-ph">${qualityEmoji(s.quality)}</div>`}
-          </div>
-          <div class="skin-card-body">
-            <div class="skin-card-title">${s.name}</div>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
-              <span style="color:var(--gold-light);font-size:12px">${s.hero}</span>
-              ${tagSrc ? `<img src="${tagSrc}" style="height:16px;object-fit:contain;image-rendering:pixelated" alt="${s.tag}">` : ''}
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:12px;color:var(--text3)">
-              <span>${s.date || '—'}</span>
-              <span>${s.returnCount ? `返场 ${s.returnCount}` : '首发'}</span>
-            </div>
-          </div>
-        </div>`;
-      }).join('') || '<div class="empty-state" style="grid-column:1/-1"><div class="icon">🎨</div><p>该套系暂无皮肤</p></div>'}
+    ${seriesSkinsGridHtml(skins)}`;
+}
+
+// ── 皮肤套系标签页（公开列表 + 详情）──
+let seriesSearch = '';
+
+function buildSeriesIndex() {
+  const map = new Map();
+  RAW.forEach(r => {
+    const key = r.hero + '|' + r.name;
+    skinSeriesList(r).forEach(s => {
+      if (!s || s.id === undefined || s.id === null) return;
+      let entry = map.get(s.id);
+      if (!entry) { entry = { id: s.id, name: s.name || '', skinKeys: new Set(), heroes: new Set(), samples: [] }; map.set(s.id, entry); }
+      entry.skinKeys.add(key);
+      if (r.hero) entry.heroes.add(r.hero);
+      if (entry.samples.length < 4 && r.si && !entry.samples.some(x => x.key === key)) entry.samples.push({ key, si: r.si, quality: r.quality });
+    });
+  });
+  return [...map.values()].map(e => ({
+    ...e,
+    searchText: `${e.name} ${[...e.heroes].join(' ')} ${[...e.skinKeys].map(k => k.split('|')[1]).join(' ')}`.toLowerCase(),
+  })).sort((a, b) => b.skinKeys.size - a.skinKeys.size || String(a.name).localeCompare(String(b.name), 'zh-Hans-CN'));
+}
+
+function renderSeriesGrid() {
+  let list = buildSeriesIndex();
+  const kw = seriesSearch.trim().toLowerCase();
+  if (kw) list = list.filter(e => e.searchText.includes(kw));
+  const label = document.getElementById('series-count-label');
+  if (label) label.textContent = `共 ${list.length} 个套系`;
+  const grid = document.getElementById('series-grid');
+  if (!grid) return;
+  if (!list.length) { grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">🎨</div><p>未找到匹配的套系</p></div>'; return; }
+  grid.innerHTML = list.map(e => {
+    const thumbs = e.samples.map(s => {
+      const src = thumbUrl(s.si, 80);
+      return src ? `<img src="${src}" loading="lazy" alt="" style="width:38px;height:38px;border-radius:6px;object-fit:cover;border:1px solid var(--border)">` : '';
+    }).join('');
+    return `<div class="hero-card" onclick="openSeriesView(${e.id},'${esc(e.name)}')" style="cursor:pointer">
+      <div style="font-size:30px;margin-bottom:6px">🎨</div>
+      <div class="hero-name">${e.name}</div>
+      <div class="hero-skin-count"><b>${e.skinKeys.size}</b> 款皮肤 · <b>${e.heroes.size}</b> 位英雄</div>
+      ${thumbs ? `<div style="display:flex;gap:4px;justify-content:center;margin-top:8px;flex-wrap:wrap">${thumbs}</div>` : ''}
     </div>`;
+  }).join('');
+}
+
+function filterSeries() {
+  seriesSearch = document.getElementById('search-series').value;
+  renderSeriesGrid();
+}
+
+function openSeriesView(seriesId, seriesName) {
+  document.getElementById('series-list-wrap').style.display = 'none';
+  const detail = document.getElementById('series-detail-view');
+  const skins = collectSeriesSkins(seriesId);
+  detail.style.display = 'block';
+  detail.innerHTML = `
+    <div class="hero-detail-header">
+      <div class="breadcrumb"><a onclick="backToSeriesList()">← 返回套系列表</a> / ${seriesName}</div>
+      <div class="hero-detail-title">${seriesName}</div>
+      <div class="hero-detail-meta"><span>共 ${skins.length} 款皮肤</span><span>按首发日期倒序</span></div>
+    </div>
+    ${seriesSkinsGridHtml(skins)}`;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function backToSeriesList() {
+  const detail = document.getElementById('series-detail-view');
+  if (detail) { detail.style.display = 'none'; detail.innerHTML = ''; }
+  const listWrap = document.getElementById('series-list-wrap');
+  if (listWrap) listWrap.style.display = 'block';
 }
 
 function openSkinDetail(hero, skinName) {
@@ -1714,9 +1815,13 @@ function getChart(id) {
   return _charts[id];
 }
 
-function buildDaysSinceChart(heroMap) {
+// 两个 TOP20 的排序方向与数据缓存（默认大到小）
+let topSkinSortDir = 'desc', gapSortDir = 'desc';
+let _topSkinData = [], _gapData = [];
+
+function computeGapData(heroMap) {
   const today = Date.now();
-  const herodays = Object.entries(heroMap).map(([hero, data]) => {
+  return Object.entries(heroMap).map(([hero, data]) => {
     let latestDate = '';
     data.skins.forEach(skin => {
       const fr = skin.records.find(r=>r.type==='首发') || skin.records[0];
@@ -1726,20 +1831,59 @@ function buildDaysSinceChart(heroMap) {
       ? Math.floor((today - new Date(latestDate).getTime()) / 86400000)
       : 9999;
     return { hero, days, latestDate };
-  }).sort((a, b) => b.days - a.days).slice(0, 20);
+  });
+}
 
-  const maxDays = herodays[0]?.days || 1;
+function sortToggleHtml(prefix, dir) {
+  return `<span style="display:inline-flex;gap:4px;margin-left:8px;vertical-align:middle">
+    <span class="sort-toggle-btn ${dir==='desc'?'active':''}" id="${prefix}-desc" style="cursor:pointer;font-size:11px;font-weight:500;padding:2px 8px;border-radius:6px;border:1px solid var(--border);${dir==='desc'?'color:var(--gold);border-color:var(--gold)':'color:var(--text3)'}" onclick="${prefix==='topskin'?'setTopSkinSort':'setGapSort'}('desc')">大→小</span>
+    <span class="sort-toggle-btn ${dir==='asc'?'active':''}" id="${prefix}-asc" style="cursor:pointer;font-size:11px;font-weight:500;padding:2px 8px;border-radius:6px;border:1px solid var(--border);${dir==='asc'?'color:var(--gold);border-color:var(--gold)':'color:var(--text3)'}" onclick="${prefix==='topskin'?'setTopSkinSort':'setGapSort'}('asc')">小→大</span>
+  </span>`;
+}
+
+function barChartHtml(rows, fmt, color, bg) {
+  const max = Math.max(...rows.map(r => r.value), 1);
   return `<div class="bar-chart">
-    ${herodays.map(({hero, days, latestDate}) => `
+    ${rows.map(r => `
       <div class="bar-row">
-        <div class="bar-label" style="color:var(--gold-light);cursor:pointer" onclick="openHeroFromStats('${esc(hero)}')">${hero}</div>
+        <div class="bar-label" style="color:var(--gold-light);cursor:pointer" onclick="openHeroFromStats('${esc(r.hero)}')">${r.hero}</div>
         <div class="bar-track">
-          <div class="bar-fill" style="width:${Math.round(days/maxDays*100)}%;background:rgba(176,144,216,0.15);border-left:3px solid #b090d8;color:#b090d8">
-            ${days}天
-          </div>
+          <div class="bar-fill" style="width:${Math.round(r.value/max*100)}%;background:${bg};border-left:3px solid ${color};color:${color}">${fmt(r.value)}</div>
         </div>
       </div>`).join('')}
   </div>`;
+}
+
+function renderTopSkinChart() {
+  const rows = [..._topSkinData]
+    .sort((a, b) => topSkinSortDir === 'desc' ? b[1]-a[1] : a[1]-b[1])
+    .slice(0, 20)
+    .map(([hero, count]) => ({ hero, value: count }));
+  const el = document.getElementById('top-skin-chart');
+  if (el) el.innerHTML = barChartHtml(rows, v => v, 'var(--gold)', 'rgba(201,168,76,0.12)');
+}
+
+function renderGapChart() {
+  const rows = [..._gapData]
+    .sort((a, b) => gapSortDir === 'desc' ? b.days-a.days : a.days-b.days)
+    .slice(0, 20)
+    .map(d => ({ hero: d.hero, value: d.days }));
+  const el = document.getElementById('gap-chart');
+  if (el) el.innerHTML = barChartHtml(rows, v => v + '天', '#b090d8', 'rgba(176,144,216,0.15)');
+}
+
+function setTopSkinSort(dir) {
+  topSkinSortDir = dir;
+  document.getElementById('topskin-desc').style.cssText = `cursor:pointer;font-size:11px;font-weight:500;padding:2px 8px;border-radius:6px;border:1px solid var(--border);${dir==='desc'?'color:var(--gold);border-color:var(--gold)':'color:var(--text3)'}`;
+  document.getElementById('topskin-asc').style.cssText = `cursor:pointer;font-size:11px;font-weight:500;padding:2px 8px;border-radius:6px;border:1px solid var(--border);${dir==='asc'?'color:var(--gold);border-color:var(--gold)':'color:var(--text3)'}`;
+  renderTopSkinChart();
+}
+
+function setGapSort(dir) {
+  gapSortDir = dir;
+  document.getElementById('gap-desc').style.cssText = `cursor:pointer;font-size:11px;font-weight:500;padding:2px 8px;border-radius:6px;border:1px solid var(--border);${dir==='desc'?'color:var(--gold);border-color:var(--gold)':'color:var(--text3)'}`;
+  document.getElementById('gap-asc').style.cssText = `cursor:pointer;font-size:11px;font-weight:500;padding:2px 8px;border-radius:6px;border:1px solid var(--border);${dir==='asc'?'color:var(--gold);border-color:var(--gold)':'color:var(--text3)'}`;
+  renderGapChart();
 }
 
 function renderStats() {
@@ -1748,11 +1892,15 @@ function renderStats() {
   RAW.filter(r=>r.type==='首发').forEach(r => { qualityCounts[r.quality]=(qualityCounts[r.quality]||0)+1; });
   const heroCounts = {};
   Object.entries(heroMap).forEach(([h,d])=>heroCounts[h]=d.skins.size);
-  const topHeroes = Object.entries(heroCounts).sort((a,b)=>b[1]-a[1]).slice(0,20);
+  _topSkinData = Object.entries(heroCounts);
+  _gapData = computeGapData(heroMap);
   const totalSkins = new Set(RAW.map(r=>r.hero+'|'+r.name)).size;
   const total = Object.values(qualityCounts).reduce((a,b)=>a+b,0);
-  const maxH = topHeroes[0]?.[1]||1;
-  
+
+  // 套系统计：套系总数 + 覆盖皮肤数
+  const seriesSet = new Set(), skinsInSeries = new Set();
+  RAW.forEach(r => skinSeriesList(r).forEach(s => { seriesSet.add(s.id); skinsInSeries.add(r.hero+'|'+r.name); }));
+
   const totalHeroes = HEROES.length;
 
   const qs = Q_ORDER.filter(q=>qualityCounts[q]);
@@ -1788,6 +1936,7 @@ function renderStats() {
       <div class="stat-card"><div class="stat-label">皮肤款数</div><div class="stat-value">${totalSkins}</div><div class="stat-sub">唯一皮肤（英雄+名称）</div></div>
       <div class="stat-card"><div class="stat-label">返场次数</div><div class="stat-value">${RAW.filter(r=>r.type==='返场').length}</div><div class="stat-sub">次返场记录</div></div>
       <div class="stat-card"><div class="stat-label">常驻皮肤</div><div class="stat-value">${new Set(RAW.filter(r=>r.permanent==='是').map(r=>r.hero+'|'+r.name)).size}</div><div class="stat-sub">款常驻皮肤</div></div>
+      <div class="stat-card"><div class="stat-label">套系数</div><div class="stat-value">${seriesSet.size}</div><div class="stat-sub">覆盖 ${skinsInSeries.size} 款皮肤</div></div>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px">
@@ -1814,18 +1963,12 @@ function renderStats() {
         <div id="quality-skin-panel"></div>
       </div>
       <div class="chart-section">
-        <h3>皮肤数量 TOP 20 英雄</h3>
-        <div class="bar-chart">
-          ${topHeroes.map(([h,c])=>`
-            <div class="bar-row">
-              <div class="bar-label" style="color:var(--gold-light);cursor:pointer" onclick="openHeroFromStats('${esc(h)}')">${h}</div>
-              <div class="bar-track"><div class="bar-fill" style="width:${Math.round(c/maxH*100)}%;background:rgba(201,168,76,0.12);border-left:3px solid var(--gold);color:var(--gold)">${c}</div></div>
-            </div>`).join('')}
-        </div>
+        <h3>皮肤数量 TOP 20 英雄 ${sortToggleHtml('topskin', topSkinSortDir)}</h3>
+        <div id="top-skin-chart"></div>
       </div>
       <div class="chart-section">
-        <h3>新皮空窗期 TOP 20 英雄 <span style="color:var(--text3);font-weight:400;font-size:11px">· 距最近新皮上线天数</span></h3>
-        ${buildDaysSinceChart(heroMap)}
+        <h3>新皮空窗期 TOP 20 英雄 <span style="color:var(--text3);font-weight:400;font-size:11px">· 距最近新皮上线天数</span> ${sortToggleHtml('gap', gapSortDir)}</h3>
+        <div id="gap-chart"></div>
       </div>
     </div>
 
@@ -1864,6 +2007,8 @@ function renderStats() {
     </div>`;
 
   activeQuality = null;
+  renderTopSkinChart();
+  renderGapChart();
   renderTrendCharts();
   renderYearCompareChips();
 }
