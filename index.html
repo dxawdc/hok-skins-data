@@ -758,7 +758,7 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
         </div>
         <span style="color:var(--text3);font-size:13px;white-space:nowrap" id="series-count-label"></span>
       </div>
-      <div class="ranking-sub">按套系皮肤总数排名 · 皮肤按首发时间由早到晚排列 · 点击皮肤查看详情，点击套系名查看套系页</div>
+      <div class="ranking-sub">按套系皮肤总数排名 · 点击套系名查看套系内全部皮肤</div>
       <div class="ranking-table-wrap" id="series-table-wrap"></div>
       <div class="pagination" id="series-pagination"></div>
     </div>
@@ -1661,7 +1661,8 @@ function buildSeriesRows() {
     skinSeriesList(r).forEach(s => {
       if (!s || s.id === undefined || s.id === null) return;
       let entry = map.get(s.id);
-      if (!entry) { entry = { id: s.id, name: s.name || '', skinMap: new Map(), heroes: new Set() }; map.set(s.id, entry); }
+      if (!entry) { entry = { id: s.id, name: s.name || '', description: '', skinMap: new Map(), heroes: new Set() }; map.set(s.id, entry); }
+      if (!entry.description && s.description) entry.description = s.description;
       if (!entry.skinMap.has(key)) entry.skinMap.set(key, []);
       entry.skinMap.get(key).push(r);
       if (r.hero) entry.heroes.add(r.hero);
@@ -1673,11 +1674,15 @@ function buildSeriesRows() {
       const first = firstReleaseRecord(records);
       return { ...first, records };
     }).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+    const dates = skins.map(s => s.date).filter(Boolean);
     return {
       id: e.id,
       name: e.name,
+      description: e.description || '',
       count: skins.length,
       heroCount: e.heroes.size,
+      firstDate: dates[0] || '',
+      lastDate: dates[dates.length - 1] || '',
       skins,
       searchText: `${e.name} ${[...e.heroes].join(' ')} ${skins.map(s => s.name).join(' ')}`.toLowerCase(),
     };
@@ -1708,7 +1713,6 @@ function renderSeriesPage() {
   const totalPages = Math.ceil(total / SERIES_PAGE_SIZE);
   const start = (seriesPage - 1) * SERIES_PAGE_SIZE;
   const pageRows = seriesRows.slice(start, start + SERIES_PAGE_SIZE);
-  const MAX_COLS = Math.max(...pageRows.map(r => r.count), 0);
 
   const rankNumHtml = (idx) => {
     if (idx === 0) return `<span class="rank-num rank-1">🥇</span>`;
@@ -1716,23 +1720,6 @@ function renderSeriesPage() {
     if (idx === 2) return `<span class="rank-num rank-3">🥉</span>`;
     return `<span class="rank-num rank-other">${idx+1}</span>`;
   };
-  const skinCellHtml = (skin) => {
-    if (!skin) return `<td class="ranking-empty-td"><span class="ranking-empty-cell">—</span></td>`;
-    const firstRec = skin.records.find(r=>r.type==='首发') || skin.records[0];
-    const imgSrc = thumbUrl(skin.si, 60);
-    return `<td class="ranking-skin-td">
-      <div class="ranking-skin-cell" onclick="goSkinDetail('${esc(skin.hero||'')}','${esc(skin.name)}')">
-        <div class="ranking-skin-thumb">
-          ${imgSrc ? `<img src="${imgSrc}" loading="lazy" alt="">` : qualityEmoji(skin.quality)}
-        </div>
-        <div class="ranking-skin-info">
-          <div class="ranking-skin-name" title="${skin.name}">${skin.name}</div>
-          <div class="ranking-skin-date">${firstRec?.date?.slice(0,7)||''}</div>
-        </div>
-      </div>
-    </td>`;
-  };
-  const colHeaders = Array.from({length: MAX_COLS}, (_, i) => `<th class="ranking-col-th">第${i+1}款</th>`).join('');
   const tableRows = pageRows.map((row, i) => `
     <tr>
       <td class="ranking-rank-td">${rankNumHtml(start + i)}</td>
@@ -1740,7 +1727,9 @@ function renderSeriesPage() {
         <span class="ranking-hero-name" onclick="openSeriesView(${row.id},'${esc(row.name)}')">🎨 ${row.name}</span>
       </td>
       <td class="ranking-count-td">${row.count}</td>
-      ${Array.from({length: MAX_COLS}, (_, ci) => skinCellHtml(row.skins[ci])).join('')}
+      <td style="white-space:nowrap;color:var(--text2);font-size:13px">${row.firstDate || '—'}</td>
+      <td style="white-space:nowrap;color:var(--text2);font-size:13px">${row.lastDate || '—'}</td>
+      <td style="color:var(--text3);font-size:12px;min-width:160px">${row.description || '—'}</td>
     </tr>`).join('');
 
   wrap.innerHTML = `
@@ -1749,7 +1738,9 @@ function renderSeriesPage() {
         <th class="ranking-rank-th">排名</th>
         <th class="ranking-hero-th">套系</th>
         <th class="ranking-count-th">皮肤数</th>
-        ${colHeaders}
+        <th>首款皮肤上线日期</th>
+        <th>最近一款皮肤上线日期</th>
+        <th>套系说明</th>
       </tr></thead>
       <tbody>${tableRows}</tbody>
     </table>`;
@@ -1918,14 +1909,15 @@ function computeGapData(heroMap) {
 }
 
 function sortToggleStyle() {
-  return 'cursor:pointer;font-size:11px;font-weight:500;padding:2px 10px;border-radius:6px;border:1px solid var(--gold);color:var(--gold);background:rgba(201,168,76,0.08);user-select:none';
+  return 'cursor:pointer;font-size:13px;line-height:1;padding:3px 7px;border-radius:6px;border:1px solid var(--gold);color:var(--gold);background:rgba(201,168,76,0.08);user-select:none';
 }
 function sortToggleLabel(dir) {
-  return dir === 'desc' ? '↓ 大到小' : '↑ 小到大';
+  return dir === 'desc' ? '⬇' : '⬆';
 }
 function sortToggleHtml(prefix, dir) {
   const fn = prefix === 'topskin' ? 'toggleTopSkinSort' : 'toggleGapSort';
-  return `<span id="${prefix}-toggle" style="${sortToggleStyle()};margin-left:8px;vertical-align:middle;display:inline-block" onclick="${fn}()" title="点击切换排序">${sortToggleLabel(dir)}</span>`;
+  const title = dir === 'desc' ? '当前：由大到小，点击切换' : '当前：由小到大，点击切换';
+  return `<span id="${prefix}-toggle" style="${sortToggleStyle()};margin-left:8px;vertical-align:middle;display:inline-block" onclick="${fn}()" title="${title}">${sortToggleLabel(dir)}</span>`;
 }
 
 function barChartHtml(rows, fmt, color, bg) {
@@ -1959,17 +1951,21 @@ function renderGapChart() {
   if (el) el.innerHTML = barChartHtml(rows, v => v + '天', '#b090d8', 'rgba(176,144,216,0.15)');
 }
 
+function applyToggleBtn(btn, dir) {
+  if (!btn) return;
+  btn.textContent = sortToggleLabel(dir);
+  btn.title = dir === 'desc' ? '当前：由大到小，点击切换' : '当前：由小到大，点击切换';
+}
+
 function toggleTopSkinSort() {
   topSkinSortDir = topSkinSortDir === 'desc' ? 'asc' : 'desc';
-  const btn = document.getElementById('topskin-toggle');
-  if (btn) btn.textContent = sortToggleLabel(topSkinSortDir);
+  applyToggleBtn(document.getElementById('topskin-toggle'), topSkinSortDir);
   renderTopSkinChart();
 }
 
 function toggleGapSort() {
   gapSortDir = gapSortDir === 'desc' ? 'asc' : 'desc';
-  const btn = document.getElementById('gap-toggle');
-  if (btn) btn.textContent = sortToggleLabel(gapSortDir);
+  applyToggleBtn(document.getElementById('gap-toggle'), gapSortDir);
   renderGapChart();
 }
 
