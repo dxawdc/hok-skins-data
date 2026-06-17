@@ -409,6 +409,7 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
                   <th>获取方式</th>
                   <th>类型</th>
                   <th>常驻</th>
+                  <th>价值点数</th>
                   <th>操作</th>
                 </tr>
               </thead>
@@ -1046,12 +1047,13 @@ function renderSkins(skins) {
       <td style="font-size:12px;color:var(--text3)">${escapeHtml(s.obtain)}</td>
       <td><span class="badge badge-${escapeHtml(s.type)}">${escapeHtml(s.type)}</span></td>
       <td><span class="badge badge-${escapeHtml(s.permanent)}">${escapeHtml(s.permanent)}</span></td>
+      <td style="font-size:12px;font-weight:600;color:var(--text2)">${s.skin_value_points == null ? '-' : escapeHtml(s.skin_value_points)}</td>
       <td>
         <button class="btn btn-outline btn-sm" onclick="openEditSkin(${escapeHtml(JSON.stringify(s))})">编辑</button>
         <button class="btn btn-danger btn-sm" onclick="doDeleteSkin(${s.id},'${esc(s.name)}')">删除</button>
       </td>
     </tr>`;
-  }).join('') || '<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--text3)">暂无数据</td></tr>';
+  }).join('') || '<tr><td colspan="12" style="text-align:center;padding:30px;color:var(--text3)">暂无数据</td></tr>';
 }
 function renderPagination(total, page, perPage) {
   document.getElementById('skin-total-label').textContent = `共 ${total} 条`;
