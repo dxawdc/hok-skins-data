@@ -6,7 +6,18 @@ const jwt    = require('jsonwebtoken');
 
 const SUPABASE_URL = process.env.SUPABASE_URL        || '';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || '';
-const JWT_SECRET   = process.env.JWT_SECRET           || 'change-me';
+
+// JWT 签名密钥：绝不允许使用公开可知的默认值，否则任何人都能伪造管理员 token。
+// - 生产环境（Vercel / NODE_ENV=production）缺失时直接抛错，拒绝以不安全的密钥启动。
+// - 本地开发缺失时生成一次性随机密钥（重启失效），仅用于调试，不影响线上安全。
+let JWT_SECRET = process.env.JWT_SECRET || '';
+if (!JWT_SECRET) {
+  if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+    throw new Error('未配置 JWT_SECRET 环境变量，拒绝以不安全的默认密钥启动后台');
+  }
+  JWT_SECRET = require('crypto').randomBytes(32).toString('hex');
+  console.warn('[admin] 未检测到 JWT_SECRET，已生成临时开发密钥（仅本地调试，重启即失效）');
+}
 
 // Storage bucket 名称，需在 Supabase 控制台提前创建并设为 Public
 const BUCKET = 'skin-images';

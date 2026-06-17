@@ -923,6 +923,21 @@ let resImgFile = null;
 let resTagImgFile = null;
 let heroSkinCountCache = {};
 
+// ── 安全：HTML 转义 ──────────────────────────────────────────
+// 后台大量使用 innerHTML 拼接数据库内容，必须对文本/属性上下文转义，
+// 防止存储型 XSS（恶意数据在管理员浏览器中执行脚本）。
+function escapeHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+// 用于 onclick 等内联 JS 字符串字面量上下文：转义反斜杠与单引号（避免闭合 JS 字符串），
+// 双引号转为 &quot;（避免闭合 HTML 属性）。注意：与 escapeHtml 适用上下文不同，不可混用。
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
 // ── Auth ─────────────────────────────────────────────────────
 async function doLogin() {
   const username = document.getElementById('inp-username').value.trim();
@@ -990,10 +1005,10 @@ async function loadOverview() {
 function renderRecentLogs(logs) {
   document.getElementById('recent-logs').innerHTML = logs.map(l => `
     <tr>
-      <td style="color:var(--text3);font-size:12px">${fmtTime(l.created_at)}</td>
-      <td>${l.operator}</td>
-      <td><span class="log-action log-${l.action}">${l.action}</span></td>
-      <td style="font-size:12px;color:var(--text3)">${JSON.stringify(l.detail||{}).slice(0,60)}…</td>
+      <td style="color:var(--text3);font-size:12px">${escapeHtml(fmtTime(l.created_at))}</td>
+      <td>${escapeHtml(l.operator)}</td>
+      <td><span class="log-action log-${escapeHtml(l.action)}">${escapeHtml(l.action)}</span></td>
+      <td style="font-size:12px;color:var(--text3)">${escapeHtml(JSON.stringify(l.detail||{}).slice(0,60))}…</td>
     </tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:20px">暂无记录</td></tr>';
 }
 
@@ -1017,18 +1032,18 @@ function renderSkins(skins) {
     return `
     <tr id="row-${s.id}" class="${selectedIds.has(s.id)?'selected':''}">
       <td><input type="checkbox" ${selectedIds.has(s.id)?'checked':''} onchange="toggleRow(${s.id},this)"></td>
-      <td style="color:var(--text3);font-size:12px;white-space:nowrap">${s.date}</td>
-      <td style="font-weight:600">${s.name}</td>
-      <td><span class="badge badge-${s.quality}">${s.quality}</span></td>
-      <td style="color:#3264c8">${s.hero}</td>
-      <td style="font-size:12px;color:var(--text3)">${(s.series || []).map(x => x.name).join('、') || '-'}</td>
-      <td style="font-size:12px">${s.price||'-'}</td>
-      <td style="font-size:12px;color:var(--text3)">${s.obtain}</td>
-      <td><span class="badge badge-${s.type}">${s.type}</span></td>
-      <td><span class="badge badge-${s.permanent}">${s.permanent}</span></td>
+      <td style="color:var(--text3);font-size:12px;white-space:nowrap">${escapeHtml(s.date)}</td>
+      <td style="font-weight:600">${escapeHtml(s.name)}</td>
+      <td><span class="badge badge-${escapeHtml(s.quality)}">${escapeHtml(s.quality)}</span></td>
+      <td style="color:#3264c8">${escapeHtml(s.hero)}</td>
+      <td style="font-size:12px;color:var(--text3)">${escapeHtml((s.series || []).map(x => x.name).join('、')) || '-'}</td>
+      <td style="font-size:12px">${escapeHtml(s.price)||'-'}</td>
+      <td style="font-size:12px;color:var(--text3)">${escapeHtml(s.obtain)}</td>
+      <td><span class="badge badge-${escapeHtml(s.type)}">${escapeHtml(s.type)}</span></td>
+      <td><span class="badge badge-${escapeHtml(s.permanent)}">${escapeHtml(s.permanent)}</span></td>
       <td>
-        <button class="btn btn-outline btn-sm" onclick="openEditSkin(${JSON.stringify(s).replace(/"/g,'&quot;')})">编辑</button>
-        <button class="btn btn-danger btn-sm" onclick="doDeleteSkin(${s.id},'${s.name}')">删除</button>
+        <button class="btn btn-outline btn-sm" onclick="openEditSkin(${escapeHtml(JSON.stringify(s))})">编辑</button>
+        <button class="btn btn-danger btn-sm" onclick="doDeleteSkin(${s.id},'${esc(s.name)}')">删除</button>
       </td>
     </tr>`;
   }).join('') || '<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--text3)">暂无数据</td></tr>';
@@ -1074,12 +1089,12 @@ function renderSeriesTable(list) {
   if (!tbody) return;
   tbody.innerHTML = list.map(s => `
     <tr>
-      <td style="font-weight:600">${s.name}</td>
+      <td style="font-weight:600">${escapeHtml(s.name)}</td>
       <td><span style="font-weight:600;color:var(--gold)">${s.skin_count || 0}</span></td>
       <td>
-        <button class="btn btn-outline btn-sm" onclick="openSeriesSkins(${s.id},'${String(s.name).replace(/'/g,"\\'")}')">管理皮肤</button>
-        <button class="btn btn-outline btn-sm" onclick='editSeries(${JSON.stringify(JSON.stringify(s))})'>编辑</button>
-        <button class="btn btn-danger btn-sm" onclick="doDeleteSeries(${s.id},'${String(s.name).replace(/'/g,"\\'")}')">删除</button>
+        <button class="btn btn-outline btn-sm" onclick="openSeriesSkins(${s.id},'${esc(s.name)}')">管理皮肤</button>
+        <button class="btn btn-outline btn-sm" onclick="editSeries(${escapeHtml(JSON.stringify(JSON.stringify(s)))})">编辑</button>
+        <button class="btn btn-danger btn-sm" onclick="doDeleteSeries(${s.id},'${esc(s.name)}')">删除</button>
       </td>
     </tr>`).join('') || '<tr><td colspan="3" style="text-align:center;padding:30px;color:var(--text3)">暂无套系</td></tr>';
 }
@@ -1154,7 +1169,7 @@ async function loadSeriesBound() {
   const list = document.getElementById('series-bound-list');
   list.innerHTML = '<div style="color:var(--text3);font-size:12px;padding:8px">加载中…</div>';
   const res = await api('GET', `/series/${currentSeriesId}/skins`);
-  if (res.error) { list.innerHTML = `<div style="color:var(--red);font-size:12px;padding:8px">${res.error}</div>`; return; }
+  if (res.error) { list.innerHTML = `<div style="color:var(--red);font-size:12px;padding:8px">${escapeHtml(res.error)}</div>`; return; }
   renderSeriesBoundSkins(res.profiles || []);
 }
 
@@ -1166,7 +1181,7 @@ function renderSeriesBoundSkins(list) {
   }
   box.innerHTML = list.map(p => `
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 8px;border-bottom:1px solid var(--border)">
-      <span style="font-size:13px">${p.hero} · ${p.name}<span style="color:var(--text3)">（${normalizeQuality(p.quality||'')}）</span></span>
+      <span style="font-size:13px">${escapeHtml(p.hero)} · ${escapeHtml(p.name)}<span style="color:var(--text3)">（${escapeHtml(normalizeQuality(p.quality||''))}）</span></span>
       <button class="btn btn-danger btn-sm" onclick="doRemoveSeriesSkin(${p.id})">×</button>
     </div>`).join('');
 }
@@ -1179,7 +1194,7 @@ function filterSeriesAddSelect(keyword) {
     ? allSkinProfiles.filter(p => `${p.hero || ''} ${p.name || ''}`.toLowerCase().includes(kw))
     : allSkinProfiles;
   sel.innerHTML = matched.map(p =>
-    `<option value="${p.id}">${p.hero} · ${p.name}（${normalizeQuality(p.quality||'')}）</option>`
+    `<option value="${p.id}">${escapeHtml(p.hero)} · ${escapeHtml(p.name)}（${escapeHtml(normalizeQuality(p.quality||''))}）</option>`
   ).join('');
 }
 
@@ -1217,7 +1232,7 @@ function renderSkinSeriesOptions(selected=[]) {
   if (!sel) return;
   const selectedSet = new Set((selected || []).map(v => String(typeof v === 'object' ? v.id : v)));
   sel.innerHTML = allSeries.map(s =>
-    `<option value="${s.id}" ${selectedSet.has(String(s.id)) ? 'selected' : ''}>${s.name}</option>`
+    `<option value="${s.id}" ${selectedSet.has(String(s.id)) ? 'selected' : ''}>${escapeHtml(s.name)}</option>`
   ).join('');
 }
 
@@ -1241,7 +1256,7 @@ function renderSkinProfileOptions(list, selectedId) {
   const sel = document.getElementById('es-profile-id');
   if (!sel) return;
   sel.innerHTML = '<option value="">— 请选择已有皮肤 —</option>' +
-    list.map(p => `<option value="${p.id}" ${String(p.id)===String(selectedId)?'selected':''}>${p.hero} · ${p.name}（${normalizeQuality(p.quality||'')}）</option>`).join('');
+    list.map(p => `<option value="${p.id}" ${String(p.id)===String(selectedId)?'selected':''}>${escapeHtml(p.hero)} · ${escapeHtml(p.name)}（${escapeHtml(normalizeQuality(p.quality||''))}）</option>`).join('');
 }
 
 async function filterSkinProfileSelect(keyword) {
@@ -1629,7 +1644,7 @@ function setProgress(pct, text) {
 function addLog(type, text) {
   const log = document.getElementById('import-log');
   log.style.display = 'block';
-  log.innerHTML += `<div class="log-line ${type}">[${new Date().toLocaleTimeString()}] ${text}</div>`;
+  log.innerHTML += `<div class="log-line ${type}">[${new Date().toLocaleTimeString()}] ${escapeHtml(text)}</div>`;
   log.scrollTop = log.scrollHeight;
 }
 
@@ -1639,11 +1654,11 @@ async function loadUsers() {
   if (!res.users) return;
   document.getElementById('user-tbody').innerHTML = res.users.map(u => `
     <tr>
-      <td style="font-weight:600">${u.username}</td>
-      <td>${u.display_name||'—'}</td>
+      <td style="font-weight:600">${escapeHtml(u.username)}</td>
+      <td>${escapeHtml(u.display_name)||'—'}</td>
       <td><span class="badge" style="background:${u.role==='admin'?'rgba(201,168,76,0.12)':'rgba(50,110,200,0.1)'};color:${u.role==='admin'?'#9a6a00':'#3264c8'};border:1px solid ${u.role==='admin'?'rgba(201,168,76,0.3)':'rgba(50,110,200,0.28)'}">${u.role==='admin'?'管理员':'编辑者'}</span></td>
-      <td style="color:var(--text3);font-size:12px">${fmtTime(u.created_at)}</td>
-      <td><button class="btn btn-danger btn-sm" onclick="doDeleteUser(${u.id},'${u.username}')">删除</button></td>
+      <td style="color:var(--text3);font-size:12px">${escapeHtml(fmtTime(u.created_at))}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="doDeleteUser(${u.id},'${esc(u.username)}')">删除</button></td>
     </tr>`).join('');
 }
 function showCreateUser() { document.getElementById('modal-user').classList.add('show'); }
@@ -1671,11 +1686,11 @@ async function loadLogs() {
   if (!res.logs) return;
   document.getElementById('log-tbody').innerHTML = res.logs.map(l => `
     <tr>
-      <td style="font-size:12px;color:var(--text3);white-space:nowrap">${fmtTime(l.created_at)}</td>
-      <td style="font-weight:500">${l.operator}</td>
-      <td><span class="log-action log-${l.action.includes('import')?'import':l.action.includes('delete')?'delete':l.action.includes('batch')?'batch':'update'}">${l.action}</span></td>
-      <td style="font-size:12px;color:var(--text3)">${l.target_id||'—'}</td>
-      <td style="font-size:12px;color:var(--text3);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${JSON.stringify(l.detail||{})}</td>
+      <td style="font-size:12px;color:var(--text3);white-space:nowrap">${escapeHtml(fmtTime(l.created_at))}</td>
+      <td style="font-weight:500">${escapeHtml(l.operator)}</td>
+      <td><span class="log-action log-${l.action.includes('import')?'import':l.action.includes('delete')?'delete':l.action.includes('batch')?'batch':'update'}">${escapeHtml(l.action)}</span></td>
+      <td style="font-size:12px;color:var(--text3)">${escapeHtml(l.target_id)||'—'}</td>
+      <td style="font-size:12px;color:var(--text3);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(JSON.stringify(l.detail||{}))}</td>
     </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text3)">暂无日志</td></tr>';
 }
 
@@ -1727,7 +1742,7 @@ function renderResTable() {
 	  : `<div style="width:${imgWidth};height:${imgHeight};background:var(--bg4);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:20px">🌌</div>`;
       
     const notesHtml = r.notes
-      ? `<span title="${(r.notes).replace(/"/g,'&quot;')}" style="cursor:help">${r.notes.length>16?r.notes.slice(0,16)+'…':r.notes}</span>`
+      ? `<span title="${escapeHtml(r.notes)}" style="cursor:help">${escapeHtml(r.notes.length>16?r.notes.slice(0,16)+'…':r.notes)}</span>`
       : '<span style="color:var(--text3)">—</span>';
       
     const tc = r.type==='天幕'
@@ -1736,18 +1751,18 @@ function renderResTable() {
       
     return `<tr>
       <td>${imgHtml}</td>
-      <td style="font-weight:600">${r.name}</td>
-      <td><span class="badge" style="background:${tc.bg};color:${tc.color};border:1px solid ${tc.border}">${r.type}</span></td>
-      <td style="font-size:12px">${r.quality||'—'}</td>
-      <td style="font-size:12px;color:var(--text3);white-space:nowrap">${r.date||'—'}</td>
-      <td style="font-size:12px">${r.release_type||'—'}</td>
-      <td style="font-size:12px;color:var(--text2)">${r.obtain||'—'}</td>
-      <td style="font-size:12px;color:var(--gold)">${r.price||'—'}</td>
-      <td style="font-size:12px;text-align:center">${r.permanent||'—'}</td>
+      <td style="font-weight:600">${escapeHtml(r.name)}</td>
+      <td><span class="badge" style="background:${tc.bg};color:${tc.color};border:1px solid ${tc.border}">${escapeHtml(r.type)}</span></td>
+      <td style="font-size:12px">${escapeHtml(r.quality)||'—'}</td>
+      <td style="font-size:12px;color:var(--text3);white-space:nowrap">${escapeHtml(r.date)||'—'}</td>
+      <td style="font-size:12px">${escapeHtml(r.release_type)||'—'}</td>
+      <td style="font-size:12px;color:var(--text2)">${escapeHtml(r.obtain)||'—'}</td>
+      <td style="font-size:12px;color:var(--gold)">${escapeHtml(r.price)||'—'}</td>
+      <td style="font-size:12px;text-align:center">${escapeHtml(r.permanent)||'—'}</td>
       <td style="font-size:12px;color:var(--text2);max-width:120px">${notesHtml}</td>
       <td style="white-space:nowrap">
-        <button class="btn btn-outline btn-sm" onclick='editResource(${JSON.stringify(JSON.stringify(r))})'>编辑</button>
-        <button class="btn btn-danger  btn-sm" onclick="doDeleteResource(${r.id},'${r.name.replace(/'/g,"\'")}')">删除</button>
+        <button class="btn btn-outline btn-sm" onclick="editResource(${escapeHtml(JSON.stringify(JSON.stringify(r)))})">编辑</button>
+        <button class="btn btn-danger  btn-sm" onclick="doDeleteResource(${r.id},'${esc(r.name)}')">删除</button>
       </td>
     </tr>`;
   }).join('') || '<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--text3)">暂无资源数据</td></tr>';
@@ -1934,7 +1949,7 @@ function renderHeroSelectOptions(selectId, heroes, selectedId) {
     heroes.map(h => {
       const meta = [...(h.roles || []), ...(h.lanes || [])].join(' / ');
       const label = meta ? `${h.name}（${meta}）` : h.name;
-      return `<option value="${h.id}" ${String(h.id)===String(selectedId)?'selected':''}>${label}</option>`;
+      return `<option value="${h.id}" ${String(h.id)===String(selectedId)?'selected':''}>${escapeHtml(label)}</option>`;
     }).join('');
 }
 
@@ -2003,15 +2018,15 @@ function renderHeroTable() {
       <td>${h.avatar_url
         ? `<img src="${thumb(h.avatar_url)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1px solid var(--border)" loading="lazy">`
         : `<div style="width:36px;height:36px;border-radius:50%;background:#f0f2f5;display:flex;align-items:center;justify-content:center;font-size:18px">🎭</div>`}</td>
-      <td style="font-weight:600">${h.name}</td>
-      <td>${(h.roles||[]).map(r=>`<span class="badge badge-史诗" style="margin-right:3px">${r}</span>`).join('')||'—'}</td>
-      <td style="font-size:12px;color:var(--text2)">${(h.lanes||[]).join(' · ')||'—'}</td>
-      <td style="font-size:12px">${h.gender||'—'}</td>
-      <td style="font-size:12px;color:var(--text3)">${h.release_date||'—'}</td>
-      <td style="font-size:12px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(h.notes||'').replace(/"/g,'&quot;')}">${h.notes||'—'}</td>
+      <td style="font-weight:600">${escapeHtml(h.name)}</td>
+      <td>${(h.roles||[]).map(r=>`<span class="badge badge-史诗" style="margin-right:3px">${escapeHtml(r)}</span>`).join('')||'—'}</td>
+      <td style="font-size:12px;color:var(--text2)">${escapeHtml((h.lanes||[]).join(' · '))||'—'}</td>
+      <td style="font-size:12px">${escapeHtml(h.gender)||'—'}</td>
+      <td style="font-size:12px;color:var(--text3)">${escapeHtml(h.release_date)||'—'}</td>
+      <td style="font-size:12px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(h.notes||'')}">${escapeHtml(h.notes)||'—'}</td>
       <td>
-        <button class="btn btn-outline btn-sm" onclick='editHero(${JSON.stringify(JSON.stringify(h))})'>编辑</button>
-        <button class="btn btn-danger  btn-sm" onclick="doDeleteHero(${h.id},'${h.name.replace(/'/g,"\\'")}')">删除</button>
+        <button class="btn btn-outline btn-sm" onclick="editHero(${escapeHtml(JSON.stringify(JSON.stringify(h)))})">编辑</button>
+        <button class="btn btn-danger  btn-sm" onclick="doDeleteHero(${h.id},'${esc(h.name)}')">删除</button>
       </td>
     </tr>`).join('') || '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text3)">暂无英雄数据</td></tr>';
 

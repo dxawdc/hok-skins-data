@@ -1244,9 +1244,9 @@ function thumbHtml(si, quality) {
 }
 function tagImgHtml(qi, tag, quality) {
   const src = getQualityImg(qi);
-  if (src) return `<img class="quality-badge-img" src="${src}" loading="lazy" alt="${tag}" title="${tag}">`;
-  if (tag === quality) return `<span class="badge badge-${quality}">${quality}</span>`;
-  return `<span style="font-size:11px;color:var(--text3)">${tag}</span>`;
+  if (src) return `<img class="quality-badge-img" src="${src}" loading="lazy" alt="${escapeHtml(tag)}" title="${escapeHtml(tag)}">`;
+  if (tag === quality) return `<span class="badge badge-${quality}">${escapeHtml(quality)}</span>`;
+  return `<span style="font-size:11px;color:var(--text3)">${escapeHtml(tag)}</span>`;
 }
 
 function isMobile() { return window.innerWidth < 900; }
@@ -1263,18 +1263,18 @@ function renderTable() {
     
     return `<tr class="clickable" onclick="goSkinDetail('${esc(r.hero)}','${esc(r.name)}')">
       <td class="thumb-cell">${thumbHtml(r.si, r.quality)}</td>
-      <td style="color:var(--text3);font-size:12px;white-space:nowrap">${r.date}</td>
-      <td style="font-weight:600">${r.name}</td>
-      <td><span class="badge badge-${r.quality}">${r.quality}</span></td>
+      <td style="color:var(--text3);font-size:12px;white-space:nowrap">${escapeHtml(r.date)}</td>
+      <td style="font-weight:600">${escapeHtml(r.name)}</td>
+      <td><span class="badge badge-${r.quality}">${escapeHtml(r.quality)}</span></td>
       <td>${tagImgHtml(r.qi, r.tag, r.quality)}</td>
-      <td style="color:var(--gold-light)">${r.hero}</td>
+      <td style="color:var(--gold-light)">${escapeHtml(r.hero)}</td>
       <td style="font-size:11px;color:var(--text3)">
-        ${roles.join('/') || '—'}${lanes.length ? ' <span style="opacity:.5">·</span> ' + lanes.join('/') : ''}
+        ${escapeHtml(roles.join('/')) || '—'}${lanes.length ? ' <span style="opacity:.5">·</span> ' + escapeHtml(lanes.join('/')) : ''}
       </td>
-      <td style="font-weight:500;white-space:nowrap;font-size:12px">${r.price&&r.price!=='/'&&r.price!=='nan'?r.price:'-'}</td>
-      <td style="font-size:12px;color:var(--text3)">${r.obtain}</td>
-      <td><span class="badge badge-${r.type}">${r.type}</span></td>
-      <td><span class="badge badge-${r.permanent}" style="font-size:10px">${r.permanent}</span></td>
+      <td style="font-weight:500;white-space:nowrap;font-size:12px">${r.price&&r.price!=='/'&&r.price!=='nan'?escapeHtml(r.price):'-'}</td>
+      <td style="font-size:12px;color:var(--text3)">${escapeHtml(r.obtain)}</td>
+      <td><span class="badge badge-${r.type}">${escapeHtml(r.type)}</span></td>
+      <td><span class="badge badge-${r.permanent}" style="font-size:10px">${escapeHtml(r.permanent)}</span></td>
     </tr>`;
   }).join('');
 
@@ -1288,21 +1288,21 @@ function renderTable() {
           ${thumbSrc ? `<img src="${thumbSrc}" loading="lazy" alt="">` : qualityEmoji(r.quality)}
         </div>
         <div class="mobile-skin-info">
-          <div class="mobile-skin-name">${r.name}</div>
+          <div class="mobile-skin-name">${escapeHtml(r.name)}</div>
           <div class="mobile-skin-meta">
-            <span class="mobile-skin-hero">${r.hero}</span>
-            <span class="mobile-skin-date">${r.date}</span>
+            <span class="mobile-skin-hero">${escapeHtml(r.hero)}</span>
+            <span class="mobile-skin-date">${escapeHtml(r.date)}</span>
           </div>
           <div class="mobile-skin-meta" style="margin-top:3px">
             ${tagSrc
-              ? `<img src="${tagSrc}" style="height:16px;object-fit:contain;image-rendering:pixelated" alt="${r.tag}">`
-              : `<span style="font-size:11px;color:var(--text3)">${r.tag}</span>`}
-            ${r.obtain ? `<span style="font-size:11px;color:var(--text3)">· ${r.obtain}</span>` : ''}
+              ? `<img src="${tagSrc}" style="height:16px;object-fit:contain;image-rendering:pixelated" alt="${escapeHtml(r.tag)}">`
+              : `<span style="font-size:11px;color:var(--text3)">${escapeHtml(r.tag)}</span>`}
+            ${r.obtain ? `<span style="font-size:11px;color:var(--text3)">· ${escapeHtml(r.obtain)}</span>` : ''}
           </div>
         </div>
         <div class="mobile-skin-right">
-          <span class="badge badge-${r.quality}" style="font-size:11px">${r.quality}</span>
-          <span class="badge badge-${r.type}" style="font-size:11px">${r.type}</span>
+          <span class="badge badge-${r.quality}" style="font-size:11px">${escapeHtml(r.quality)}</span>
+          <span class="badge badge-${r.type}" style="font-size:11px">${escapeHtml(r.type)}</span>
         </div>
       </div>`;
     }).join('');
@@ -1372,11 +1372,11 @@ function renderHeroList() {
     const avatar = h.avatar_url ? `<img src="${thumbUrl(h.avatar_url, 80)}" class="thumb-img" loading="lazy">` : `<div class="thumb-placeholder">🎭</div>`;
     return `<tr class="clickable" onclick="openHeroDetailFromAnywhere('${esc(h.name)}')">
       <td class="thumb-cell">${avatar}</td>
-      <td style="color:var(--text3);font-size:12px">${h.release_date || '—'}</td>
-      <td style="font-weight:600">${h.name}</td>
-      <td>${(h.roles||[]).map(r=>`<span class="badge badge-史诗" style="margin-right:3px">${r}</span>`).join('') || '—'}</td>
-      <td style="font-size:11px;color:var(--text3)">${(h.lanes||[]).join('/') || '—'}</td>
-      <td>${h.gender || '—'}</td>
+      <td style="color:var(--text3);font-size:12px">${escapeHtml(h.release_date) || '—'}</td>
+      <td style="font-weight:600">${escapeHtml(h.name)}</td>
+      <td>${(h.roles||[]).map(r=>`<span class="badge badge-史诗" style="margin-right:3px">${escapeHtml(r)}</span>`).join('') || '—'}</td>
+      <td style="font-size:11px;color:var(--text3)">${escapeHtml((h.lanes||[]).join('/')) || '—'}</td>
+      <td>${escapeHtml(h.gender) || '—'}</td>
       <td><b style="color:var(--gold)">${skinCount}</b></td>
     </tr>`;
   }).join('') || '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text3)">未找到匹配的英雄</td></tr>';
@@ -1391,18 +1391,18 @@ function renderHeroList() {
           ${avatarSrc ? `<img src="${avatarSrc}" loading="lazy" style="border-radius:50%">` : '🎭'}
         </div>
         <div class="mobile-skin-info">
-          <div class="mobile-skin-name">${h.name}</div>
+          <div class="mobile-skin-name">${escapeHtml(h.name)}</div>
           <div class="mobile-skin-meta">
-            <span class="mobile-skin-hero">${(h.roles||[]).join('/') || '—'}</span>
-            <span class="mobile-skin-date">${h.release_date || '—'}</span>
+            <span class="mobile-skin-hero">${escapeHtml((h.roles||[]).join('/')) || '—'}</span>
+            <span class="mobile-skin-date">${escapeHtml(h.release_date) || '—'}</span>
           </div>
           <div class="mobile-skin-meta" style="margin-top:3px">
-            <span style="font-size:11px;color:var(--text3)">${(h.lanes||[]).join('/') || '—'}</span>
+            <span style="font-size:11px;color:var(--text3)">${escapeHtml((h.lanes||[]).join('/')) || '—'}</span>
           </div>
         </div>
         <div class="mobile-skin-right">
           <span class="badge badge-史诗" style="font-size:11px">${skinCount} 款皮肤</span>
-          <span style="font-size:11px;color:var(--text3);margin-top:4px">${h.gender || '—'}</span>
+          <span style="font-size:11px;color:var(--text3);margin-top:4px">${escapeHtml(h.gender) || '—'}</span>
         </div>
       </div>`;
     }).join('');
@@ -1481,14 +1481,14 @@ function renderHeroGrid() {
     const lanes = heroLanes(hero);
     const avatarUrl = heroAvatarUrl(hero);
     const avatarHtml = avatarUrl
-      ? `<img src="${thumbUrl(avatarUrl,120)}" style="width:52px;height:52px;border-radius:50%;object-fit:cover;margin-bottom:8px;border:2px solid var(--border)" loading="lazy" alt="${hero}">`
+      ? `<img src="${thumbUrl(avatarUrl,120)}" style="width:52px;height:52px;border-radius:50%;object-fit:cover;margin-bottom:8px;border:2px solid var(--border)" loading="lazy" alt="${escapeHtml(hero)}">`
       : `<div style="width:52px;height:52px;border-radius:50%;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 8px">🎭</div>`;
     return `<div class="hero-card" onclick="openHeroDetail('${esc(hero)}')">
       ${avatarHtml}
-      <div class="hero-name">${hero}</div>
-      <div class="hero-job-mini">${roles.join('/')}${lanes.length?'<br>'+lanes.join('/'):''}</div>
+      <div class="hero-name">${escapeHtml(hero)}</div>
+      <div class="hero-job-mini">${escapeHtml(roles.join('/'))}${lanes.length?'<br>'+escapeHtml(lanes.join('/')):''}</div>
       <div class="hero-skin-count"><b>${data.skins.size}</b> 款皮肤</div>
-      <div class="role-dots">${roles.map(r=>`<div class="role-dot role-${r}" title="${r}"></div>`).join('')}</div>
+      <div class="role-dots">${roles.map(r=>`<div class="role-dot role-${r}" title="${escapeHtml(r)}"></div>`).join('')}</div>
     </div>`;
   }).join('');
 }
@@ -1527,23 +1527,23 @@ function openHeroDetail(hero) {
   wrap.style.display='block';
   wrap.innerHTML = `
     <div class="hero-detail-header">
-      <div class="breadcrumb"><a onclick="backToHeroes()">← 返回图鉴</a> / ${hero}</div>
+      <div class="breadcrumb"><a onclick="backToHeroes()">← 返回图鉴</a> / ${escapeHtml(hero)}</div>
       <div style="display:flex;align-items:center;gap:16px;margin-bottom:8px">
         ${avatarUrl
-          ? `<img src="${thumbUrl(avatarUrl,160)}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid var(--gold);flex-shrink:0" loading="lazy" alt="${hero}">`
+          ? `<img src="${thumbUrl(avatarUrl,160)}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid var(--gold);flex-shrink:0" loading="lazy" alt="${escapeHtml(hero)}">`
           : `<div style="width:64px;height:64px;border-radius:50%;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0">🎭</div>`}
         <div>
-          <div class="hero-detail-title">${hero}</div>
+          <div class="hero-detail-title">${escapeHtml(hero)}</div>
           <div class="hero-detail-meta" style="margin-top:6px">
-            <span>🗡️ ${roles.length?roles.join(' / '):'—'}</span>
-            <span>🗺️ ${lanes.length?lanes.join(' / '):'—'}</span>
-            ${gender?`<span>👤 ${gender}</span>`:''}
-            ${releaseDate?`<span>📅 ${releaseDate}</span>`:''}
+            <span>🗡️ ${roles.length?escapeHtml(roles.join(' / ')):'—'}</span>
+            <span>🗺️ ${lanes.length?escapeHtml(lanes.join(' / ')):'—'}</span>
+            ${gender?`<span>👤 ${escapeHtml(gender)}</span>`:''}
+            ${releaseDate?`<span>📅 ${escapeHtml(releaseDate)}</span>`:''}
             <span>🎨 <b style="color:var(--gold)">${skins.length}</b> 款皮肤</span>
             <span>🔄 <b style="color:var(--accent2)">${totalReturns}</b> 次返场</span>
             ${daysSince ? `<span style="color:var(--text3);font-size:13px">⏱ ${daysSince}</span>` : ''}
           </div>
-          ${heroNotes?`<div style="margin-top:8px;font-size:13px;color:var(--text2);padding:8px 12px;background:var(--bg4);border-radius:6px;border-left:3px solid var(--gold)">📝 ${heroNotes}</div>`:''}
+          ${heroNotes?`<div style="margin-top:8px;font-size:13px;color:var(--text2);padding:8px 12px;background:var(--bg4);border-radius:6px;border-left:3px solid var(--gold)">📝 ${escapeHtml(heroNotes)}</div>`:''}
         </div>
       </div>
     </div>
@@ -1555,17 +1555,17 @@ function openHeroDetail(hero) {
         return `<div class="skin-card" onclick="openSkinDetail('${esc(hero)}','${esc(s.name)}')">
           <div class="skin-card-img">
             ${skinImgSrc
-              ? `<img class="skin-thumb" src="${skinImgSrc}" loading="lazy" alt="${s.name}">`
+              ? `<img class="skin-thumb" src="${skinImgSrc}" loading="lazy" alt="${escapeHtml(s.name)}">`
               : `<div class="img-ph">${qualityEmoji(s.quality)}</div>`}
             ${returnCount>0?`<div class="return-badge">返场 ${returnCount}×</div>`:''}
           </div>
           <div class="skin-card-body">
-            <div class="skin-card-name">${s.name}</div>
+            <div class="skin-card-name">${escapeHtml(s.name)}</div>
             <div class="skin-card-meta">
-              <span class="badge badge-${s.quality}" style="font-size:10px">${s.quality}</span>
-              ${tagImgHtml(s.qi, s.tag, s.quality) !== `<span class="badge badge-${s.quality}">${s.quality}</span>`
+              <span class="badge badge-${s.quality}" style="font-size:10px">${escapeHtml(s.quality)}</span>
+              ${tagImgHtml(s.qi, s.tag, s.quality) !== `<span class="badge badge-${s.quality}">${escapeHtml(s.quality)}</span>`
                 ? tagImgHtml(s.qi, s.tag, s.quality) : ''}
-              <span style="font-size:11px;color:var(--text3);margin-left:auto">${firstRec?firstRec.date:''}</span>
+              <span style="font-size:11px;color:var(--text3);margin-left:auto">${firstRec?escapeHtml(firstRec.date):''}</span>
             </div>
           </div>
         </div>`;
@@ -1616,16 +1616,16 @@ function seriesSkinsGridHtml(skins) {
       const tagSrc = thumbUrl(s.qi, 80);
       return `<div class="skin-card" onclick="goSkinDetail('${esc(s.hero)}','${esc(s.name)}')">
         <div class="skin-card-img">
-          ${imgSrc ? `<img class="skin-thumb" src="${imgSrc}" loading="lazy" alt="${s.name}">` : `<div class="img-ph">${qualityEmoji(s.quality)}</div>`}
+          ${imgSrc ? `<img class="skin-thumb" src="${imgSrc}" loading="lazy" alt="${escapeHtml(s.name)}">` : `<div class="img-ph">${qualityEmoji(s.quality)}</div>`}
         </div>
         <div class="skin-card-body">
-          <div class="skin-card-title">${s.name}</div>
+          <div class="skin-card-title">${escapeHtml(s.name)}</div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
-            <span style="color:var(--gold-light);font-size:12px">${s.hero}</span>
-            ${tagSrc ? `<img src="${tagSrc}" style="height:16px;object-fit:contain;image-rendering:pixelated" alt="${s.tag}">` : ''}
+            <span style="color:var(--gold-light);font-size:12px">${escapeHtml(s.hero)}</span>
+            ${tagSrc ? `<img src="${tagSrc}" style="height:16px;object-fit:contain;image-rendering:pixelated" alt="${escapeHtml(s.tag)}">` : ''}
           </div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:12px;color:var(--text3)">
-            <span>${s.date || '—'}</span>
+            <span>${escapeHtml(s.date) || '—'}</span>
             <span>${s.returnCount ? `返场 ${s.returnCount}` : '首发'}</span>
           </div>
         </div>
@@ -1643,7 +1643,7 @@ function openSeriesDetail(seriesId, seriesName) {
   wrap.innerHTML = `
     <div class="hero-detail-header">
       <div class="breadcrumb"><a onclick="backToHeroes()">← 返回英雄皮肤</a> / 套系</div>
-      <div class="hero-detail-title">${seriesName}</div>
+      <div class="hero-detail-title">${escapeHtml(seriesName)}</div>
       <div class="hero-detail-meta"><span>共 ${skins.length} 款皮肤</span><span>按首发日期倒序</span></div>
     </div>
     ${seriesSkinsGridHtml(skins)}`;
@@ -1730,12 +1730,12 @@ function renderSeriesPage() {
     <tr>
       <td class="ranking-rank-td">${rankNumHtml(start + i)}</td>
       <td class="ranking-hero-td">
-        <span class="ranking-hero-name" onclick="openSeriesView(${row.id},'${esc(row.name)}')">🎨 ${row.name}</span>
+        <span class="ranking-hero-name" onclick="openSeriesView(${row.id},'${esc(row.name)}')">🎨 ${escapeHtml(row.name)}</span>
       </td>
       <td class="ranking-count-td">${row.count}</td>
-      <td style="white-space:nowrap;color:var(--text2);font-size:13px">${row.firstDate || '—'}</td>
-      <td style="white-space:nowrap;color:var(--text2);font-size:13px">${row.lastDate || '—'}</td>
-      <td style="white-space:nowrap;color:var(--text2);font-size:13px">${row.latestReturnDate || '—'}</td>
+      <td style="white-space:nowrap;color:var(--text2);font-size:13px">${escapeHtml(row.firstDate) || '—'}</td>
+      <td style="white-space:nowrap;color:var(--text2);font-size:13px">${escapeHtml(row.lastDate) || '—'}</td>
+      <td style="white-space:nowrap;color:var(--text2);font-size:13px">${escapeHtml(row.latestReturnDate) || '—'}</td>
     </tr>`).join('');
 
   wrap.innerHTML = `
@@ -1782,8 +1782,8 @@ function openSeriesView(seriesId, seriesName) {
   detail.style.display = 'block';
   detail.innerHTML = `
     <div class="hero-detail-header">
-      <div class="breadcrumb"><a onclick="backToSeriesList()">← 返回套系列表</a> / ${seriesName}</div>
-      <div class="hero-detail-title">${seriesName}</div>
+      <div class="breadcrumb"><a onclick="backToSeriesList()">← 返回套系列表</a> / ${escapeHtml(seriesName)}</div>
+      <div class="hero-detail-title">${escapeHtml(seriesName)}</div>
       <div class="hero-detail-meta"><span>共 ${skins.length} 款皮肤</span><span>按首发日期倒序</span></div>
     </div>
     ${seriesSkinsGridHtml(skins)}`;
@@ -1813,7 +1813,7 @@ function openSkinDetail(hero, skinName) {
   wrap.innerHTML = `
     <div class="hero-detail-header">
       <div class="breadcrumb">
-        <a onclick="backToHeroes(); openHeroDetail('${esc(hero)}')">← ${hero}的皮肤</a> / ${skinName}
+        <a onclick="backToHeroes(); openHeroDetail('${esc(hero)}')">← ${escapeHtml(hero)}的皮肤</a> / ${escapeHtml(skinName)}
       </div>
     </div>
     <div class="skin-detail-wrap">
@@ -1821,38 +1821,38 @@ function openSkinDetail(hero, skinName) {
         <div class="skin-detail-top">
           <div class="skin-detail-img-wrap">
             ${skinImgSrc
-              ? `<img src="${skinImgSrc}" alt="${skinName}" style="image-rendering:pixelated">`
+              ? `<img src="${skinImgSrc}" alt="${escapeHtml(skinName)}" style="image-rendering:pixelated">`
               : `<div class="img-ph">${qualityEmoji(first.quality)}</div>`}
           </div>
           <div class="skin-detail-info">
-            <div class="skin-detail-name">${skinName}</div>
+            <div class="skin-detail-name">${escapeHtml(skinName)}</div>
             <div class="skin-detail-hero" style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
               ${(()=>{const av=heroAvatarUrl(hero);return av?`<img src="${thumbUrl(av,60)}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:1.5px solid var(--border)" loading="lazy">`:''})()}
-              归属英雄：<span style="color:var(--gold);cursor:pointer" onclick="backToHeroes();openHeroDetail('${esc(hero)}')">${hero} →</span>
+              归属英雄：<span style="color:var(--gold);cursor:pointer" onclick="backToHeroes();openHeroDetail('${esc(hero)}')">${escapeHtml(hero)} →</span>
             </div>
             <div class="skin-detail-attrs">
               <div class="attr-item"><label>皮肤品质</label><div class="val">
-                <span class="badge badge-${first.quality}">${first.quality}</span>
+                <span class="badge badge-${first.quality}">${escapeHtml(first.quality)}</span>
               </div></div>
               <div class="attr-item"><label>皮肤标签</label><div class="val" style="display:flex;align-items:center;gap:6px">
                 ${tagImgUrl
-                  ? `<img src="${tagImgUrl}" style="height:20px;object-fit:contain;image-rendering:pixelated" alt="${first.tag}">`
+                  ? `<img src="${tagImgUrl}" style="height:20px;object-fit:contain;image-rendering:pixelated" alt="${escapeHtml(first.tag)}">`
                   : ''}
-                <span style="font-size:12px;color:var(--text2)">${first.tag}</span>
+                <span style="font-size:12px;color:var(--text2)">${escapeHtml(first.tag)}</span>
               </div></div>
-              <div class="attr-item"><label>首发日期</label><div class="val" style="color:var(--green)">${first.date}</div></div>
-              <div class="attr-item"><label>首发价格</label><div class="val">${first.price&&first.price!=='/'&&first.price!=='nan'?first.price:'-'}</div></div>
-              <div class="attr-item"><label>获取方式</label><div class="val" style="font-size:12px;color:var(--text2)">${first.obtain}</div></div>
-              <div class="attr-item"><label>是否常驻</label><div class="val"><span class="badge badge-${first.permanent}">${first.permanent}</span></div></div>
+              <div class="attr-item"><label>首发日期</label><div class="val" style="color:var(--green)">${escapeHtml(first.date)}</div></div>
+              <div class="attr-item"><label>首发价格</label><div class="val">${first.price&&first.price!=='/'&&first.price!=='nan'?escapeHtml(first.price):'-'}</div></div>
+              <div class="attr-item"><label>获取方式</label><div class="val" style="font-size:12px;color:var(--text2)">${escapeHtml(first.obtain)}</div></div>
+              <div class="attr-item"><label>是否常驻</label><div class="val"><span class="badge badge-${first.permanent}">${escapeHtml(first.permanent)}</span></div></div>
               ${series.length ? `<div class="attr-item" style="grid-column:1/-1"><label>皮肤套系</label><div class="val series-chips">
-                ${series.map(s => `<span class="series-chip" onclick="openSeriesDetail(${s.id}, '${esc(s.name)}')">${s.name} →</span>`).join('')}
+                ${series.map(s => `<span class="series-chip" onclick="openSeriesDetail(${s.id}, '${esc(s.name)}')">${escapeHtml(s.name)} →</span>`).join('')}
               </div></div>` : ''}
               <div class="attr-item"><label>返场次数</label><div class="val" style="color:var(--accent2);font-size:20px;font-weight:700">${returns.length}</div></div>
-              ${latestReturn?`<div class="attr-item" style="grid-column:1/-1"><label>最近返场</label><div class="val" style="color:var(--gold)">${latestReturn.date} · ${latestReturn.obtain}</div></div>`:''}
+              ${latestReturn?`<div class="attr-item" style="grid-column:1/-1"><label>最近返场</label><div class="val" style="color:var(--gold)">${escapeHtml(latestReturn.date)} · ${escapeHtml(latestReturn.obtain)}</div></div>`:''}
             </div>
           </div>
         </div>
-        ${(()=>{const n=first.notes||records.find(r=>r.notes)?.notes||'';return n?`<div style="padding:16px 22px;border-top:1px solid var(--border)"><div style="font-size:13px;color:var(--text3);margin-bottom:6px;font-weight:500">📝 备注</div><div style="font-size:14px;color:var(--text2);line-height:1.7">${n}</div></div>`:''})()}
+        ${(()=>{const n=first.notes||records.find(r=>r.notes)?.notes||'';return n?`<div style="padding:16px 22px;border-top:1px solid var(--border)"><div style="font-size:13px;color:var(--text3);margin-bottom:6px;font-weight:500">📝 备注</div><div style="font-size:14px;color:var(--text2);line-height:1.7">${escapeHtml(n)}</div></div>`:''})()}
         <div class="skin-timeline">
           <div class="timeline-title">🕐 上线 &amp; 返场记录（共 ${records.length} 条）</div>
           <div class="timeline-list">
@@ -1860,9 +1860,9 @@ function openSkinDetail(hero, skinName) {
               const isLatest = latestReturn && r===latestReturn;
               const retIdx = r.type==='返场' ? returns.indexOf(r)+1 : 0;
               return `<div class="timeline-item ${r.type==='首发'?'first':'return'}${isLatest?' latest':''}">
-                <div class="timeline-date">${r.date}</div>
+                <div class="timeline-date">${escapeHtml(r.date)}</div>
                 <div class="timeline-label">${r.type==='首发'?'🌟 首发上线':`🔄 第 ${retIdx} 次返场`}</div>
-                <div class="timeline-obtain">${r.obtain}${r.type==='首发'&&r.price&&r.price!=='/'&&r.price!=='nan'?' · '+r.price:''}</div>
+                <div class="timeline-obtain">${escapeHtml(r.obtain)}${r.type==='首发'&&r.price&&r.price!=='/'&&r.price!=='nan'?' · '+escapeHtml(r.price):''}</div>
                 ${isLatest?'<div class="timeline-latest-tag">最近</div>':''}
               </div>`;
             }).join('')}
@@ -1931,7 +1931,7 @@ function barChartHtml(rows, fmt, color, bg) {
   return `<div class="bar-chart">
     ${rows.map(r => `
       <div class="bar-row">
-        <div class="bar-label" style="color:var(--gold-light);cursor:pointer" onclick="openHeroFromStats('${esc(r.hero)}')">${r.hero}</div>
+        <div class="bar-label" style="color:var(--gold-light);cursor:pointer" onclick="openHeroFromStats('${esc(r.hero)}')">${escapeHtml(r.hero)}</div>
         <div class="bar-track">
           <div class="bar-fill" style="width:${Math.round(r.value/max*100)}%;background:${bg};border-left:3px solid ${color};color:${color}">${fmt(r.value)}</div>
         </div>
@@ -2012,9 +2012,9 @@ function renderStats() {
     return `M${ox1},${oy1} A${r1},${r1} 0 ${large},1 ${ox2},${oy2} L${ix1},${iy1} A${r2},${r2} 0 ${large},0 ${ix2},${iy2} Z`;
   }
   const pieSvg = `<svg width="240" height="240" viewBox="0 0 240 240">
-    ${segs.map(s=>`<path id="seg-${s.q}" class="pie-segment" d="${segPath(s,R,innerR)}"
-      fill="${qColors[s.q]}" opacity="0.85" onclick="selectQuality('${s.q}')" data-q="${s.q}">
-      <title>${s.q}: ${s.count} (${(s.frac*100).toFixed(1)}%)</title></path>`).join('')}
+    ${segs.map(s=>`<path id="seg-${escapeHtml(s.q)}" class="pie-segment" d="${segPath(s,R,innerR)}"
+      fill="${qColors[s.q]}" opacity="0.85" onclick="selectQuality('${esc(s.q)}')" data-q="${escapeHtml(s.q)}">
+      <title>${escapeHtml(s.q)}: ${s.count} (${(s.frac*100).toFixed(1)}%)</title></path>`).join('')}
   </svg>`;
 
   document.getElementById('stats-content').innerHTML = `
@@ -2041,9 +2041,9 @@ function renderStats() {
           </div>
           <div class="pie-legend" id="pie-legend">
             ${segs.map(s=>`
-              <div class="pie-legend-item" id="leg-${s.q}" onclick="selectQuality('${s.q}')">
+              <div class="pie-legend-item" id="leg-${escapeHtml(s.q)}" onclick="selectQuality('${esc(s.q)}')">
                 <div class="pie-legend-dot" style="background:${qColors[s.q]}"></div>
-                <div class="pie-legend-name">${s.q}</div>
+                <div class="pie-legend-name">${escapeHtml(s.q)}</div>
                 <div class="pie-legend-count" style="color:${qColors[s.q]}">${s.count}</div>
                 <div class="pie-legend-pct">${(s.frac*100).toFixed(1)}%</div>
               </div>`).join('')}
@@ -2458,10 +2458,10 @@ function selectQuality(q) {
     <div class="quality-skin-panel" style="border-color:${color}33">
       <div class="quality-skin-panel-header">
         <div class="quality-skin-panel-title">
-          <span class="badge badge-${q}" style="margin-right:8px">${q}</span>
+          <span class="badge badge-${q}" style="margin-right:8px">${escapeHtml(q)}</span>
           共 <b style="color:${color}">${skins.length}</b> 款皮肤
         </div>
-        <div class="quality-skin-panel-close" onclick="selectQuality('${q}')">×</div>
+        <div class="quality-skin-panel-close" onclick="selectQuality('${esc(q)}')">×</div>
       </div>
       <div class="quality-skin-list">
         ${skins.map(s => {
@@ -2469,13 +2469,13 @@ function selectQuality(q) {
           const tagSrc = thumbUrl(s.qi, 80);
           return `<div class="skin-card" onclick="goSkinDetail('${esc(s.hero)}','${esc(s.name)}')">
             <div class="skin-card-img">
-              ${imgSrc ? `<img class="skin-thumb" src="${imgSrc}" loading="lazy" alt="${s.name}">` : `<div class="img-ph">${qualityEmoji(s.quality)}</div>`}
+              ${imgSrc ? `<img class="skin-thumb" src="${imgSrc}" loading="lazy" alt="${escapeHtml(s.name)}">` : `<div class="img-ph">${qualityEmoji(s.quality)}</div>`}
             </div>
             <div class="skin-card-body">
-              <div class="skin-card-name">${s.name}</div>
+              <div class="skin-card-name">${escapeHtml(s.name)}</div>
               <div class="skin-card-meta" style="justify-content:space-between;align-items:center">
-                <span style="color:var(--gold-light);font-size:11px">${s.hero}</span>
-                ${tagSrc ? `<img src="${tagSrc}" style="height:14px;object-fit:contain;image-rendering:pixelated" title="${s.tag}" alt="${s.tag}">` : ''}
+                <span style="color:var(--gold-light);font-size:11px">${escapeHtml(s.hero)}</span>
+                ${tagSrc ? `<img src="${tagSrc}" style="height:14px;object-fit:contain;image-rendering:pixelated" title="${escapeHtml(s.tag)}" alt="${escapeHtml(s.tag)}">` : ''}
               </div>
             </div>
           </div>`;
@@ -2552,8 +2552,8 @@ function renderRankingPage() {
           ${imgSrc ? `<img src="${imgSrc}" loading="lazy" alt="">` : qualityEmoji(skin.quality)}
         </div>
         <div class="ranking-skin-info">
-          <div class="ranking-skin-name" title="${skin.name}">${skin.name}</div>
-          <div class="ranking-skin-date">${firstRec?.date?.slice(0,7)||''}</div>
+          <div class="ranking-skin-name" title="${escapeHtml(skin.name)}">${escapeHtml(skin.name)}</div>
+          <div class="ranking-skin-date">${escapeHtml(firstRec?.date?.slice(0,7)||'')}</div>
         </div>
       </div>
     </td>`;
@@ -2567,7 +2567,7 @@ function renderRankingPage() {
     return `<tr>
       <td class="ranking-rank-td">${rankNumHtml(globalIdx)}</td>
       <td class="ranking-hero-td">
-        <span class="ranking-hero-name" onclick="showView('heroes',null,'heroes');setTimeout(()=>openHeroDetail('${esc(row.hero)}'),50)">${row.hero}</span>
+        <span class="ranking-hero-name" onclick="showView('heroes',null,'heroes');setTimeout(()=>openHeroDetail('${esc(row.hero)}'),50)">${escapeHtml(row.hero)}</span>
       </td>
       <td class="ranking-count-td">${row.count}</td>
       ${Array.from({length: MAX_COLS}, (_, ci) => skinCellHtml(row.skins[ci])).join('')}
@@ -2689,7 +2689,7 @@ function renderResourceGrid(list) {
     const tagInlineHtml = r.tag
       ? (tagImgSrc
         ? `<span style="height:18px; max-width:86px; display:flex; align-items:center; flex-shrink:0; margin-top:2px;" title="${esc(r.tag)}"><img src="${tagImgSrc}" loading="lazy" style="max-height:18px; max-width:100%; object-fit:contain;" alt="${esc(r.tag)}"></span>`
-        : `<span class="badge" style="background:rgba(201,168,76,0.15); color:var(--gold); border:1px solid rgba(201,168,76,0.3); font-size:10px; padding:2px 5px; max-width:86px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex-shrink:0; margin-top:2px;" title="${esc(r.tag)}">${r.tag}</span>`)
+        : `<span class="badge" style="background:rgba(201,168,76,0.15); color:var(--gold); border:1px solid rgba(201,168,76,0.3); font-size:10px; padding:2px 5px; max-width:86px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex-shrink:0; margin-top:2px;" title="${esc(r.tag)}">${escapeHtml(r.tag)}</span>`)
       : '';
     
     return `<div class="res-card" onclick="openResDetail('${esc(r.name)}')">
@@ -2699,13 +2699,13 @@ function renderResourceGrid(list) {
       </div>
       <div class="res-card-body">
         <div class="res-card-name" style="display:flex; align-items:flex-start; gap:8px; white-space:normal; overflow:visible;">
-          <span style="flex:1; line-height:1.4; word-break:break-word;">${r.name}</span>
+          <span style="flex:1; line-height:1.4; word-break:break-word;">${escapeHtml(r.name)}</span>
           ${tagInlineHtml}
         </div>
         <div style="display:flex; align-items:center; justify-content:space-between; margin-top:auto;">
           <!-- 统一品质配色：直接复用皮肤的 badge-{quality} 样式 -->
-          <span class="badge badge-${r.quality||'无'}" style="font-size:11px;">${r.quality||'—'}</span>
-          <span style="font-size:11px; color:var(--text3);">${r.date||'—'}</span>
+          <span class="badge badge-${r.quality||'无'}" style="font-size:11px;">${escapeHtml(r.quality)||'—'}</span>
+          <span style="font-size:11px; color:var(--text3);">${escapeHtml(r.date)||'—'}</span>
         </div>
       </div>
     </div>`;
@@ -2730,14 +2730,14 @@ function openResDetail(name) {
   const tagImgSrc = first.tag_img_url ? toCdnUrl(first.tag_img_url) : null;
   const tagDetailHtml = first.tag
     ? (tagImgSrc
-      ? `<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;"><img src="${tagImgSrc}" style="height:28px;max-width:100%;object-fit:contain;" alt="${esc(first.tag)}"><span>${first.tag}</span></div>`
+      ? `<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;"><img src="${tagImgSrc}" style="height:28px;max-width:100%;object-fit:contain;" alt="${esc(first.tag)}"><span>${escapeHtml(first.tag)}</span></div>`
       : first.tag)
     : '无';
   
   wrap.innerHTML = `
     <div class="hero-detail-header">
       <div class="breadcrumb">
-        <a onclick="document.getElementById('resource-detail-wrap').style.display='none'; document.getElementById('resources-list-wrap').style.display='block';">← 返回${first.type}列表</a> / ${first.name}
+        <a onclick="document.getElementById('resource-detail-wrap').style.display='none'; document.getElementById('resources-list-wrap').style.display='block';">← 返回${escapeHtml(first.type)}列表</a> / ${escapeHtml(first.name)}
       </div>
     </div>
     <div class="skin-detail-wrap">
@@ -2751,22 +2751,22 @@ function openResDetail(name) {
               : `<div style="font-size:50px; color:var(--text3);">✨</div>`}
           </div>
           <div class="skin-detail-info" style="padding: 24px;">
-            <div class="skin-detail-name">${first.name}</div>
+            <div class="skin-detail-name">${escapeHtml(first.name)}</div>
             <div class="skin-detail-hero" style="margin-bottom: 24px; color: var(--gold-light); display:flex; align-items:center;">
-              ${first.type}
-              ${first.collab ? `<span class="badge" style="background:rgba(201,168,76,0.15); color:var(--gold); border:1px solid rgba(201,168,76,0.3); font-size:11px; margin-left:10px;">联动：${first.collab}</span>` : ''}
+              ${escapeHtml(first.type)}
+              ${first.collab ? `<span class="badge" style="background:rgba(201,168,76,0.15); color:var(--gold); border:1px solid rgba(201,168,76,0.3); font-size:11px; margin-left:10px;">联动：${escapeHtml(first.collab)}</span>` : ''}
             </div>
             
             <div class="skin-detail-attrs">
               <!-- 统一品质配色：直接复用皮肤的 badge-{quality} 样式 -->
-              <div class="attr-item"><label>资源品质</label><div class="val"><span class="badge badge-${first.quality||'无'}" style="border:none;">${first.quality||'未知'}</span></div></div>
-              <div class="attr-item"><label>首发日期</label><div class="val" style="color:var(--green)">${first.date||'—'}</div></div>
-              <div class="attr-item"><label>获取方式</label><div class="val" style="font-size:12px;color:var(--text2)">${first.obtain||'—'}</div></div>
-              <div class="attr-item"><label>首发价格</label><div class="val" style="color:var(--gold)">${first.price||'—'}</div></div>
-              <div class="attr-item"><label>是否常驻</label><div class="val"><span class="badge badge-${first.permanent||'否'}">${first.permanent||'否'}</span></div></div>
+              <div class="attr-item"><label>资源品质</label><div class="val"><span class="badge badge-${first.quality||'无'}" style="border:none;">${escapeHtml(first.quality)||'未知'}</span></div></div>
+              <div class="attr-item"><label>首发日期</label><div class="val" style="color:var(--green)">${escapeHtml(first.date)||'—'}</div></div>
+              <div class="attr-item"><label>获取方式</label><div class="val" style="font-size:12px;color:var(--text2)">${escapeHtml(first.obtain)||'—'}</div></div>
+              <div class="attr-item"><label>首发价格</label><div class="val" style="color:var(--gold)">${escapeHtml(first.price)||'—'}</div></div>
+              <div class="attr-item"><label>是否常驻</label><div class="val"><span class="badge badge-${first.permanent||'否'}">${escapeHtml(first.permanent)||'否'}</span></div></div>
               <div class="attr-item"><label>资源标签</label><div class="val" style="font-size:12px;">${tagDetailHtml}</div></div>
               <div class="attr-item"><label>返场次数</label><div class="val" style="color:var(--accent2);font-size:20px;font-weight:700">${returns.length}</div></div>
-              ${latestReturn ? `<div class="attr-item" style="grid-column:1/-1"><label>最近返场</label><div class="val" style="color:var(--gold)">${latestReturn.date} · ${latestReturn.obtain}</div></div>` : ''}
+              ${latestReturn ? `<div class="attr-item" style="grid-column:1/-1"><label>最近返场</label><div class="val" style="color:var(--gold)">${escapeHtml(latestReturn.date)} · ${escapeHtml(latestReturn.obtain)}</div></div>` : ''}
             </div>
           </div>
         </div>
@@ -2774,7 +2774,7 @@ function openResDetail(name) {
         ${first.notes ? `
         <div style="padding:16px 24px; border-top:1px solid var(--border)">
           <div style="font-size:13px; color:var(--text3); margin-bottom:6px; font-weight:600;">📝 备注说明</div>
-          <div style="font-size:14px; color:var(--text2); line-height:1.6;">${first.notes}</div>
+          <div style="font-size:14px; color:var(--text2); line-height:1.6;">${escapeHtml(first.notes)}</div>
         </div>` : ''}
 
         <div class="skin-timeline">
@@ -2784,9 +2784,9 @@ function openResDetail(name) {
               const isLatest = latestReturn && r === latestReturn;
               const retIdx = r.release_type === '返场' ? returns.indexOf(r) + 1 : 0;
               return `<div class="timeline-item ${r.release_type === '首发' ? 'first' : 'return'}${isLatest ? ' latest' : ''}">
-                <div class="timeline-date">${r.date}</div>
+                <div class="timeline-date">${escapeHtml(r.date)}</div>
                 <div class="timeline-label">${r.release_type === '首发' ? '🌟 首发上线' : `🔄 第 ${retIdx} 次返场`}</div>
-                <div class="timeline-obtain">${r.obtain||'—'}${r.release_type === '首发' && r.price ? ' · ' + r.price : ''}</div>
+                <div class="timeline-obtain">${escapeHtml(r.obtain)||'—'}${r.release_type === '首发' && r.price ? ' · ' + escapeHtml(r.price) : ''}</div>
                 ${isLatest ? '<div class="timeline-latest-tag">最近</div>' : ''}
               </div>`;
             }).join('')}
@@ -2813,7 +2813,14 @@ window.addEventListener('popstate', e => {
 });
 
 // ── Helpers ──
+// esc：用于 onclick="fn('${esc(v)}')" 的 JS 字符串上下文（转义引号与反斜杠）。
 function esc(s) { return (s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+// escapeHtml：用于把数据库字段插入 HTML 文本节点或属性值的上下文，防止存储型 XSS。
+function escapeHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
 const OLD_COMPANION_QUALITY = '\u4f34\u751f';
 function normalizeQuality(q) { return q === OLD_COMPANION_QUALITY ? '其他' : q; }
 function qualityEmoji(q) {
