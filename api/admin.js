@@ -66,6 +66,7 @@ function flattenSkinRow(row) {
     tag_img_url: profile.tag_img_url || row.tag_img_url || '',
     profile_notes: profile.notes || '',
     first_release_date: profile.first_release_date || null,
+    skin_value_points: profile.skin_value_points ?? null,
     notes: row.notes || profile.notes || '',
     series: profileSeries(profile),
   };
@@ -147,6 +148,12 @@ async function upsertSkinProfile(client, data, existingId = null) {
     notes: data.notes || null,
   };
   if (data.date && data.type === TYPE_FIRST) profile.first_release_date = data.date;
+  // 皮肤价值点数：仅作为资料层数据，由首发记录维护；返场记录复用同一 profile 故自动继承
+  if (data.skin_value_points !== undefined) {
+    const v = data.skin_value_points;
+    const n = Number(v);
+    profile.skin_value_points = (v === '' || v === null || !Number.isFinite(n)) ? null : n;
+  }
 
   if (existingId) {
     const { data: updated, error } = await client
@@ -548,7 +555,7 @@ async function unbindSeriesSkin(seriesId, profileId, user) {
 }
 
 async function updateSkin(id, updates, user) {
-  const ALLOWED = new Set(['date','name','quality','tag','hero','price','obtain','type','permanent','skin_img_url','tag_img_url','hero_id','notes','skin_profile_id','series_ids']);
+  const ALLOWED = new Set(['date','name','quality','tag','hero','price','obtain','type','permanent','skin_img_url','tag_img_url','hero_id','notes','skin_profile_id','series_ids','skin_value_points']);
   const clean = Object.fromEntries(Object.entries(updates).filter(([k]) => ALLOWED.has(k)));
   if (clean.quality) clean.quality = normalizeQuality(clean.quality);
   const seriesIds = normalizeSeriesIds(clean.series_ids);
@@ -651,7 +658,7 @@ async function batchUpdate({ ids, updates }, user) {
 
 // ── 新增皮肤 ─────────────────────────────────────────────────
 async function insertSkin(data, user) {
-  const ALLOWED = new Set(['date','name','quality','tag','hero','price','obtain','type','permanent','skin_img_url','tag_img_url','hero_id','notes','skin_profile_id','series_ids']);
+  const ALLOWED = new Set(['date','name','quality','tag','hero','price','obtain','type','permanent','skin_img_url','tag_img_url','hero_id','notes','skin_profile_id','series_ids','skin_value_points']);
   const clean = Object.fromEntries(Object.entries(data||{}).filter(([k]) => ALLOWED.has(k)));
   if (clean.quality) clean.quality = normalizeQuality(clean.quality);
   const seriesIds = normalizeSeriesIds(clean.series_ids);

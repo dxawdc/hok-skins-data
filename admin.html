@@ -718,6 +718,11 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
           <option>否</option><option>是</option>
         </select>
       </div>
+      <div class="form-group" id="es-value-points-wrap">
+        <label>皮肤价值点数 <span style="color:var(--text3);font-weight:400">（用于计算皮肤价值）</span></label>
+        <input type="number" id="es-value-points" placeholder="如：100" step="any" min="0">
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">仅首发皮肤可编辑；返场记录自动沿用首发数据。</div>
+      </div>
     </div>
     <div class="form-group" id="es-notes-wrap" style="margin-top:4px">
       <label>备注 <span style="color:var(--text3);font-weight:400">（可选）</span></label>
@@ -1289,6 +1294,7 @@ function applySelectedSkinProfile() {
   document.getElementById('es-permanent').value = p.permanent || '否';
   document.getElementById('es-skin-img-url').value = p.skin_img_url || '';
   document.getElementById('es-tag-img-url').value = p.tag_img_url || '';
+  document.getElementById('es-value-points').value = (p.skin_value_points ?? '');
   populateHeroSelect('es-hero-id', p.hero_id || '', p.hero || '');
   renderSkinSeriesOptions(p.series || []);
   setImagePreview('skin', p.skin_img_url || '');
@@ -1320,7 +1326,7 @@ async function updateSkinTypeMode() {
     const el = document.getElementById(id);
     if (el) el.classList.toggle('return-edit-highlight', isReturn);
   });
-  ['es-name','es-quality','es-tag','es-hero-id-search','es-hero-id','es-permanent','es-series'].forEach(id => {
+  ['es-name','es-quality','es-tag','es-hero-id-search','es-hero-id','es-permanent','es-series','es-value-points'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.disabled = isReturn;
   });
@@ -1354,6 +1360,7 @@ function resetSkinModal() {
   document.getElementById('es-hero-id').value = '';
   document.getElementById('es-hero-id-search').value = '';
   document.getElementById('es-notes').value = '';
+  document.getElementById('es-value-points').value = '';
   document.getElementById('es-type').value = '首发';
   document.getElementById('es-permanent').value = '否';
   renderSkinSeriesOptions([]);
@@ -1410,6 +1417,7 @@ async function openEditSkin(s) {
   document.getElementById('es-obtain').value    = s.obtain || '';
   document.getElementById('es-type').value      = s.type;
   document.getElementById('es-permanent').value = s.permanent;
+  document.getElementById('es-value-points').value = (s.skin_value_points ?? '');
   document.getElementById('es-notes').value     = s.notes || '';
   renderSkinSeriesOptions(s.series || []);
   populateHeroSelect('es-hero-id', s.hero_id || '', s.hero || '');
@@ -1481,6 +1489,7 @@ async function doSaveSkin() {
 
     const heroId = document.getElementById('es-hero-id').value ? parseInt(document.getElementById('es-hero-id').value) : null;
     const heroName = getSelectedHeroName('es-hero-id');
+    const valuePointsRaw = document.getElementById('es-value-points').value.trim();
     const data = {
       date:         document.getElementById('es-date').value,
       name:         document.getElementById('es-name').value.trim(),
@@ -1493,6 +1502,7 @@ async function doSaveSkin() {
       notes:        document.getElementById('es-notes').value.trim() || null,
       type,
       permanent:    document.getElementById('es-permanent').value,
+      skin_value_points: valuePointsRaw === '' ? null : Number(valuePointsRaw),
       skin_img_url: skinImgUrl,
       tag_img_url:  tagImgUrl,
       series_ids:   selectedSeriesIds(),
@@ -1513,6 +1523,7 @@ async function doSaveSkin() {
       data.permanent = p.permanent || '否';
       data.skin_img_url = p.skin_img_url || '';
       data.tag_img_url = p.tag_img_url || '';
+      data.skin_value_points = (p.skin_value_points ?? null);
       data.series_ids = (p.series || []).map(s => s.id);
     }
 
