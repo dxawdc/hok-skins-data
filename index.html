@@ -140,6 +140,85 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
 .filter-clear { font-size: 13px; color: var(--text3); cursor: pointer; padding: 6px 8px; }
 .filter-clear:hover { color: var(--red); }
 
+/* 本地标记：批量栏 + 行内按钮 */
+.batch-bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 8px 28px; margin: 0;
+}
+.batch-info { font-size: 13px; color: var(--text3); margin-right: auto; }
+.batch-btn {
+  padding: 5px 12px; border-radius: 16px; font-size: 13px; cursor: pointer;
+  border: 1px solid var(--border); background: transparent; color: var(--text2);
+  transition: all 0.2s; white-space: nowrap;
+}
+.batch-btn:hover { border-color: var(--gold); color: var(--gold); }
+.mark-cell { white-space: nowrap; }
+.mark-btn {
+  padding: 2px 4px; font-size: 15px; line-height: 1; cursor: pointer;
+  border: none; background: transparent;
+  filter: grayscale(1) opacity(0.4); transition: all 0.15s;
+}
+.mark-btn:hover { filter: grayscale(0.2) opacity(0.9); transform: scale(1.12); }
+.mark-btn.on { filter: none; }
+/* 详情页：皮肤名 + 标记按钮同行右对齐 */
+.skin-detail-name-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; flex-wrap: wrap; }
+.skin-detail-name-row .skin-detail-name { margin-bottom: 0; }
+.detail-mark-row { display: flex; gap: 10px; flex-wrap: wrap; flex-shrink: 0; }
+.detail-mark-btn {
+  padding: 2px 4px; font-size: 24px; line-height: 1; cursor: pointer;
+  border: none; background: transparent;
+  filter: grayscale(1) opacity(0.4); transition: all 0.15s;
+}
+.detail-mark-btn:hover { filter: grayscale(0.2) opacity(0.9); transform: scale(1.1); }
+.detail-mark-btn.on { filter: none; }
+
+/* 我的收藏 */
+.mine-wrap { padding: 24px 28px 40px; max-width: 1100px; margin: 0 auto; }
+.mine-head { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+.mine-ava { width: 52px; height: 52px; border-radius: 14px; background: rgba(201,168,76,0.15); border: 1px solid var(--gold); display: flex; align-items: center; justify-content: center; font-size: 26px; }
+.mine-title { font-size: 20px; font-weight: 700; color: var(--gold-light); }
+.mine-sub { font-size: 13px; color: var(--text3); margin-top: 3px; }
+.mine-count { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+.mc { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; cursor: pointer; transition: all 0.2s; }
+.mc:hover { border-color: var(--gold); }
+.mc.on { border-color: var(--gold); background: rgba(201,168,76,0.10); }
+.mc-v { font-size: 30px; font-weight: 700; color: var(--gold-light); line-height: 1.1; }
+.mc-v-sub { font-size: 15px; color: var(--text3); font-weight: 400; }
+.mc-k { font-size: 13px; color: var(--text2); margin-top: 4px; }
+.mc-split { font-size: 12px; color: var(--text3); margin-top: 6px; min-height: 16px; }
+.value-card { display: flex; gap: 18px; background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; margin-bottom: 20px; flex-wrap: wrap; }
+.vc-left { flex: 1; min-width: 180px; }
+.vc-label { font-size: 13px; color: var(--text2); }
+.vc-value { font-size: 32px; font-weight: 700; color: var(--gold-light); margin: 4px 0; }
+.vc-unit { font-size: 14px; color: var(--text3); font-weight: 400; }
+.vc-desc { font-size: 12px; color: var(--text3); }
+.vc-right { display: flex; flex-wrap: wrap; gap: 8px 14px; align-content: center; }
+.qc { display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--text2); }
+.qc-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.qc-n { color: var(--gold-light); font-weight: 600; }
+.mine-sec-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+.mine-sec-title { font-size: 16px; font-weight: 600; color: var(--text); }
+.mine-sec-more { font-size: 13px; color: var(--text3); }
+.m-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 14px; }
+.m-cell { cursor: pointer; text-align: center; }
+.m-cthumb { width: 100%; aspect-ratio: 1; border-radius: 12px; background: var(--bg4); overflow: hidden; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); transition: all 0.2s; }
+.m-cell:hover .m-cthumb { border-color: var(--gold); transform: translateY(-2px); }
+.m-cthumb img { width: 100%; height: 100%; object-fit: contain; }
+.m-cell-emoji { font-size: 30px; }
+.m-cname { font-size: 12px; color: var(--text); margin-top: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m-chero { font-size: 11px; color: var(--text3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m-more { text-align: center; margin: 20px auto 0; padding: 9px 0; max-width: 280px; border: 1px solid var(--border); border-radius: 20px; cursor: pointer; font-size: 14px; color: var(--text2); transition: all 0.2s; }
+.m-more:hover { border-color: var(--gold); color: var(--gold); }
+.mine-empty { text-align: center; padding: 50px 20px; }
+.mine-empty-icon { font-size: 46px; }
+.mine-empty-text { font-size: 16px; color: var(--text2); margin-top: 12px; }
+.mine-empty-hint { font-size: 13px; color: var(--text3); margin-top: 8px; }
+.mine-foot-note { text-align: center; font-size: 12px; color: var(--text3); margin-top: 30px; }
+@media (max-width: 600px) {
+  .mine-wrap { padding: 16px 14px 30px; }
+  .m-grid { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 10px; }
+}
+
 /* TABLE */
 .table-container { padding: 0 28px 16px; overflow-x: auto; }
 .data-table { width: 100%; border-collapse: collapse; font-size: 14px; }
@@ -241,6 +320,11 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
   position: absolute; top: 6px; right: 6px;
   background: rgba(74,124,191,0.88); color: #fff;
   padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: 600;
+}
+.skin-card-img .owned-badge {
+  position: absolute; top: 4px; left: 4px;
+  font-size: 18px; line-height: 1;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.65));
 }
 .skin-card-body { padding: 11px; }
 .skin-card-name { font-weight: 700; font-size: 14px; margin-bottom: 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -476,16 +560,22 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
   #mobile-list, #mobile-hero-list { display: block !important; padding: 8px 12px; }
   .data-table   { display: none !important; }
   .table-container { padding: 0; overflow-x: visible; }
-  .mobile-skin-card { display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 8px; background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; cursor: pointer; transition: all 0.18s; -webkit-tap-highlight-color: transparent; }
+  .mobile-skin-card { display: flex; align-items: center; gap: 12px; padding: 12px 14px; margin-bottom: 8px; background: var(--bg3); border: 1px solid var(--border); border-radius: 12px; cursor: pointer; transition: all 0.18s; -webkit-tap-highlight-color: transparent; }
   .mobile-skin-card:active { background: var(--bg4); transform: scale(0.99); }
-  .mobile-skin-thumb { width: 44px; height: 44px; border-radius: 8px; background: var(--bg4); flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .mobile-skin-thumb { width: 52px; height: 52px; border-radius: 50%; background: var(--bg4); flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 22px; border: 1px solid var(--border); }
   .mobile-skin-thumb img { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
-  .mobile-skin-info { flex: 1; min-width: 0; }
-  .mobile-skin-name { font-size: 14px; font-weight: 700; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .mobile-skin-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-  .mobile-skin-hero { font-size: 12px; color: var(--gold-light); }
-  .mobile-skin-date { font-size: 11px; color: var(--text3); }
-  .mobile-skin-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+  .mobile-skin-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+  .msc-line { display: flex; align-items: center; gap: 7px; min-width: 0; }
+  .msc-line-name { justify-content: space-between; }
+  .mobile-skin-name { font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
+  .mobile-skin-hero { font-size: 13px; color: var(--gold-light); white-space: nowrap; }
+  .mobile-skin-date { font-size: 12px; color: var(--text3); white-space: nowrap; }
+  .msc-qimg { height: 18px; object-fit: contain; image-rendering: pixelated; margin-left: auto; flex-shrink: 0; }
+  .msc-line-badges { flex-wrap: wrap; gap: 6px; }
+  .msc-line-badges .badge { font-size: 11px; }
+  .msc-obtain { font-size: 12px; color: var(--text3); }
+  .msc-marks { display: flex; gap: 6px; flex-shrink: 0; }
+  .msc-marks .mark-btn { font-size: 18px; padding: 2px 4px; }
 
   .pagination { padding: 10px 12px; flex-wrap: wrap; gap: 6px; }
   .pg-btn { padding: 6px 10px; min-width: 36px; text-align: center; }
@@ -580,6 +670,7 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
       <div class="nav-tab" id="tab-series" onclick="showView('series',this)">皮肤套系</div>
       <div class="nav-tab" id="tab-ranking" onclick="showView('ranking',this)">皮肤盘点</div>
       <div class="nav-tab" id="tab-stats" onclick="showView('stats',this)">统计分析</div>
+      <div class="nav-tab" id="tab-mine" onclick="showView('mine',this)">我的收藏</div>
     </div>
     <div class="header-right">
       <div class="header-stats">
@@ -613,6 +704,7 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
         <div class="sidebar-nav-item" id="snav-series" onclick="showView('series', null, 'series')">🎨 皮肤套系</div>
         <div class="sidebar-nav-item" id="snav-ranking" onclick="showView('ranking', null, 'ranking')">🏆 皮肤盘点</div>
         <div class="sidebar-nav-item" id="snav-stats" onclick="showView('stats', null, 'stats')">📊 统计分析</div>
+        <div class="sidebar-nav-item" id="snav-mine" onclick="showView('mine', null, 'mine')">⭐ 我的收藏</div>
         <div class="sidebar-nav-item" id="snav-contact" onclick="showView('contact', null, 'contact')">📬 联系我们</div>
       </div>
       <div class="sidebar-section">
@@ -645,7 +737,17 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
         <div class="chip" data-ftype="首发" onclick="setTypeFilter(this,'首发')">首发</div>
         <div class="chip" data-ftype="返场" onclick="setTypeFilter(this,'返场')">返场</div>
       </div>
+      <div class="filter-chips">
+        <div class="chip active" data-fperm="" onclick="setPermFilter(this,'')">全部时效</div>
+        <div class="chip" data-fperm="是" onclick="setPermFilter(this,'是')">常驻</div>
+        <div class="chip" data-fperm="否" onclick="setPermFilter(this,'否')">限时</div>
+      </div>
       <span class="filter-clear" onclick="clearFilters()">✕ 清除</span>
+    </div>
+    <div class="batch-bar" id="batch-bar">
+      <span class="batch-info" id="batch-info">当前筛选 0 款</span>
+      <button class="batch-btn" onclick="batchOwnAll()">全选</button>
+      <button class="batch-btn" onclick="batchInvertOwned()">反选</button>
     </div>
     <div class="table-container">
       <table class="data-table">
@@ -662,6 +764,7 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
             <th>获取方式</th>
             <th>类型</th>
             <th>常驻</th>
+            <th>标记</th>
           </tr>
         </thead>
         <tbody id="table-body"></tbody>
@@ -869,6 +972,55 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
     </div>
   </div>
 
+  <div id="view-mine" class="view">
+    <div class="mine-wrap">
+      <div class="mine-head">
+        <div class="mine-ava">⭐</div>
+        <div class="mine-head-info">
+          <div class="mine-title">我的皮肤收藏</div>
+          <div class="mine-sub">本地记录 · 数据仅存于本机浏览器</div>
+        </div>
+      </div>
+
+      <div class="mine-count">
+        <div class="mc on" id="mc-owned" onclick="selMineTab('owned')">
+          <div class="mc-v"><span id="mc-owned-n">0</span><span class="mc-v-sub">/<span id="mc-total">0</span></span></div>
+          <div class="mc-k">已拥有</div>
+          <div class="mc-split" id="mc-owned-split">常驻 0 · 限时 0</div>
+        </div>
+        <div class="mc" id="mc-follow" onclick="selMineTab('follow')">
+          <div class="mc-v"><span id="mc-follow-n">0</span></div>
+          <div class="mc-k">关注中</div>
+          <div class="mc-split"></div>
+        </div>
+      </div>
+
+      <div class="value-card">
+        <div class="vc-left">
+          <div class="vc-label" id="mine-value-label">已拥有皮肤估算价值</div>
+          <div class="vc-value"><span id="mine-value-text">0</span> <span class="vc-unit">点券</span></div>
+          <div class="vc-desc">按皮肤标价累计 · 仅供参考</div>
+        </div>
+        <div class="vc-right" id="mine-quality-dist"></div>
+      </div>
+
+      <div class="mine-sec-head">
+        <div class="mine-sec-title" id="mine-tab-label">已拥有</div>
+        <span class="mine-sec-more"><span id="mine-list-total">0</span> 款</span>
+      </div>
+
+      <div class="m-grid" id="mine-grid"></div>
+      <div class="m-more" id="mine-more" style="display:none" onclick="toggleMineExpand()"></div>
+      <div class="mine-empty" id="mine-empty" style="display:none">
+        <div class="mine-empty-icon">🪷</div>
+        <div class="mine-empty-text" id="mine-empty-text">还没有收藏的皮肤</div>
+        <div class="mine-empty-hint">在「皮肤明细」列表或详情页点击 ⭐拥有 / ❤️关注 即可收藏</div>
+      </div>
+
+      <div class="mine-foot-note">本地标记版 · 清除浏览器数据将丢失标记</div>
+    </div>
+  </div>
+
     </div></div><nav class="bottom-nav" id="bottom-nav">
     <div class="bottom-nav-item active" id="bnav-list" onclick="showView('list',null,'list');setBottomNav('list')">
       <span class="bn-icon">📋</span>皮肤
@@ -888,6 +1040,9 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
     <div class="bottom-nav-item" id="bnav-stats" onclick="showView('stats',null,'stats');setBottomNav('stats')">
       <span class="bn-icon">📊</span>统计
     </div>
+    <div class="bottom-nav-item" id="bnav-mine" onclick="showView('mine',null,'mine');setBottomNav('mine')">
+      <span class="bn-icon">⭐</span>我的
+    </div>
     <div class="bottom-nav-item" id="bnav-contact" onclick="showView('contact',null,'contact');setBottomNav('contact')">
       <span class="bn-icon">📬</span>联系
     </div>
@@ -899,7 +1054,7 @@ const SUPABASE_URL = 'https://erphrsydujqrcvtpdtnf.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVycGhyc3lkdWpxcmN2dHBkdG5mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3MDU2ODQsImV4cCI6MjA4OTI4MTY4NH0.O6h3Eeq9gNfGAMYkZ5_1GY5lFBiJrF8fJat0Pxz868U';
 
 // ── 数据拉取：走 Cloudflare CDN 缓存 ──────────────────────────
-const CACHE_KEY       = 'wzry_skin_data_v6';   
+const CACHE_KEY       = 'wzry_skin_data_v7';   // v7: 新增 valuePoints 字段（皮肤价值点券），用于「我的」页估值
 const CACHE_KEY_HERO  = 'wzry_hero_data_v1';
 const CACHE_KEY_RES   = 'wzry_res_data_v2';
 const CACHE_TTL       = 30 * 60 * 1000;
@@ -960,6 +1115,7 @@ async function fetchAllSkins() {
     permanent: r.permanent || '否',
     si:        r.skin_img_url || '',
     qi:        r.tag_img_url  || '',
+    valuePoints: numOr0(r.skin_value_points),
     series:    Array.isArray(r.series) ? r.series : [],
   }));
 
@@ -1038,8 +1194,85 @@ function setTheme(t, el) {
 // ── State ──
 let filtered = [...RAW], sortField = 'date', sortDir = -1;
 let page = 1; const PAGE_SIZE = 50;
-let fHero = '', fQuality = '', fType = '', fSearch = '';
+let fHero = '', fQuality = '', fType = '', fPerm = '', fSearch = '';
 let heroRoleFilter = '', heroLaneFilter = '', heroSearch = '';
+
+// ════════════════════════════════════════════════════════════════
+// 本地标记系统（移植自小程序 utils/helper.js）
+// 免登录，存 localStorage；拥有(owned)/关注(follow) 互斥
+// 标记 key = hero + '|' + name（皮肤维度，与小程序一致）
+// ════════════════════════════════════════════════════════════════
+const MARK_KEY = 'wzry_marks_v1';
+const MARK_TYPES = ['owned', 'follow'];
+function numOr0(v) { const n = typeof v === 'number' ? v : parseInt(v, 10); return isFinite(n) ? n : 0; }
+function markKey(r) { return r.hero + '|' + r.name; }
+function getMarks() {
+  try {
+    const m = JSON.parse(localStorage.getItem(MARK_KEY) || '{}') || {};
+    // 兼容旧数据：期望(wish) 合并进 关注(follow)
+    Object.keys(m).forEach(k => { if (m[k] && m[k].wish) { m[k].follow = true; delete m[k].wish; } });
+    return m;
+  } catch (e) { return {}; }
+}
+function saveMarks(m) { try { localStorage.setItem(MARK_KEY, JSON.stringify(m)); } catch (e) {} }
+function getMark(key) { const m = getMarks(); return m[key] || { owned: false, follow: false }; }
+function toggleMark(key, type) {
+  const m = getMarks();
+  const cur = m[key] || { owned: false, follow: false };
+  cur[type] = !cur[type];
+  // 「拥有」与「关注」互斥
+  if (cur[type] && type === 'owned')  cur.follow = false;
+  if (cur[type] && type === 'follow') cur.owned = false;
+  if (!cur.owned && !cur.follow) delete m[key]; else m[key] = cur;
+  saveMarks(m);
+  return cur[type];
+}
+function countMarks() {
+  const m = getMarks(), c = { owned: 0, follow: 0 };
+  Object.keys(m).forEach(k => MARK_TYPES.forEach(t => { if (m[k][t]) c[t]++; }));
+  return c;
+}
+// 批量把 keys 统一设为某 type 的 on 状态（维持互斥）
+function setMarksBatch(keys, type, on) {
+  const m = getMarks();
+  (keys || []).forEach(key => {
+    const cur = m[key] || { owned: false, follow: false };
+    cur[type] = on;
+    if (on && type === 'owned')  cur.follow = false;
+    if (on && type === 'follow') cur.owned = false;
+    if (!cur.owned && !cur.follow) delete m[key]; else m[key] = cur;
+  });
+  saveMarks(m);
+  return m;
+}
+// 批量反选「拥有」：已拥有→取消，未拥有→标记拥有（标记拥有时清掉关注）
+function invertOwned(keys) {
+  const m = getMarks();
+  (keys || []).forEach(key => {
+    const cur = m[key] || { owned: false, follow: false };
+    cur.owned = !cur.owned;
+    if (cur.owned) cur.follow = false;
+    if (!cur.owned && !cur.follow) delete m[key]; else m[key] = cur;
+  });
+  saveMarks(m);
+  return m;
+}
+// 统计 keys 中已标记「拥有」的数量
+function countOwnedIn(keys) {
+  const m = getMarks();
+  return (keys || []).reduce((n, key) => n + (m[key] && m[key].owned ? 1 : 0), 0);
+}
+// 清理孤儿标记：删除当前皮肤全集中已不存在的 key（皮肤改名/下架后残留）。
+// 仅在 validKeys 非空时执行，避免数据加载失败时误删用户标记。返回清理条数。
+function reconcileMarks(validKeys) {
+  if (!Array.isArray(validKeys) || !validKeys.length) return 0;
+  const valid = new Set(validKeys);
+  const m = getMarks();
+  let removed = 0;
+  Object.keys(m).forEach(k => { if (!valid.has(k)) { delete m[k]; removed++; } });
+  if (removed) saveMarks(m);
+  return removed;
+}
 
 // Hero List State
 let hlFiltered = [];
@@ -1066,9 +1299,10 @@ window.onload = async () => {
     });
 
     setLoadingText('渲染页面…');
+    reconcileMarks([...new Set(RAW.map(markKey))]);   // 清理改名/下架皮肤的孤儿标记
     buildHeroSelect();
     filterList();
-    filterHeroList(); 
+    filterHeroList();
     renderHeroGrid();
     renderStats();
 
@@ -1107,6 +1341,7 @@ async function refreshData() {
     HERO_BY_ID = {}; HERO_BY_NAME = {};
     HEROES.forEach(h => { HERO_BY_ID[h.id] = h; HERO_BY_NAME[h.name] = h; });
 
+    reconcileMarks([...new Set(RAW.map(markKey))]);   // 刷新后同步孤儿标记
     page = 1;
     hlPage = 1;
     filtered = [...RAW];
@@ -1172,6 +1407,7 @@ function showView(v, el, snavId) {
   }
   if (v === 'ranking') renderRanking();
   if (v === 'series') { backToSeriesList(); renderSeriesGrid(); }
+  if (v === 'mine') renderMine();
 }
 function resetToHome() {
   showView('list', document.getElementById('tab-list'), 'list');
@@ -1204,12 +1440,17 @@ function setTypeFilter(el, val) {
   document.querySelectorAll('.chip[data-ftype]').forEach(c=>c.classList.remove('active'));
   el.classList.add('active'); fType = val; page = 1; filterList();
 }
+function setPermFilter(el, val) {
+  document.querySelectorAll('.chip[data-fperm]').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active'); fPerm = val; page = 1; filterList();
+}
 function clearFilters() {
-  fHero=''; fQuality=''; fType=''; fSearch='';
+  fHero=''; fQuality=''; fType=''; fPerm=''; fSearch='';
   document.getElementById('f-hero').value='';
   document.getElementById('f-quality').value='';
   document.getElementById('search-list').value='';
   document.querySelectorAll('.chip[data-ftype]').forEach((c,i)=>c.classList.toggle('active',i===0));
+  document.querySelectorAll('.chip[data-fperm]').forEach((c,i)=>c.classList.toggle('active',i===0));
   filterList();
 }
 function filterList() {
@@ -1220,6 +1461,7 @@ function filterList() {
     if (fHero && r.hero !== fHero) return false;
     if (fQuality && r.quality !== fQuality) return false;
     if (fType && r.type !== fType) return false;
+    if (fPerm && (r.permanent || '否') !== fPerm) return false;
     if (fSearch && !r.name.toLowerCase().includes(fSearch) && !r.hero.toLowerCase().includes(fSearch)) return false;
     return true;
   });
@@ -1260,7 +1502,8 @@ function renderTable() {
     const heroInfo = getHeroInfo(r.hero) || {};
     const roles = heroInfo.roles || [];
     const lanes = heroInfo.lanes || [];
-    
+    const mk = getMark(markKey(r));
+
     return `<tr class="clickable" onclick="goSkinDetail('${esc(r.hero)}','${esc(r.name)}')">
       <td class="thumb-cell">${thumbHtml(r.si, r.quality)}</td>
       <td style="color:var(--text3);font-size:12px;white-space:nowrap">${escapeHtml(r.date)}</td>
@@ -1275,6 +1518,10 @@ function renderTable() {
       <td style="font-size:12px;color:var(--text3)">${escapeHtml(r.obtain)}</td>
       <td><span class="badge badge-${r.type}">${escapeHtml(r.type)}</span></td>
       <td><span class="badge badge-${r.permanent}" style="font-size:10px">${escapeHtml(r.permanent)}</span></td>
+      <td class="mark-cell" onclick="event.stopPropagation()">
+        <button class="mark-btn${mk.owned?' on':''}" title="拥有" onclick="toggleSkinMark('${esc(r.hero)}','${esc(r.name)}','owned')">⭐</button>
+        <button class="mark-btn follow${mk.follow?' on':''}" title="关注" onclick="toggleSkinMark('${esc(r.hero)}','${esc(r.name)}','follow')">❤️</button>
+      </td>
     </tr>`;
   }).join('');
 
@@ -1283,26 +1530,29 @@ function renderTable() {
     mobileEl.innerHTML = rows.map(r => {
       const thumbSrc = getSkinImg(r.si);
       const tagSrc   = getQualityImg(r.qi);
+      const mk = getMark(markKey(r));
       return `<div class="mobile-skin-card" onclick="goSkinDetail('${esc(r.hero)}','${esc(r.name)}')">
         <div class="mobile-skin-thumb">
           ${thumbSrc ? `<img src="${thumbSrc}" loading="lazy" alt="">` : qualityEmoji(r.quality)}
         </div>
         <div class="mobile-skin-info">
-          <div class="mobile-skin-name">${escapeHtml(r.name)}</div>
-          <div class="mobile-skin-meta">
+          <div class="msc-line msc-line-name">
+            <span class="mobile-skin-name">${escapeHtml(r.name)}</span>
+            <span class="msc-marks" onclick="event.stopPropagation()">
+              <button class="mark-btn${mk.owned?' on':''}" title="拥有" onclick="toggleSkinMark('${esc(r.hero)}','${esc(r.name)}','owned')">⭐</button>
+              <button class="mark-btn follow${mk.follow?' on':''}" title="关注" onclick="toggleSkinMark('${esc(r.hero)}','${esc(r.name)}','follow')">❤️</button>
+            </span>
+          </div>
+          <div class="msc-line">
             <span class="mobile-skin-hero">${escapeHtml(r.hero)}</span>
             <span class="mobile-skin-date">${escapeHtml(r.date)}</span>
+            ${tagSrc ? `<img class="msc-qimg" src="${tagSrc}" loading="lazy" alt="${escapeHtml(r.tag)}">` : ''}
           </div>
-          <div class="mobile-skin-meta" style="margin-top:3px">
-            ${tagSrc
-              ? `<img src="${tagSrc}" style="height:16px;object-fit:contain;image-rendering:pixelated" alt="${escapeHtml(r.tag)}">`
-              : `<span style="font-size:11px;color:var(--text3)">${escapeHtml(r.tag)}</span>`}
-            ${r.obtain ? `<span style="font-size:11px;color:var(--text3)">· ${escapeHtml(r.obtain)}</span>` : ''}
+          <div class="msc-line msc-line-badges">
+            <span class="badge badge-${r.quality}">${escapeHtml(r.quality)}</span>
+            <span class="badge badge-${r.type}">${escapeHtml(r.type)}</span>
+            ${r.obtain ? `<span class="msc-obtain">${escapeHtml(r.obtain)}</span>` : ''}
           </div>
-        </div>
-        <div class="mobile-skin-right">
-          <span class="badge badge-${r.quality}" style="font-size:11px">${escapeHtml(r.quality)}</span>
-          <span class="badge badge-${r.type}" style="font-size:11px">${escapeHtml(r.type)}</span>
         </div>
       </div>`;
     }).join('');
@@ -1321,6 +1571,164 @@ function renderTable() {
   if (re<totalPages) btns += `${re<totalPages-1?'<span style="padding:4px;color:var(--text3)">…</span>':''}<button class="pg-btn" onclick="goPage(${totalPages})">${totalPages}</button>`;
   btns += `<button class="pg-btn" onclick="goPage(${page+1})" ${page>=totalPages?'disabled':''}>›</button>`;
   pgs.innerHTML = btns;
+
+  updateBatchInfo();
+}
+
+// ── 本地标记：列表交互 ──
+function toggleSkinMark(hero, name, type) {
+  const on = toggleMark(hero + '|' + name, type);
+  renderTable();
+  const label = type === 'owned' ? '拥有' : '关注';
+  showToast(on ? `已标记${label}` : `已取消${label}`);
+}
+
+function updateBatchInfo() {
+  const el = document.getElementById('batch-info');
+  if (!el) return;
+  const keys = [...new Set(filtered.map(markKey))];
+  const owned = countOwnedIn(keys);
+  el.textContent = `当前筛选 ${filtered.length} 款 · 已拥有 ${owned} 款`;
+}
+
+function batchOwnAll() {
+  const keys = [...new Set(filtered.map(markKey))];
+  if (!keys.length) { showToast('当前筛选无数据'); return; }
+  const already = countOwnedIn(keys);
+  const add = keys.length - already;
+  if (add <= 0) { showToast('当前筛选已全部标记拥有'); return; }
+  if (!confirm(`将把当前筛选的 ${keys.length} 款全部标记为「拥有」（新增 ${add} 款），是否继续？`)) return;
+  setMarksBatch(keys, 'owned', true);
+  renderTable();
+  showToast(`已标记拥有 ${add} 款`);
+}
+
+function batchInvertOwned() {
+  const keys = [...new Set(filtered.map(markKey))];
+  if (!keys.length) { showToast('当前筛选无数据'); return; }
+  if (!confirm(`将对当前筛选的 ${keys.length} 款「拥有」状态取反，是否继续？`)) return;
+  invertOwned(keys);
+  renderTable();
+  showToast('已反选拥有');
+}
+
+// ════════════════════════════════════════════════════════════════
+// View: 我的收藏（移植自小程序 pages/mine）
+// ════════════════════════════════════════════════════════════════
+const MINE_TAB_LABEL = { owned: '已拥有', follow: '关注中' };
+const MINE_FOLD_LIMIT = 24;   // 折叠阈值（网页一行更多，取 24）
+let mineTab = 'owned';
+let mineExpanded = false;
+let _mineFullList = [];
+
+function selMineTab(tab) {
+  if (mineTab === tab) return;
+  mineTab = tab; mineExpanded = false;
+  renderMine();
+}
+function toggleMineExpand() {
+  mineExpanded = !mineExpanded;
+  applyMineDisplay();
+}
+
+// key -> 皮肤信息索引（首发记录优先）
+function buildMineIndex() {
+  const idx = {};
+  RAW.forEach(r => {
+    const k = markKey(r);
+    if (!idx[k] || r.type === '首发') idx[k] = r;
+  });
+  return idx;
+}
+
+function renderMine() {
+  const marks = getMarks();
+  const counts = countMarks();
+  const idx = buildMineIndex();
+
+  // 当前 tab 列表
+  const list = Object.keys(marks).filter(k => marks[k][mineTab]).map(k => {
+    const r = idx[k] || {};
+    const parts = k.split('|');
+    return {
+      key: k, hero: r.hero || parts[0], name: r.name || parts[1],
+      quality: r.quality || '', valuePoints: r.valuePoints || 0,
+      si: r.si || '',
+    };
+  });
+
+  // 估算价值（当前 tab，按 valuePoints 累加）
+  let val = 0;
+  list.forEach(s => { val += (s.valuePoints || 0); });
+
+  // 已拥有按常驻/限时拆分（恒按全部已拥有统计，与 tab 无关）
+  let ownedPerm = 0, ownedTmp = 0;
+  Object.keys(marks).forEach(k => {
+    if (!marks[k] || !marks[k].owned) return;
+    const r = idx[k] || {};
+    if ((r.permanent || '否') === '是') ownedPerm++; else ownedTmp++;
+  });
+
+  // 当前 tab 的品质分布
+  const qmap = {};
+  list.forEach(s => { const q = normalizeQuality(s.quality) || '其他'; qmap[q] = (qmap[q] || 0) + 1; });
+  const qualityCounts = Q_ORDER.filter(q => qmap[q]).map(q => ({ q, n: qmap[q], color: Q_COLORS[q] || '#c9a84c' }));
+
+  // 概览数字
+  document.getElementById('mc-owned-n').textContent = counts.owned;
+  document.getElementById('mc-follow-n').textContent = counts.follow;
+  document.getElementById('mc-total').textContent = Object.keys(idx).length;
+  document.getElementById('mc-owned-split').textContent = `常驻 ${ownedPerm} · 限时 ${ownedTmp}`;
+  document.getElementById('mc-owned').classList.toggle('on', mineTab === 'owned');
+  document.getElementById('mc-follow').classList.toggle('on', mineTab === 'follow');
+
+  // 价值卡
+  document.getElementById('mine-value-label').textContent = MINE_TAB_LABEL[mineTab] + '皮肤估算价值';
+  document.getElementById('mine-value-text').textContent = val ? val.toLocaleString() : '0';
+  document.getElementById('mine-quality-dist').innerHTML = qualityCounts.map(c =>
+    `<div class="qc"><span class="qc-dot" style="background:${c.color}"></span><span class="qc-q">${escapeHtml(c.q)}</span><span class="qc-n">${c.n}</span></div>`
+  ).join('');
+
+  // 分区标题
+  document.getElementById('mine-tab-label').textContent = MINE_TAB_LABEL[mineTab];
+  document.getElementById('mine-list-total').textContent = list.length;
+
+  _mineFullList = list;
+  applyMineDisplay();
+}
+
+function applyMineDisplay() {
+  const full = _mineFullList || [];
+  const grid = document.getElementById('mine-grid');
+  const moreEl = document.getElementById('mine-more');
+  const emptyEl = document.getElementById('mine-empty');
+
+  if (!full.length) {
+    grid.innerHTML = '';
+    moreEl.style.display = 'none';
+    emptyEl.style.display = 'block';
+    document.getElementById('mine-empty-text').textContent = `还没有${MINE_TAB_LABEL[mineTab]}的皮肤`;
+    return;
+  }
+  emptyEl.style.display = 'none';
+
+  const display = mineExpanded ? full : full.slice(0, MINE_FOLD_LIMIT);
+  grid.innerHTML = display.map(s => {
+    const thumbSrc = getSkinImg(s.si);
+    const thumb = thumbSrc ? `<img src="${thumbSrc}" loading="lazy" alt="">` : `<span class="m-cell-emoji">${qualityEmoji(s.quality)}</span>`;
+    return `<div class="m-cell" onclick="goSkinDetail('${esc(s.hero)}','${esc(s.name)}')">
+      <div class="m-cthumb">${thumb}</div>
+      <div class="m-cname">${escapeHtml(s.name)}</div>
+      <div class="m-chero">${escapeHtml(s.hero)}</div>
+    </div>`;
+  }).join('');
+
+  if (full.length > MINE_FOLD_LIMIT) {
+    moreEl.style.display = 'block';
+    moreEl.textContent = mineExpanded ? '收起' : `查看全部 ${full.length} 款`;
+  } else {
+    moreEl.style.display = 'none';
+  }
 }
 
 function goPage(p) {
@@ -1552,11 +1960,13 @@ function openHeroDetail(hero) {
         const firstRec = s.records.find(r=>r.type==='首发') || s.records[0];
         const returnCount = s.records.filter(r=>r.type==='返场').length;
         const skinImgSrc = thumbUrl(s.si, 200);
+        const owned = getMark(hero+'|'+s.name).owned;
         return `<div class="skin-card" onclick="openSkinDetail('${esc(hero)}','${esc(s.name)}')">
           <div class="skin-card-img">
             ${skinImgSrc
               ? `<img class="skin-thumb" src="${skinImgSrc}" loading="lazy" alt="${escapeHtml(s.name)}">`
               : `<div class="img-ph">${qualityEmoji(s.quality)}</div>`}
+            ${owned?`<div class="owned-badge" title="已拥有">⭐</div>`:''}
             ${returnCount>0?`<div class="return-badge">返场 ${returnCount}×</div>`:''}
           </div>
           <div class="skin-card-body">
@@ -1825,7 +2235,13 @@ function openSkinDetail(hero, skinName) {
               : `<div class="img-ph">${qualityEmoji(first.quality)}</div>`}
           </div>
           <div class="skin-detail-info">
-            <div class="skin-detail-name">${escapeHtml(skinName)}</div>
+            <div class="skin-detail-name-row">
+              <div class="skin-detail-name">${escapeHtml(skinName)}</div>
+              ${(()=>{const mk=getMark(hero+'|'+skinName);return `<div class="detail-mark-row">
+                <button class="detail-mark-btn${mk.owned?' on':''}" title="${mk.owned?'已拥有':'标记拥有'}" onclick="toggleDetailMark('${esc(hero)}','${esc(skinName)}','owned')">⭐</button>
+                <button class="detail-mark-btn follow${mk.follow?' on':''}" title="${mk.follow?'已关注':'标记关注'}" onclick="toggleDetailMark('${esc(hero)}','${esc(skinName)}','follow')">❤️</button>
+              </div>`})()}
+            </div>
             <div class="skin-detail-hero" style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
               ${(()=>{const av=heroAvatarUrl(hero);return av?`<img src="${thumbUrl(av,60)}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:1.5px solid var(--border)" loading="lazy">`:''})()}
               归属英雄：<span style="color:var(--gold);cursor:pointer" onclick="backToHeroes();openHeroDetail('${esc(hero)}')">${escapeHtml(hero)} →</span>
@@ -1870,6 +2286,14 @@ function openSkinDetail(hero, skinName) {
         </div>
       </div>
     </div>`;
+}
+
+// 皮肤详情：切换标记后重渲染详情（同步内核状态）
+function toggleDetailMark(hero, skinName, type) {
+  const on = toggleMark(hero + '|' + skinName, type);
+  openSkinDetail(hero, skinName);
+  const label = type === 'owned' ? '拥有' : '关注';
+  showToast(on ? `已标记${label}` : `已取消${label}`);
 }
 
 // ── Stats ──
