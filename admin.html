@@ -130,6 +130,18 @@ a { color: var(--blue); text-decoration: none; }
   padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px;
   font-size: 14px; cursor: pointer; outline: none; font-family: inherit; background: var(--white);
 }
+.special-type-tabs {
+  display: inline-flex; align-items: center; padding: 3px; gap: 2px;
+  border: 1px solid var(--border); border-radius: 8px; background: #f8f9fb;
+}
+.special-type-tab {
+  border: 0; background: transparent; color: var(--text3); cursor: pointer;
+  padding: 6px 12px; border-radius: 6px; font: inherit; font-size: 13px; white-space: nowrap;
+}
+.special-type-tab.active { background: var(--white); color: var(--gold); box-shadow: 0 1px 4px rgba(0,0,0,0.08); font-weight: 600; }
+.special-skin-summary { margin-top: 6px; min-height: 18px; font-size: 12px; color: var(--text3); }
+.special-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.special-image-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 12px; margin-top: 6px; }
 .batch-bar {
   display: none; background: #fffbeb; border: 1px solid #fde68a;
   border-radius: 8px; padding: 10px 16px; align-items: center; gap: 12px;
@@ -263,6 +275,35 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
 /* Progress bar */
 .progress-wrap { background: #f0f2f5; border-radius: 4px; overflow: hidden; height: 8px; margin-top: 8px; }
 .progress-bar { height: 100%; background: var(--gold); transition: width 0.4s; }
+
+@media (max-width: 720px) {
+  .sidebar { width: 64px; }
+  .sidebar-logo { padding: 14px 6px; text-align: center; }
+  .sidebar-logo h2 { font-size: 0; }
+  .sidebar-logo h2::before { content: '👑'; font-size: 20px; }
+  .sidebar-logo p, .user-info { display: none; }
+  .sidebar-user { justify-content: center; padding: 10px 6px; }
+  .sidebar-nav { padding: 8px 6px; }
+  .nav-item { justify-content: center; padding: 10px 6px; font-size: 0; }
+  .nav-item .icon { width: auto; font-size: 18px; }
+  .sidebar-bottom { padding: 8px 6px; }
+  .sidebar-bottom .btn { width: 100%; padding: 7px 4px; font-size: 0; justify-content: center; }
+  .sidebar-bottom .btn::before { content: '↪'; font-size: 16px; }
+  .main { min-width: 0; }
+  .page-header { padding: 12px; gap: 8px; align-items: flex-start; }
+  .page-title { font-size: 16px; white-space: nowrap; }
+  .page-subtitle { display: none; }
+  .page-header > div:last-child { flex-shrink: 0; }
+  .page-header .btn { padding: 7px 9px; }
+  .page-body { padding: 12px; }
+  .table-toolbar { padding: 10px; align-items: stretch; }
+  .special-type-tabs { width: 100%; overflow-x: auto; }
+  .special-type-tab { flex: 1; padding: 6px 8px; }
+  #special-res-search { width: 100% !important; }
+  .special-form-grid, .special-image-grid { grid-template-columns: 1fr; }
+  #modal-special-resource .modal { padding: 20px; width: calc(100vw - 24px); }
+  #modal-special-resource .modal-footer { position: sticky; bottom: -20px; background: var(--white); padding-top: 10px; }
+}
 </style>
 </head>
 <body>
@@ -317,6 +358,9 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
         </div>
         <div class="nav-item" data-page="resources" onclick="navTo('resources',this)">
           <span class="icon">🌌</span> 资源管理
+        </div>
+        <div class="nav-item" data-page="special-resources" onclick="navTo('special-resources',this)">
+          <span class="icon">✨</span> 套装资源
         </div>
         <div class="nav-item" data-page="import" onclick="navTo('import',this)">
           <span class="icon">📥</span> Excel 导入
@@ -533,6 +577,41 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
           <div class="pagination">
             <span class="pg-info" id="res-pg-info"></span>
             <div class="pg-btns" id="res-pg-btns"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ 套装资源管理页 ══ -->
+      <div class="page" id="page-special-resources">
+        <div class="page-header">
+          <div><div class="page-title">套装资源</div><div class="page-subtitle">管理星传说、星元套装和元流套装，共 <span id="special-res-total-label">—</span> 条</div></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-outline btn-sm" onclick="loadSpecialResources()">刷新</button>
+            <button class="btn btn-primary btn-sm" style="width:auto" onclick="showAddSpecialResource()">+ 新增资源</button>
+          </div>
+        </div>
+        <div class="page-body">
+          <div class="table-toolbar">
+            <div class="special-type-tabs" aria-label="套装资源类型">
+              <button class="special-type-tab active" data-special-category="star_legend" onclick="setSpecialResourceCategory('star_legend')">星传说</button>
+              <button class="special-type-tab" data-special-category="star_outfit" onclick="setSpecialResourceCategory('star_outfit')">星元套装</button>
+              <button class="special-type-tab" data-special-category="yuanliu_suit" onclick="setSpecialResourceCategory('yuanliu_suit')">元流套装</button>
+            </div>
+            <input class="search-input" id="special-res-search" placeholder="搜索资源、皮肤或英雄…" oninput="debounceSpecialResourceSearch()" style="width:240px">
+          </div>
+          <div class="data-table-wrap" style="border-top:none;border-radius:0 0 var(--radius) var(--radius)">
+            <table>
+              <thead><tr>
+                <th style="width:68px">图片</th><th>名称</th><th>关联皮肤</th><th>英雄</th>
+                <th>上线日期</th><th>首发/返场</th><th>品质</th><th>获取方式</th>
+                <th>价格</th><th>状态</th><th style="width:120px">操作</th>
+              </tr></thead>
+              <tbody id="special-res-tbody"></tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <span class="pg-info" id="special-res-pg-info"></span>
+            <div class="pg-btns" id="special-res-pg-btns"></div>
           </div>
         </div>
       </div>
@@ -905,6 +984,85 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
   </div>
 </div>
 
+<!-- ══ 套装资源 Modal ══ -->
+<div class="modal-bg" id="modal-special-resource">
+  <div class="modal" style="width:620px;max-width:96vw">
+    <h3 id="modal-special-res-title">新增套装资源</h3>
+    <div class="special-form-grid">
+      <div class="form-group">
+        <label>资源类型</label>
+        <select id="sr-category" class="filter-select" style="width:100%" onchange="updateSpecialResourceFields()">
+          <option value="star_legend">星传说</option>
+          <option value="star_outfit">星元套装</option>
+          <option value="yuanliu_suit">元流套装</option>
+        </select>
+      </div>
+      <div class="form-group"><label>资源名称 <span style="color:var(--red)">*</span></label><input type="text" id="sr-name" placeholder="填写资源名称"></div>
+
+      <div class="form-group" id="sr-skin-group" style="grid-column:1/-1">
+        <label>关联皮肤 <span style="color:var(--red)">*</span></label>
+        <input type="text" id="sr-skin-search" placeholder="搜索皮肤名称或英雄…" oninput="filterSpecialSkinOptions(this.value)" style="margin-bottom:6px">
+        <select id="sr-skin-profile" class="filter-select" style="width:100%" onchange="updateSpecialSkinSummary()"></select>
+        <div class="special-skin-summary" id="sr-skin-summary">选择皮肤后自动匹配归属英雄</div>
+      </div>
+
+      <div class="form-group"><label>上线日期 <span style="color:var(--red)">*</span></label><input type="date" id="sr-date"></div>
+      <div class="form-group">
+        <label>首发/返场</label>
+        <select id="sr-release-type" class="filter-select" style="width:100%"><option>首发</option><option>返场</option></select>
+      </div>
+      <div class="form-group"><label>获取方式</label><input type="text" id="sr-obtain" placeholder="如：商城直售、活动兑换"></div>
+      <div class="form-group"><label>价格</label><input type="text" id="sr-price" placeholder="如：300紫星币"></div>
+
+      <div id="sr-rich-fields" style="display:contents">
+        <div class="form-group"><label>品质</label><input type="text" id="sr-quality" placeholder="如：传说"></div>
+        <div class="form-group"><label>标签</label><input type="text" id="sr-tag" placeholder="如：限定"></div>
+        <div class="form-group" id="sr-collab-group"><label>IP联动</label><input type="text" id="sr-collab" placeholder="如：品牌联动"></div>
+        <div class="form-group">
+          <label>是否常驻</label>
+          <select id="sr-permanent" class="filter-select" style="width:100%"><option>否</option><option>是</option></select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>是否上架</label>
+        <select id="sr-available" class="filter-select" style="width:100%"><option value="true">上架</option><option value="false">下架</option></select>
+      </div>
+    </div>
+
+    <div class="special-image-grid">
+      <div class="form-group">
+        <label>资源图片 <span id="sr-img-hint" style="color:var(--text3);font-weight:400">建议上传正方形图片</span></label>
+        <div class="img-upload-box" id="sr-img-box" style="height:auto;min-height:110px;aspect-ratio:1/1;overflow:hidden" onclick="document.getElementById('sr-img-input').click()">
+          <img id="sr-img-preview" style="display:none;width:100%;height:100%;object-fit:contain;border-radius:6px">
+          <div id="sr-img-placeholder"><div style="font-size:24px">🖼️</div><div style="font-size:12px;color:var(--text3);margin-top:4px">点击上传</div></div>
+        </div>
+        <input type="file" id="sr-img-input" accept="image/*" style="display:none" onchange="previewSpecialResourceImage(event,'main')">
+      </div>
+      <div class="form-group" id="sr-tag-image-group">
+        <label>标签图片</label>
+        <div class="img-upload-box" id="sr-tag-img-box" style="height:110px;overflow:hidden" onclick="document.getElementById('sr-tag-img-input').click()">
+          <img id="sr-tag-img-preview" style="display:none;width:100%;height:100%;object-fit:contain;border-radius:6px">
+          <div id="sr-tag-img-placeholder"><div style="font-size:24px">🏷️</div><div style="font-size:12px;color:var(--text3);margin-top:4px">点击上传</div></div>
+        </div>
+        <input type="file" id="sr-tag-img-input" accept="image/*" style="display:none" onchange="previewSpecialResourceImage(event,'tag')">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>备注 <span style="color:var(--text3);font-weight:400">（可选）</span></label>
+      <textarea id="sr-notes" placeholder="资源备注说明…" rows="2" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;outline:none;font-family:inherit;resize:vertical"></textarea>
+    </div>
+    <input type="hidden" id="sr-id">
+    <input type="hidden" id="sr-img-url">
+    <input type="hidden" id="sr-tag-img-url">
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" id="sr-save-btn" onclick="doSaveSpecialResource()">保存</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -927,6 +1085,12 @@ let allResources = [], filteredResources = [];
 let resPage = 1; const RES_PER_PAGE = 20;
 let resImgFile = null;
 let resTagImgFile = null;
+let specialResourceCategory = 'star_legend';
+let allSpecialResources = [];
+let specialResourcePage = 1; const SPECIAL_RESOURCE_PER_PAGE = 20;
+let specialResourceImgFile = null;
+let specialResourceTagImgFile = null;
+let specialResourceSearchTimer = null;
 let heroSkinCountCache = {};
 
 // ── 安全：HTML 转义 ──────────────────────────────────────────
@@ -997,6 +1161,7 @@ function navTo(page, el) {
   if (page === 'overview')  loadOverview();
   if (page === 'heroes')    { heroSkinCountCache={}; loadHeroes(); }
   if (page === 'resources') loadResources();
+  if (page === 'special-resources') loadSpecialResources();
 }
 
 // ── Overview ─────────────────────────────────────────────────
@@ -1934,6 +2099,315 @@ async function doDeleteResource(id,name){
   const res=await api('DELETE',`/resources/${id}`);
   if(res.error) return toast(res.error,'err');
   loadResources(); toast('已删除','ok');
+}
+
+// ── 套装资源管理 ─────────────────────────────────────────────
+const SPECIAL_RESOURCE_LABELS = {
+  star_legend: '星传说',
+  star_outfit: '星元套装',
+  yuanliu_suit: '元流套装',
+};
+
+function syncSpecialResourceTabs() {
+  document.querySelectorAll('[data-special-category]').forEach(button => {
+    button.classList.toggle('active', button.dataset.specialCategory === specialResourceCategory);
+  });
+}
+
+function setSpecialResourceCategory(category) {
+  if (!SPECIAL_RESOURCE_LABELS[category]) return;
+  specialResourceCategory = category;
+  specialResourcePage = 1;
+  syncSpecialResourceTabs();
+  loadSpecialResources();
+}
+
+function debounceSpecialResourceSearch() {
+  clearTimeout(specialResourceSearchTimer);
+  specialResourceSearchTimer = setTimeout(() => {
+    specialResourcePage = 1;
+    loadSpecialResources();
+  }, 350);
+}
+
+async function loadSpecialResources() {
+  const search = (document.getElementById('special-res-search')?.value || '').trim();
+  let url = `/special-resources?category=${encodeURIComponent(specialResourceCategory)}`;
+  if (search) url += `&search=${encodeURIComponent(search)}`;
+  const res = await api('GET', url);
+  if (res.error) return toast(res.error, 'err');
+  allSpecialResources = res.resources || [];
+  const total = document.getElementById('special-res-total-label');
+  if (total) total.textContent = allSpecialResources.length;
+  renderSpecialResourceTable();
+}
+
+function renderSpecialResourceTable() {
+  const total = allSpecialResources.length;
+  const totalPages = Math.ceil(total / SPECIAL_RESOURCE_PER_PAGE) || 1;
+  if (specialResourcePage > totalPages) specialResourcePage = totalPages;
+  const start = (specialResourcePage - 1) * SPECIAL_RESOURCE_PER_PAGE;
+  const rows = allSpecialResources.slice(start, start + SPECIAL_RESOURCE_PER_PAGE);
+  const tbody = document.getElementById('special-res-tbody');
+  if (!tbody) return;
+
+  tbody.innerHTML = rows.map(resource => {
+    const skin = resource.skin_profile || {};
+    const isYuanliu = specialResourceCategory === 'yuanliu_suit';
+    const imgStyle = isYuanliu
+      ? 'width:64px;height:34px;object-fit:cover'
+      : 'width:48px;height:48px;object-fit:contain';
+    const img = resource.img_url
+      ? `<img src="${escapeHtml(resource.img_url)}" style="${imgStyle};border-radius:6px;border:1px solid var(--border)" loading="lazy">`
+      : `<div style="${imgStyle};background:var(--bg);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:20px">✨</div>`;
+    const editPayload = escapeHtml(JSON.stringify(JSON.stringify(resource)));
+    return `<tr>
+      <td>${img}</td>
+      <td style="font-weight:600">${escapeHtml(resource.name)}</td>
+      <td style="font-size:12px;color:var(--text2)">${escapeHtml(skin.name)||'—'}</td>
+      <td style="font-size:12px;color:var(--text3)">${escapeHtml(skin.hero)||'—'}</td>
+      <td style="font-size:12px;white-space:nowrap">${escapeHtml(resource.date)||'—'}</td>
+      <td><span class="badge badge-${escapeHtml(resource.release_type)}">${escapeHtml(resource.release_type)||'—'}</span></td>
+      <td style="font-size:12px">${escapeHtml(resource.quality)||'—'}</td>
+      <td style="font-size:12px;color:var(--text2)">${escapeHtml(resource.obtain)||'—'}</td>
+      <td style="font-size:12px;color:var(--gold)">${escapeHtml(resource.price)||'—'}</td>
+      <td><span class="badge badge-${resource.is_available?'是':'否'}">${resource.is_available?'上架':'下架'}</span></td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-outline btn-sm" onclick="editSpecialResource('${specialResourceCategory}',${editPayload})">编辑</button>
+        <button class="btn btn-danger btn-sm" onclick="doDeleteSpecialResource('${specialResourceCategory}',${resource.id},'${esc(resource.name)}')">删除</button>
+      </td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--text3)">暂无套装资源</td></tr>';
+
+  document.getElementById('special-res-pg-info').textContent = total
+    ? `共 ${total} 条 · 第 ${start+1}–${Math.min(start+SPECIAL_RESOURCE_PER_PAGE,total)} 条`
+    : '共 0 条';
+  let buttons = `<button class="pg-btn" onclick="goSpecialResourcePage(${specialResourcePage-1})" ${specialResourcePage<=1?'disabled':''}>‹</button>`;
+  for (let page=Math.max(1,specialResourcePage-2); page<=Math.min(totalPages,specialResourcePage+2); page++) {
+    buttons += `<button class="pg-btn${page===specialResourcePage?' active':''}" onclick="goSpecialResourcePage(${page})">${page}</button>`;
+  }
+  buttons += `<button class="pg-btn" onclick="goSpecialResourcePage(${specialResourcePage+1})" ${specialResourcePage>=totalPages?'disabled':''}>›</button>`;
+  document.getElementById('special-res-pg-btns').innerHTML = buttons;
+}
+
+function goSpecialResourcePage(page) {
+  const totalPages = Math.ceil(allSpecialResources.length / SPECIAL_RESOURCE_PER_PAGE) || 1;
+  if (page < 1 || page > totalPages) return;
+  specialResourcePage = page;
+  renderSpecialResourceTable();
+}
+
+async function populateSpecialSkinOptions(selectedId = '', keyword = '') {
+  await ensureSkinProfiles();
+  const search = String(keyword || '').trim().toLowerCase();
+  const profiles = allSkinProfiles
+    .filter(profile => !search || `${profile.name || ''} ${profile.hero || ''}`.toLowerCase().includes(search))
+    .sort((a, b) => `${a.hero || ''}${a.name || ''}`.localeCompare(`${b.hero || ''}${b.name || ''}`, 'zh-Hans-CN'));
+  const select = document.getElementById('sr-skin-profile');
+  if (!select) return;
+  select.innerHTML = '<option value="">请选择关联皮肤</option>' + profiles.map(profile =>
+    `<option value="${profile.id}">${escapeHtml(profile.hero)} · ${escapeHtml(profile.name)}</option>`
+  ).join('');
+  if (selectedId) select.value = String(selectedId);
+  updateSpecialSkinSummary();
+}
+
+function filterSpecialSkinOptions(keyword) {
+  const selected = document.getElementById('sr-skin-profile')?.value || '';
+  populateSpecialSkinOptions(selected, keyword);
+}
+
+function updateSpecialSkinSummary() {
+  const id = document.getElementById('sr-skin-profile')?.value;
+  const summary = document.getElementById('sr-skin-summary');
+  if (!summary) return;
+  const profile = allSkinProfiles.find(item => String(item.id) === String(id));
+  summary.textContent = profile
+    ? `自动匹配英雄：${profile.hero || '未知'} · 关联皮肤：${profile.name}`
+    : '选择皮肤后自动匹配归属英雄';
+}
+
+function updateSpecialResourceFields() {
+  const category = document.getElementById('sr-category')?.value || specialResourceCategory;
+  const requiresSkin = category !== 'yuanliu_suit';
+  const hasRichFields = category !== 'star_outfit';
+  document.getElementById('sr-skin-group').style.display = requiresSkin ? 'block' : 'none';
+  document.getElementById('sr-rich-fields').style.display = hasRichFields ? 'contents' : 'none';
+  document.getElementById('sr-collab-group').style.display = category === 'yuanliu_suit' ? 'block' : 'none';
+  document.getElementById('sr-tag-image-group').style.display = hasRichFields ? 'block' : 'none';
+  const imgBox = document.getElementById('sr-img-box');
+  const hint = document.getElementById('sr-img-hint');
+  if (category === 'yuanliu_suit') {
+    imgBox.style.aspectRatio = '21 / 10';
+    hint.textContent = '字段与天幕一致，建议横向图片';
+  } else {
+    imgBox.style.aspectRatio = '1 / 1';
+    hint.textContent = '建议上传正方形图片';
+  }
+  if (category === 'star_legend' && !document.getElementById('sr-quality').value) {
+    document.getElementById('sr-quality').value = '传说';
+  }
+  if (requiresSkin && !document.getElementById('sr-skin-profile').options.length) {
+    populateSpecialSkinOptions();
+  }
+}
+
+function setSpecialResourceImage(kind, url = '') {
+  const prefix = kind === 'tag' ? 'sr-tag-img' : 'sr-img';
+  const image = document.getElementById(`${prefix}-preview`);
+  const placeholder = document.getElementById(`${prefix}-placeholder`);
+  const box = document.getElementById(`${prefix}-box`);
+  const input = document.getElementById(`${prefix}-input`);
+  if (image) { image.src = url; image.style.display = url ? 'block' : 'none'; }
+  if (placeholder) placeholder.style.display = url ? 'none' : 'block';
+  if (box) box.classList.toggle('has-img', !!url);
+  if (input) input.value = '';
+}
+
+function previewSpecialResourceImage(event, kind) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  if (kind === 'tag') specialResourceTagImgFile = file;
+  else specialResourceImgFile = file;
+  const reader = new FileReader();
+  reader.onload = loadEvent => setSpecialResourceImage(kind, loadEvent.target.result);
+  reader.readAsDataURL(file);
+}
+
+async function showAddSpecialResource() {
+  document.getElementById('modal-special-res-title').textContent = '新增套装资源';
+  ['sr-id','sr-name','sr-date','sr-obtain','sr-price','sr-quality','sr-tag','sr-collab','sr-notes','sr-img-url','sr-tag-img-url','sr-skin-search'].forEach(id => {
+    const element = document.getElementById(id); if (element) element.value = '';
+  });
+  const categorySelect = document.getElementById('sr-category');
+  categorySelect.disabled = false;
+  categorySelect.value = specialResourceCategory;
+  document.getElementById('sr-release-type').value = '首发';
+  document.getElementById('sr-permanent').value = '否';
+  document.getElementById('sr-available').value = 'true';
+  specialResourceImgFile = null;
+  specialResourceTagImgFile = null;
+  setSpecialResourceImage('main');
+  setSpecialResourceImage('tag');
+  updateSpecialResourceFields();
+  if (specialResourceCategory !== 'yuanliu_suit') await populateSpecialSkinOptions();
+  document.getElementById('modal-special-resource').classList.add('show');
+}
+
+async function editSpecialResource(category, jsonString) {
+  const resource = JSON.parse(jsonString);
+  document.getElementById('modal-special-res-title').textContent = `编辑${SPECIAL_RESOURCE_LABELS[category]}`;
+  const categorySelect = document.getElementById('sr-category');
+  categorySelect.value = category;
+  categorySelect.disabled = true;
+  document.getElementById('sr-id').value = resource.id || '';
+  document.getElementById('sr-name').value = resource.name || '';
+  document.getElementById('sr-date').value = resource.date || '';
+  document.getElementById('sr-release-type').value = resource.release_type || '首发';
+  document.getElementById('sr-obtain').value = resource.obtain || '';
+  document.getElementById('sr-price').value = resource.price || '';
+  document.getElementById('sr-quality').value = resource.quality || '';
+  document.getElementById('sr-tag').value = resource.tag || '';
+  document.getElementById('sr-collab').value = resource.collab || '';
+  document.getElementById('sr-permanent').value = resource.permanent || '否';
+  document.getElementById('sr-available').value = resource.is_available === false ? 'false' : 'true';
+  document.getElementById('sr-notes').value = resource.notes || '';
+  document.getElementById('sr-img-url').value = resource.img_url || '';
+  document.getElementById('sr-tag-img-url').value = resource.tag_img_url || '';
+  document.getElementById('sr-skin-search').value = '';
+  specialResourceImgFile = null;
+  specialResourceTagImgFile = null;
+  setSpecialResourceImage('main', resource.img_url || '');
+  setSpecialResourceImage('tag', resource.tag_img_url || '');
+  updateSpecialResourceFields();
+  if (category !== 'yuanliu_suit') await populateSpecialSkinOptions(resource.skin_profile_id || '');
+  document.getElementById('modal-special-resource').classList.add('show');
+}
+
+async function uploadSpecialResourceImage(file, suffix) {
+  if (!file) return null;
+  const data = await new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = event => resolve(event.target.result.split(',')[1]);
+    reader.readAsDataURL(file);
+  });
+  return api('POST', '/images', {
+    img_id: `special_${suffix}_${Date.now()}`,
+    img_type: 'resource',
+    data,
+    mime_type: file.type,
+  });
+}
+
+async function doSaveSpecialResource() {
+  const button = document.getElementById('sr-save-btn');
+  const id = document.getElementById('sr-id').value;
+  const category = document.getElementById('sr-category').value;
+  const name = document.getElementById('sr-name').value.trim();
+  const date = document.getElementById('sr-date').value;
+  const requiresSkin = category !== 'yuanliu_suit';
+  const skinProfileId = document.getElementById('sr-skin-profile').value;
+  if (!name) return toast('资源名称不能为空', 'err');
+  if (!date) return toast('上线日期不能为空', 'err');
+  if (requiresSkin && !skinProfileId) return toast(`${SPECIAL_RESOURCE_LABELS[category]}必须关联皮肤`, 'err');
+
+  button.disabled = true;
+  button.textContent = '保存中…';
+  try {
+    let imgUrl = document.getElementById('sr-img-url').value || null;
+    let tagImgUrl = document.getElementById('sr-tag-img-url').value || null;
+    if (specialResourceImgFile) {
+      const upload = await uploadSpecialResourceImage(specialResourceImgFile, 'main');
+      if (upload.error) return toast('图片上传失败：' + upload.error, 'err');
+      imgUrl = upload.url;
+    }
+    if (category !== 'star_outfit' && specialResourceTagImgFile) {
+      const upload = await uploadSpecialResourceImage(specialResourceTagImgFile, 'tag');
+      if (upload.error) return toast('标签图片上传失败：' + upload.error, 'err');
+      tagImgUrl = upload.url;
+    }
+
+    const body = {
+      category,
+      name,
+      date,
+      release_type: document.getElementById('sr-release-type').value,
+      obtain: document.getElementById('sr-obtain').value.trim(),
+      price: document.getElementById('sr-price').value.trim(),
+      img_url: imgUrl,
+      notes: document.getElementById('sr-notes').value.trim() || null,
+      is_available: document.getElementById('sr-available').value === 'true',
+    };
+    if (requiresSkin) body.skin_profile_id = parseInt(skinProfileId, 10);
+    if (category !== 'star_outfit') {
+      body.quality = document.getElementById('sr-quality').value.trim() || null;
+      body.tag = document.getElementById('sr-tag').value.trim() || null;
+      body.permanent = document.getElementById('sr-permanent').value;
+      body.tag_img_url = tagImgUrl;
+    }
+    if (category === 'yuanliu_suit') body.collab = document.getElementById('sr-collab').value.trim() || null;
+
+    const response = id
+      ? await api('PUT', `/special-resources/${category}/${id}`, body)
+      : await api('POST', '/special-resources', body);
+    if (response.error) return toast(response.error, 'err');
+    specialResourceCategory = category;
+    syncSpecialResourceTabs();
+    closeModal();
+    await loadSpecialResources();
+    toast(id ? '套装资源已更新' : '套装资源新增成功', 'ok');
+  } finally {
+    button.disabled = false;
+    button.textContent = '保存';
+  }
+}
+
+async function doDeleteSpecialResource(category, id, name) {
+  if (!confirm(`确认删除${SPECIAL_RESOURCE_LABELS[category]}「${name}」？`)) return;
+  const response = await api('DELETE', `/special-resources/${category}/${id}`);
+  if (response.error) return toast(response.error, 'err');
+  await loadSpecialResources();
+  toast('套装资源已删除', 'ok');
 }
 
 // ── 英雄管理 ─────────────────────────────────────────────────

@@ -27,6 +27,26 @@ const TYPE_FIRST = '\u9996\u53d1';
 const TYPE_RETURN = '\u8fd4\u573a';
 const PERMANENT_NO = '\u5426';
 const SKIN_SELECT = '*, skin_profiles:skin_profile_id(*, skin_profile_series(series:series_id(*)))';
+const SPECIAL_RESOURCE_CONFIG = {
+  star_legend: {
+    table: 'star_legend_resources',
+    label: '星传说',
+    requiresSkin: true,
+    fields: ['skin_profile_id','name','date','release_type','quality','tag','obtain','price','permanent','img_url','tag_img_url','notes','is_available'],
+  },
+  star_outfit: {
+    table: 'star_outfit_resources',
+    label: '星元套装',
+    requiresSkin: true,
+    fields: ['skin_profile_id','name','date','release_type','obtain','price','img_url','notes','is_available'],
+  },
+  yuanliu_suit: {
+    table: 'yuanliu_suit_resources',
+    label: '元流套装',
+    requiresSkin: false,
+    fields: ['name','date','release_type','quality','tag','collab','obtain','price','permanent','img_url','tag_img_url','notes','is_available'],
+  },
+};
 
 function normalizeQuality(q) {
   return q === OLD_COMPANION_QUALITY ? QUALITY_OTHER : q;
@@ -336,6 +356,17 @@ module.exports = async function handler(req, res) {
   if (/\/heroes\/\d+$/.test(path)         && m === 'PUT')    { const [u,e]=requireAuth(h); if(e) return send(e); return send(await updateHero(path.split('/').pop(),body,u)); }
   if (/\/heroes\/\d+$/.test(path)         && m === 'DELETE') { const [u,e]=requireAuth(h); if(e) return send(e); return send(await deleteHero(path.split('/').pop(),u)); }
   if (/\/heroes\/\d+\/skins$/.test(path)  && m === 'GET')    { const [u,e]=requireAuth(h); if(e) return send(e); return send(await listHeroSkins(path.split('/').slice(-2)[0])); }
+
+  if (path.endsWith('/special-resources')  && m === 'GET')    { const [u,e]=requireAuth(h); if(e) return send(e); return send(await listSpecialResources(qs)); }
+  if (path.endsWith('/special-resources')  && m === 'POST')   { const [u,e]=requireAuth(h); if(e) return send(e); return send(await insertSpecialResource(body,u)); }
+  if (/\/special-resources\/[a-z_]+\/\d+$/.test(path) && m === 'PUT') {
+    const [u,e]=requireAuth(h); if(e) return send(e);
+    const parts=path.split('/'); return send(await updateSpecialResource(parts[parts.length-2],parts.pop(),body,u));
+  }
+  if (/\/special-resources\/[a-z_]+\/\d+$/.test(path) && m === 'DELETE') {
+    const [u,e]=requireAuth(h); if(e) return send(e);
+    const parts=path.split('/'); return send(await deleteSpecialResource(parts[parts.length-2],parts.pop(),u));
+  }
 
   if (path.endsWith('/resources')          && m === 'GET')    { const [u,e]=requireAuth(h); if(e) return send(e); return send(await listResources(qs)); }
   if (path.endsWith('/resources')          && m === 'POST')   { const [u,e]=requireAuth(h); if(e) return send(e); return send(await insertResource(body,u)); }
@@ -1011,5 +1042,156 @@ async function deleteResource(id, user) {
   const { data: before } = await client.from('resources').select('*').eq('id', id).maybeSingle();
   await client.from('resources').delete().eq('id', id);
   await log(client, user.username, 'resource_delete', parseInt(id), { deleted: before });
+  return ok({ ok: true });
+}
+
+// ── 套装资源（星传说 / 星元套装 / 元流套装）────────────────────
+function getSpecialResourceConfig(category) {
+  return SPECIAL_RESOURCE_CONFIG[String(category || '').trim()] || null;
+}
+
+function normalizeSpecialResourceRow(row) {
+  if (!row) return row;
+  const skinProfile = Array.isArray(row.skin_profile) ? row.skin_profile[0] : row.skin_profile;
+  return { ...row, skin_profile: skinProfile || null };
+}
+
+function cleanSpecialResourceInput(data, config) {
+  const allowed = new Set(config.fields);
+  const clean = Object.fromEntries(Object.entries(data || {}).filter(([key]) => allowed.has(key)));
+  const stringFields = ['name','date','release_type','quality','tag','collab','obtain','price','permanent','img_url','tag_img_url','notes'];
+  stringFields.forEach(key => {
+    if (Object.prototype.hasOwnProperty.call(clean, key)) {
+      clean[key] = clean[key] === null || clean[key] === undefined ? '' : String(clean[key]).trim();
+    }
+  });
+  if (Object.prototype.hasOwnProperty.call(clean, 'skin_profile_id')) {
+    const profileId = parseInt(clean.skin_profile_id, 10);
+    clean.skin_profile_id = Number.isInteger(profileId) && profileId > 0 ? profileId : null;
+  }
+  if (Object.prototype.hasOwnProperty.call(clean, 'is_available')) {
+    clean.is_available = clean.is_available === true || clean.is_available === 'true' || clean.is_available === 1;
+  }
+  ['img_url','tag_img_url','notes','collab'].forEach(key => {
+    if (Object.prototype.hasOwnProperty.call(clean, key) && !clean[key]) clean[key] = null;
+  });
+  return clean;
+}
+
+async function ensureSpecialResourceSkin(client, skinProfileId) {
+  if (!skinProfileId) return false;
+  const { data, error } = await client
+    .from('skin_profiles')
+    .select('id')
+    .eq('id', skinProfileId)
+    .maybeSingle();
+  return !error && !!data;
+}
+
+async function listSpecialResources(params) {
+  const category = decodeURIComponent(params.category || 'star_legend');
+  const config = getSpecialResourceConfig(category);
+  if (!config) return fail('不支持的套装资源类型');
+  const select = config.requiresSkin
+    ? '*, skin_profile:skin_profile_id(id,name,hero,hero_id,skin_img_url)'
+    : '*';
+  const { data, error } = await getClient()
+    .from(config.table)
+    .select(select)
+    .order('date', { ascending: false })
+    .order('id', { ascending: false })
+    .limit(500);
+  if (error) return fail(error.message);
+  let resources = (data || []).map(normalizeSpecialResourceRow);
+  if (params.search) {
+    const search = decodeURIComponent(params.search).toLowerCase();
+    resources = resources.filter(resource => {
+      const skin = resource.skin_profile || {};
+      return [resource.name, resource.quality, resource.tag, resource.obtain, skin.name, skin.hero]
+        .some(value => String(value || '').toLowerCase().includes(search));
+    });
+  }
+  return ok({ category, label: config.label, resources, total: resources.length });
+}
+
+async function insertSpecialResource(data, user) {
+  const category = String(data?.category || '');
+  const config = getSpecialResourceConfig(category);
+  if (!config) return fail('不支持的套装资源类型');
+  const clean = cleanSpecialResourceInput(data, config);
+  if (!clean.name) return fail('资源名称不能为空');
+  if (!clean.date) return fail('上线日期不能为空');
+  if (config.requiresSkin && !clean.skin_profile_id) return fail(`${config.label}必须关联皮肤`);
+  if (clean.release_type && ![TYPE_FIRST, TYPE_RETURN].includes(clean.release_type)) return fail('首发/返场类型无效');
+  if (clean.permanent && !['是', PERMANENT_NO].includes(clean.permanent)) return fail('常驻状态无效');
+
+  clean.release_type = clean.release_type || TYPE_FIRST;
+  clean.obtain = clean.obtain || '';
+  clean.price = clean.price || '';
+  clean.is_available = clean.is_available !== false;
+  if (category === 'star_legend') {
+    clean.quality = clean.quality || '传说';
+    clean.tag = clean.tag || '';
+    clean.permanent = clean.permanent || PERMANENT_NO;
+  }
+  if (category === 'yuanliu_suit') clean.permanent = clean.permanent || PERMANENT_NO;
+
+  const client = getClient();
+  if (config.requiresSkin && !(await ensureSpecialResourceSkin(client, clean.skin_profile_id))) {
+    return fail('关联皮肤不存在，请重新选择');
+  }
+  const { data: inserted, error } = await client
+    .from(config.table)
+    .insert(clean)
+    .select()
+    .maybeSingle();
+  if (error) return fail('创建失败：' + error.message);
+  await log(client, user.username, 'special_resource_insert', inserted?.id || null, {
+    category, name: clean.name, skin_profile_id: clean.skin_profile_id || null,
+  });
+  return ok({ category, resource: inserted });
+}
+
+async function updateSpecialResource(category, id, updates, user) {
+  const config = getSpecialResourceConfig(category);
+  if (!config) return fail('不支持的套装资源类型');
+  const clean = cleanSpecialResourceInput(updates, config);
+  if (!Object.keys(clean).length) return fail('没有可更新的字段');
+  if (Object.prototype.hasOwnProperty.call(clean, 'name') && !clean.name) return fail('资源名称不能为空');
+  if (Object.prototype.hasOwnProperty.call(clean, 'date') && !clean.date) return fail('上线日期不能为空');
+  if (config.requiresSkin && Object.prototype.hasOwnProperty.call(clean, 'skin_profile_id') && !clean.skin_profile_id) {
+    return fail(`${config.label}必须关联皮肤`);
+  }
+  if (clean.release_type && ![TYPE_FIRST, TYPE_RETURN].includes(clean.release_type)) return fail('首发/返场类型无效');
+  if (clean.permanent && !['是', PERMANENT_NO].includes(clean.permanent)) return fail('常驻状态无效');
+
+  const client = getClient();
+  if (config.requiresSkin && clean.skin_profile_id && !(await ensureSpecialResourceSkin(client, clean.skin_profile_id))) {
+    return fail('关联皮肤不存在，请重新选择');
+  }
+  const { data: before } = await client.from(config.table).select('*').eq('id', id).maybeSingle();
+  const { data, error } = await client
+    .from(config.table)
+    .update(clean)
+    .eq('id', id)
+    .select()
+    .maybeSingle();
+  if (error) return fail('更新失败：' + error.message);
+  await log(client, user.username, 'special_resource_update', parseInt(id, 10), {
+    category,
+    before: Object.fromEntries(Object.keys(clean).map(key => [key, before?.[key]])),
+    after: clean,
+  });
+  return ok({ category, resource: data });
+}
+
+async function deleteSpecialResource(category, id, user) {
+  const config = getSpecialResourceConfig(category);
+  if (!config) return fail('不支持的套装资源类型');
+  const client = getClient();
+  const { data: before } = await client.from(config.table).select('*').eq('id', id).maybeSingle();
+  const { error } = await client.from(config.table).delete().eq('id', id);
+  if (error) return fail('删除失败：' + error.message);
+  await log(client, user.username, 'special_resource_delete', parseInt(id, 10), { category, deleted: before });
   return ok({ ok: true });
 }
