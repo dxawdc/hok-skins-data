@@ -989,7 +989,11 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
   <div class="modal" style="width:620px;max-width:96vw">
     <h3 id="modal-special-res-title">新增套装资源</h3>
     <div class="special-form-grid">
-      <div class="form-group">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>类型</label>
+        <select id="sr-release-type" class="filter-select" style="width:100%" onchange="updateSpecialReleaseFields()"><option>首发</option><option>返场</option></select>
+      </div>
+      <div class="form-group" id="sr-category-group">
         <label>资源类型</label>
         <select id="sr-category" class="filter-select" style="width:100%" onchange="updateSpecialResourceFields()">
           <option value="star_legend">星传说</option>
@@ -1006,18 +1010,14 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
         <div class="special-skin-summary" id="sr-skin-summary">选择皮肤后自动匹配归属英雄</div>
       </div>
 
-      <div class="form-group"><label>上线日期 <span style="color:var(--red)">*</span></label><input type="date" id="sr-date"></div>
-      <div class="form-group">
-        <label>首发/返场</label>
-        <select id="sr-release-type" class="filter-select" style="width:100%" onchange="updateSpecialReleaseFields()"><option>首发</option><option>返场</option></select>
-      </div>
+      <div class="form-group" id="sr-date-group"><label>上线日期 <span style="color:var(--red)">*</span></label><input type="date" id="sr-date"></div>
       <div class="form-group" id="sr-parent-group" style="display:none;grid-column:1/-1">
         <label>对应首发资源 <span style="color:var(--red)">*</span></label>
         <select id="sr-parent-resource" class="filter-select" style="width:100%"></select>
         <div class="special-skin-summary">返场将自动继承首发的名称、关联皮肤、品质、标签和图片</div>
       </div>
-      <div class="form-group"><label>获取方式</label><input type="text" id="sr-obtain" placeholder="如：商城直售、活动兑换"></div>
-      <div class="form-group"><label>价格</label><input type="text" id="sr-price" placeholder="如：300紫星币"></div>
+      <div class="form-group" id="sr-obtain-group"><label>获取方式</label><input type="text" id="sr-obtain" placeholder="如：商城直售、活动兑换"></div>
+      <div class="form-group" id="sr-price-group"><label>价格</label><input type="text" id="sr-price" placeholder="如：300紫星币"></div>
 
       <div id="sr-rich-fields" style="display:contents">
         <div class="form-group" id="sr-quality-group">
@@ -1054,7 +1054,7 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
       </div>
     </div>
 
-    <div class="form-group">
+    <div class="form-group" id="sr-notes-group">
       <label>备注 <span style="color:var(--text3);font-weight:400">（可选）</span></label>
       <textarea id="sr-notes" placeholder="资源备注说明…" rows="2" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;outline:none;font-family:inherit;resize:vertical"></textarea>
     </div>
@@ -2263,6 +2263,9 @@ function updateSpecialResourceFields(parentResourceId = '') {
   document.getElementById('sr-permanent-group').style.display = !isReturn && category !== 'star_outfit' ? 'block' : 'none';
   document.getElementById('sr-image-fields').style.display = isReturn ? 'none' : 'grid';
   document.getElementById('sr-tag-image-group').style.display = !isReturn && category !== 'star_outfit' ? 'block' : 'none';
+  ['sr-category-group','sr-parent-group','sr-date-group','sr-obtain-group','sr-price-group','sr-notes-group'].forEach(id => {
+    document.getElementById(id)?.classList.toggle('return-edit-highlight', isReturn);
+  });
   const imgBox = document.getElementById('sr-img-box');
   const hint = document.getElementById('sr-img-hint');
   if (category === 'yuanliu_suit') {
