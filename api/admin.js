@@ -27,24 +27,28 @@ const TYPE_FIRST = '\u9996\u53d1';
 const TYPE_RETURN = '\u8fd4\u573a';
 const PERMANENT_NO = '\u5426';
 const SKIN_SELECT = '*, skin_profiles:skin_profile_id(*, skin_profile_series(series:series_id(*)))';
+const SPECIAL_RESOURCE_QUALITIES = new Set(['绿色', '蓝色', '紫色', '金色']);
 const SPECIAL_RESOURCE_CONFIG = {
   star_legend: {
     table: 'star_legend_resources',
     label: '星传说',
     requiresSkin: true,
-    fields: ['skin_profile_id','name','date','release_type','quality','tag','obtain','price','permanent','img_url','tag_img_url','notes','is_available'],
+    fields: ['skin_profile_id','parent_resource_id','name','date','release_type','tag','obtain','price','permanent','img_url','tag_img_url','notes'],
+    inheritedFields: ['skin_profile_id','name','tag','permanent','img_url','tag_img_url'],
   },
   star_outfit: {
     table: 'star_outfit_resources',
     label: '星元套装',
     requiresSkin: true,
-    fields: ['skin_profile_id','name','date','release_type','obtain','price','img_url','notes','is_available'],
+    fields: ['skin_profile_id','parent_resource_id','name','date','release_type','quality','obtain','price','img_url','notes'],
+    inheritedFields: ['skin_profile_id','name','quality','img_url'],
   },
   yuanliu_suit: {
     table: 'yuanliu_suit_resources',
     label: '元流套装',
     requiresSkin: false,
-    fields: ['name','date','release_type','quality','tag','collab','obtain','price','permanent','img_url','tag_img_url','notes','is_available'],
+    fields: ['parent_resource_id','name','date','release_type','quality','tag','collab','obtain','price','permanent','img_url','tag_img_url','notes'],
+    inheritedFields: ['name','quality','tag','collab','permanent','img_url','tag_img_url'],
   },
 };
 
@@ -1065,13 +1069,11 @@ function cleanSpecialResourceInput(data, config) {
       clean[key] = clean[key] === null || clean[key] === undefined ? '' : String(clean[key]).trim();
     }
   });
-  if (Object.prototype.hasOwnProperty.call(clean, 'skin_profile_id')) {
-    const profileId = parseInt(clean.skin_profile_id, 10);
-    clean.skin_profile_id = Number.isInteger(profileId) && profileId > 0 ? profileId : null;
-  }
-  if (Object.prototype.hasOwnProperty.call(clean, 'is_available')) {
-    clean.is_available = clean.is_available === true || clean.is_available === 'true' || clean.is_available === 1;
-  }
+  ['skin_profile_id','parent_resource_id'].forEach(key => {
+    if (!Object.prototype.hasOwnProperty.call(clean, key)) return;
+    const id = parseInt(clean[key], 10);
+    clean[key] = Number.isInteger(id) && id > 0 ? id : null;
+  });
   ['img_url','tag_img_url','notes','collab'].forEach(key => {
     if (Object.prototype.hasOwnProperty.call(clean, key) && !clean[key]) clean[key] = null;
   });
@@ -1103,6 +1105,10 @@ async function listSpecialResources(params) {
     .limit(500);
   if (error) return fail(error.message);
   let resources = (data || []).map(normalizeSpecialResourceRow);
+  if (params.release_type) {
+    const releaseType = decodeURIComponent(params.release_type);
+    resources = resources.filter(resource => resource.release_type === releaseType);
+  }
   if (params.search) {
     const search = decodeURIComponent(params.search).toLowerCase();
     resources = resources.filter(resource => {
@@ -1114,40 +1120,83 @@ async function listSpecialResources(params) {
   return ok({ category, label: config.label, resources, total: resources.length });
 }
 
+function validateFirstSpecialResource(clean, config, category) {
+  if (!clean.name) return '资源名称不能为空';
+  if (!clean.date) return '上线日期不能为空';
+  if (!clean.obtain) return '获取方式不能为空';
+  if (!clean.price) return '价格不能为空';
+  if (!clean.img_url) return '首发资源必须上传资源图片';
+  if (config.requiresSkin && !clean.skin_profile_id) return `${config.label}必须关联皮肤`;
+  if (category !== 'star_legend') {
+    if (!clean.quality) return '品质不能为空';
+    if (!SPECIAL_RESOURCE_QUALITIES.has(clean.quality)) return '品质只能是绿色、蓝色、紫色或金色';
+  }
+  if ((category === 'star_legend' || category === 'yuanliu_suit') && !clean.tag) return '标签不能为空';
+  return '';
+}
+
+async function getFirstSpecialResource(client, config, id) {
+  if (!id) return null;
+  const { data, error } = await client
+    .from(config.table)
+    .select('*')
+    .eq('id', id)
+    .eq('release_type', TYPE_FIRST)
+    .maybeSingle();
+  return error ? null : data;
+}
+
 async function insertSpecialResource(data, user) {
   const category = String(data?.category || '');
   const config = getSpecialResourceConfig(category);
   if (!config) return fail('不支持的套装资源类型');
   const clean = cleanSpecialResourceInput(data, config);
-  if (!clean.name) return fail('资源名称不能为空');
-  if (!clean.date) return fail('上线日期不能为空');
-  if (config.requiresSkin && !clean.skin_profile_id) return fail(`${config.label}必须关联皮肤`);
-  if (clean.release_type && ![TYPE_FIRST, TYPE_RETURN].includes(clean.release_type)) return fail('首发/返场类型无效');
-  if (clean.permanent && !['是', PERMANENT_NO].includes(clean.permanent)) return fail('常驻状态无效');
-
-  clean.release_type = clean.release_type || TYPE_FIRST;
-  clean.obtain = clean.obtain || '';
-  clean.price = clean.price || '';
-  clean.is_available = clean.is_available !== false;
-  if (category === 'star_legend') {
-    clean.quality = clean.quality || '传说';
-    clean.tag = clean.tag || '';
-    clean.permanent = clean.permanent || PERMANENT_NO;
-  }
-  if (category === 'yuanliu_suit') clean.permanent = clean.permanent || PERMANENT_NO;
-
   const client = getClient();
-  if (config.requiresSkin && !(await ensureSpecialResourceSkin(client, clean.skin_profile_id))) {
-    return fail('关联皮肤不存在，请重新选择');
+  const releaseType = clean.release_type || TYPE_FIRST;
+  if (![TYPE_FIRST, TYPE_RETURN].includes(releaseType)) return fail('首发/返场类型无效');
+
+  let insertRow;
+  if (releaseType === TYPE_RETURN) {
+    if (!clean.parent_resource_id) return fail('返场记录必须选择对应的首发资源');
+    if (!clean.date) return fail('返场日期不能为空');
+    if (!clean.obtain) return fail('返场获取方式不能为空');
+    if (!clean.price) return fail('返场价格不能为空');
+    const firstResource = await getFirstSpecialResource(client, config, clean.parent_resource_id);
+    if (!firstResource) return fail('对应首发资源不存在，请重新选择');
+    insertRow = {
+      parent_resource_id: firstResource.id,
+      release_type: TYPE_RETURN,
+      date: clean.date,
+      obtain: clean.obtain,
+      price: clean.price,
+      notes: clean.notes || null,
+    };
+    config.inheritedFields.forEach(field => { insertRow[field] = firstResource[field]; });
+  } else {
+    clean.release_type = TYPE_FIRST;
+    clean.parent_resource_id = null;
+    if (config.fields.includes('permanent')) clean.permanent = clean.permanent || PERMANENT_NO;
+    const validationError = validateFirstSpecialResource(clean, config, category);
+    if (validationError) return fail(validationError);
+    if (clean.permanent && !['是', PERMANENT_NO].includes(clean.permanent)) return fail('常驻状态无效');
+    if (config.requiresSkin && !(await ensureSpecialResourceSkin(client, clean.skin_profile_id))) {
+      return fail('关联皮肤不存在，请重新选择');
+    }
+    insertRow = clean;
   }
+
   const { data: inserted, error } = await client
     .from(config.table)
-    .insert(clean)
+    .insert(insertRow)
     .select()
     .maybeSingle();
   if (error) return fail('创建失败：' + error.message);
   await log(client, user.username, 'special_resource_insert', inserted?.id || null, {
-    category, name: clean.name, skin_profile_id: clean.skin_profile_id || null,
+    category,
+    release_type: releaseType,
+    name: insertRow.name,
+    parent_resource_id: insertRow.parent_resource_id || null,
+    skin_profile_id: insertRow.skin_profile_id || null,
   });
   return ok({ category, resource: inserted });
 }
@@ -1155,21 +1204,33 @@ async function insertSpecialResource(data, user) {
 async function updateSpecialResource(category, id, updates, user) {
   const config = getSpecialResourceConfig(category);
   if (!config) return fail('不支持的套装资源类型');
-  const clean = cleanSpecialResourceInput(updates, config);
-  if (!Object.keys(clean).length) return fail('没有可更新的字段');
-  if (Object.prototype.hasOwnProperty.call(clean, 'name') && !clean.name) return fail('资源名称不能为空');
-  if (Object.prototype.hasOwnProperty.call(clean, 'date') && !clean.date) return fail('上线日期不能为空');
-  if (config.requiresSkin && Object.prototype.hasOwnProperty.call(clean, 'skin_profile_id') && !clean.skin_profile_id) {
-    return fail(`${config.label}必须关联皮肤`);
-  }
-  if (clean.release_type && ![TYPE_FIRST, TYPE_RETURN].includes(clean.release_type)) return fail('首发/返场类型无效');
-  if (clean.permanent && !['是', PERMANENT_NO].includes(clean.permanent)) return fail('常驻状态无效');
-
   const client = getClient();
-  if (config.requiresSkin && clean.skin_profile_id && !(await ensureSpecialResourceSkin(client, clean.skin_profile_id))) {
-    return fail('关联皮肤不存在，请重新选择');
-  }
   const { data: before } = await client.from(config.table).select('*').eq('id', id).maybeSingle();
+  if (!before) return fail('资源不存在');
+  const requested = cleanSpecialResourceInput(updates, config);
+  if (requested.release_type && requested.release_type !== before.release_type) return fail('不能修改首发/返场类型');
+  delete requested.release_type;
+  delete requested.parent_resource_id;
+
+  let clean;
+  if (before.release_type === TYPE_RETURN) {
+    const allowed = new Set(['date','obtain','price','notes']);
+    clean = Object.fromEntries(Object.entries(requested).filter(([field]) => allowed.has(field)));
+    const merged = { ...before, ...clean };
+    if (!merged.date) return fail('返场日期不能为空');
+    if (!merged.obtain) return fail('返场获取方式不能为空');
+    if (!merged.price) return fail('返场价格不能为空');
+  } else {
+    clean = requested;
+    const merged = { ...before, ...clean, release_type: TYPE_FIRST, parent_resource_id: null };
+    const validationError = validateFirstSpecialResource(merged, config, category);
+    if (validationError) return fail(validationError);
+    if (merged.permanent && !['是', PERMANENT_NO].includes(merged.permanent)) return fail('常驻状态无效');
+    if (config.requiresSkin && !(await ensureSpecialResourceSkin(client, merged.skin_profile_id))) {
+      return fail('关联皮肤不存在，请重新选择');
+    }
+  }
+  if (!Object.keys(clean).length) return fail('没有可更新的字段');
   const { data, error } = await client
     .from(config.table)
     .update(clean)

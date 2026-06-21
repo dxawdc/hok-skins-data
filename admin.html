@@ -604,7 +604,7 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
               <thead><tr>
                 <th style="width:68px">图片</th><th>名称</th><th>关联皮肤</th><th>英雄</th>
                 <th>上线日期</th><th>首发/返场</th><th>品质</th><th>获取方式</th>
-                <th>价格</th><th>状态</th><th style="width:120px">操作</th>
+                <th>价格</th><th style="width:120px">操作</th>
               </tr></thead>
               <tbody id="special-res-tbody"></tbody>
             </table>
@@ -997,7 +997,7 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
           <option value="yuanliu_suit">元流套装</option>
         </select>
       </div>
-      <div class="form-group"><label>资源名称 <span style="color:var(--red)">*</span></label><input type="text" id="sr-name" placeholder="填写资源名称"></div>
+      <div class="form-group" id="sr-name-group"><label>资源名称 <span style="color:var(--red)">*</span></label><input type="text" id="sr-name" placeholder="填写资源名称"></div>
 
       <div class="form-group" id="sr-skin-group" style="grid-column:1/-1">
         <label>关联皮肤 <span style="color:var(--red)">*</span></label>
@@ -1009,28 +1009,33 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
       <div class="form-group"><label>上线日期 <span style="color:var(--red)">*</span></label><input type="date" id="sr-date"></div>
       <div class="form-group">
         <label>首发/返场</label>
-        <select id="sr-release-type" class="filter-select" style="width:100%"><option>首发</option><option>返场</option></select>
+        <select id="sr-release-type" class="filter-select" style="width:100%" onchange="updateSpecialReleaseFields()"><option>首发</option><option>返场</option></select>
+      </div>
+      <div class="form-group" id="sr-parent-group" style="display:none;grid-column:1/-1">
+        <label>对应首发资源 <span style="color:var(--red)">*</span></label>
+        <select id="sr-parent-resource" class="filter-select" style="width:100%"></select>
+        <div class="special-skin-summary">返场将自动继承首发的名称、关联皮肤、品质、标签和图片</div>
       </div>
       <div class="form-group"><label>获取方式</label><input type="text" id="sr-obtain" placeholder="如：商城直售、活动兑换"></div>
       <div class="form-group"><label>价格</label><input type="text" id="sr-price" placeholder="如：300紫星币"></div>
 
       <div id="sr-rich-fields" style="display:contents">
-        <div class="form-group"><label>品质</label><input type="text" id="sr-quality" placeholder="如：传说"></div>
-        <div class="form-group"><label>标签</label><input type="text" id="sr-tag" placeholder="如：限定"></div>
-        <div class="form-group" id="sr-collab-group"><label>IP联动</label><input type="text" id="sr-collab" placeholder="如：品牌联动"></div>
-        <div class="form-group">
+        <div class="form-group" id="sr-quality-group">
+          <label>品质 <span style="color:var(--red)">*</span></label>
+          <select id="sr-quality" class="filter-select" style="width:100%">
+            <option value="">请选择品质</option><option>绿色</option><option>蓝色</option><option>紫色</option><option>金色</option>
+          </select>
+        </div>
+        <div class="form-group" id="sr-tag-group"><label>标签 <span style="color:var(--red)">*</span></label><input type="text" id="sr-tag" placeholder="如：限定"></div>
+        <div class="form-group" id="sr-collab-group"><label>IP联动 <span style="color:var(--text3);font-weight:400">（可选）</span></label><input type="text" id="sr-collab" placeholder="如：品牌联动"></div>
+        <div class="form-group" id="sr-permanent-group">
           <label>是否常驻</label>
           <select id="sr-permanent" class="filter-select" style="width:100%"><option>否</option><option>是</option></select>
         </div>
       </div>
-
-      <div class="form-group">
-        <label>是否上架</label>
-        <select id="sr-available" class="filter-select" style="width:100%"><option value="true">上架</option><option value="false">下架</option></select>
-      </div>
     </div>
 
-    <div class="special-image-grid">
+    <div class="special-image-grid" id="sr-image-fields">
       <div class="form-group">
         <label>资源图片 <span id="sr-img-hint" style="color:var(--text3);font-weight:400">建议上传正方形图片</span></label>
         <div class="img-upload-box" id="sr-img-box" style="height:auto;min-height:110px;aspect-ratio:1/1;overflow:hidden" onclick="document.getElementById('sr-img-input').click()">
@@ -2171,13 +2176,12 @@ function renderSpecialResourceTable() {
       <td style="font-size:12px">${escapeHtml(resource.quality)||'—'}</td>
       <td style="font-size:12px;color:var(--text2)">${escapeHtml(resource.obtain)||'—'}</td>
       <td style="font-size:12px;color:var(--gold)">${escapeHtml(resource.price)||'—'}</td>
-      <td><span class="badge badge-${resource.is_available?'是':'否'}">${resource.is_available?'上架':'下架'}</span></td>
       <td style="white-space:nowrap">
         <button class="btn btn-outline btn-sm" onclick="editSpecialResource('${specialResourceCategory}',${editPayload})">编辑</button>
         <button class="btn btn-danger btn-sm" onclick="doDeleteSpecialResource('${specialResourceCategory}',${resource.id},'${esc(resource.name)}')">删除</button>
       </td>
     </tr>`;
-  }).join('') || '<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--text3)">暂无套装资源</td></tr>';
+  }).join('') || '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text3)">暂无套装资源</td></tr>';
 
   document.getElementById('special-res-pg-info').textContent = total
     ? `共 ${total} 条 · 第 ${start+1}–${Math.min(start+SPECIAL_RESOURCE_PER_PAGE,total)} 条`
@@ -2227,14 +2231,38 @@ function updateSpecialSkinSummary() {
     : '选择皮肤后自动匹配归属英雄';
 }
 
-function updateSpecialResourceFields() {
+async function populateSpecialParentOptions(selectedId = '') {
   const category = document.getElementById('sr-category')?.value || specialResourceCategory;
+  const response = await api('GET', `/special-resources?category=${encodeURIComponent(category)}&release_type=${encodeURIComponent('首发')}`);
+  const select = document.getElementById('sr-parent-resource');
+  if (!select) return;
+  const resources = response.resources || [];
+  select.innerHTML = '<option value="">请选择对应首发资源</option>' + resources.map(resource => {
+    const skin = resource.skin_profile || {};
+    const suffix = skin.name ? ` · ${skin.hero || ''} ${skin.name}` : '';
+    return `<option value="${resource.id}">${escapeHtml(resource.name)}${escapeHtml(suffix)}</option>`;
+  }).join('');
+  if (selectedId) select.value = String(selectedId);
+}
+
+function updateSpecialReleaseFields() {
+  updateSpecialResourceFields();
+}
+
+function updateSpecialResourceFields(parentResourceId = '') {
+  const category = document.getElementById('sr-category')?.value || specialResourceCategory;
+  const isReturn = document.getElementById('sr-release-type')?.value === '返场';
   const requiresSkin = category !== 'yuanliu_suit';
-  const hasRichFields = category !== 'star_outfit';
-  document.getElementById('sr-skin-group').style.display = requiresSkin ? 'block' : 'none';
-  document.getElementById('sr-rich-fields').style.display = hasRichFields ? 'contents' : 'none';
-  document.getElementById('sr-collab-group').style.display = category === 'yuanliu_suit' ? 'block' : 'none';
-  document.getElementById('sr-tag-image-group').style.display = hasRichFields ? 'block' : 'none';
+  document.getElementById('sr-name-group').style.display = isReturn ? 'none' : 'block';
+  document.getElementById('sr-parent-group').style.display = isReturn ? 'block' : 'none';
+  document.getElementById('sr-skin-group').style.display = !isReturn && requiresSkin ? 'block' : 'none';
+  document.getElementById('sr-rich-fields').style.display = isReturn ? 'none' : 'contents';
+  document.getElementById('sr-quality-group').style.display = !isReturn && category !== 'star_legend' ? 'block' : 'none';
+  document.getElementById('sr-tag-group').style.display = !isReturn && category !== 'star_outfit' ? 'block' : 'none';
+  document.getElementById('sr-collab-group').style.display = !isReturn && category === 'yuanliu_suit' ? 'block' : 'none';
+  document.getElementById('sr-permanent-group').style.display = !isReturn && category !== 'star_outfit' ? 'block' : 'none';
+  document.getElementById('sr-image-fields').style.display = isReturn ? 'none' : 'grid';
+  document.getElementById('sr-tag-image-group').style.display = !isReturn && category !== 'star_outfit' ? 'block' : 'none';
   const imgBox = document.getElementById('sr-img-box');
   const hint = document.getElementById('sr-img-hint');
   if (category === 'yuanliu_suit') {
@@ -2244,12 +2272,10 @@ function updateSpecialResourceFields() {
     imgBox.style.aspectRatio = '1 / 1';
     hint.textContent = '建议上传正方形图片';
   }
-  if (category === 'star_legend' && !document.getElementById('sr-quality').value) {
-    document.getElementById('sr-quality').value = '传说';
-  }
-  if (requiresSkin && !document.getElementById('sr-skin-profile').options.length) {
+  if (!isReturn && requiresSkin && !document.getElementById('sr-skin-profile').options.length) {
     populateSpecialSkinOptions();
   }
+  if (isReturn) populateSpecialParentOptions(parentResourceId || document.getElementById('sr-parent-resource').value);
 }
 
 function setSpecialResourceImage(kind, url = '') {
@@ -2276,15 +2302,16 @@ function previewSpecialResourceImage(event, kind) {
 
 async function showAddSpecialResource() {
   document.getElementById('modal-special-res-title').textContent = '新增套装资源';
-  ['sr-id','sr-name','sr-date','sr-obtain','sr-price','sr-quality','sr-tag','sr-collab','sr-notes','sr-img-url','sr-tag-img-url','sr-skin-search'].forEach(id => {
+  ['sr-id','sr-name','sr-date','sr-obtain','sr-price','sr-quality','sr-tag','sr-collab','sr-notes','sr-img-url','sr-tag-img-url','sr-skin-search','sr-parent-resource'].forEach(id => {
     const element = document.getElementById(id); if (element) element.value = '';
   });
   const categorySelect = document.getElementById('sr-category');
   categorySelect.disabled = false;
   categorySelect.value = specialResourceCategory;
-  document.getElementById('sr-release-type').value = '首发';
+  const releaseSelect = document.getElementById('sr-release-type');
+  releaseSelect.disabled = false;
+  releaseSelect.value = '首发';
   document.getElementById('sr-permanent').value = '否';
-  document.getElementById('sr-available').value = 'true';
   specialResourceImgFile = null;
   specialResourceTagImgFile = null;
   setSpecialResourceImage('main');
@@ -2300,17 +2327,18 @@ async function editSpecialResource(category, jsonString) {
   const categorySelect = document.getElementById('sr-category');
   categorySelect.value = category;
   categorySelect.disabled = true;
+  const releaseSelect = document.getElementById('sr-release-type');
+  releaseSelect.value = resource.release_type || '首发';
+  releaseSelect.disabled = true;
   document.getElementById('sr-id').value = resource.id || '';
   document.getElementById('sr-name').value = resource.name || '';
   document.getElementById('sr-date').value = resource.date || '';
-  document.getElementById('sr-release-type').value = resource.release_type || '首发';
   document.getElementById('sr-obtain').value = resource.obtain || '';
   document.getElementById('sr-price').value = resource.price || '';
   document.getElementById('sr-quality').value = resource.quality || '';
   document.getElementById('sr-tag').value = resource.tag || '';
   document.getElementById('sr-collab').value = resource.collab || '';
   document.getElementById('sr-permanent').value = resource.permanent || '否';
-  document.getElementById('sr-available').value = resource.is_available === false ? 'false' : 'true';
   document.getElementById('sr-notes').value = resource.notes || '';
   document.getElementById('sr-img-url').value = resource.img_url || '';
   document.getElementById('sr-tag-img-url').value = resource.tag_img_url || '';
@@ -2319,8 +2347,10 @@ async function editSpecialResource(category, jsonString) {
   specialResourceTagImgFile = null;
   setSpecialResourceImage('main', resource.img_url || '');
   setSpecialResourceImage('tag', resource.tag_img_url || '');
-  updateSpecialResourceFields();
-  if (category !== 'yuanliu_suit') await populateSpecialSkinOptions(resource.skin_profile_id || '');
+  updateSpecialResourceFields(resource.parent_resource_id || '');
+  if (resource.release_type !== '返场' && category !== 'yuanliu_suit') {
+    await populateSpecialSkinOptions(resource.skin_profile_id || '');
+  }
   document.getElementById('modal-special-resource').classList.add('show');
 }
 
@@ -2343,25 +2373,38 @@ async function doSaveSpecialResource() {
   const button = document.getElementById('sr-save-btn');
   const id = document.getElementById('sr-id').value;
   const category = document.getElementById('sr-category').value;
+  const releaseType = document.getElementById('sr-release-type').value;
+  const isReturn = releaseType === '返场';
   const name = document.getElementById('sr-name').value.trim();
   const date = document.getElementById('sr-date').value;
+  const obtain = document.getElementById('sr-obtain').value.trim();
+  const price = document.getElementById('sr-price').value.trim();
   const requiresSkin = category !== 'yuanliu_suit';
   const skinProfileId = document.getElementById('sr-skin-profile').value;
-  if (!name) return toast('资源名称不能为空', 'err');
+  const parentResourceId = document.getElementById('sr-parent-resource').value;
   if (!date) return toast('上线日期不能为空', 'err');
-  if (requiresSkin && !skinProfileId) return toast(`${SPECIAL_RESOURCE_LABELS[category]}必须关联皮肤`, 'err');
+  if (!obtain) return toast('获取方式不能为空', 'err');
+  if (!price) return toast('价格不能为空', 'err');
+  if (isReturn && !id && !parentResourceId) return toast('返场必须选择对应的首发资源', 'err');
+  if (!isReturn) {
+    if (!name) return toast('资源名称不能为空', 'err');
+    if (requiresSkin && !skinProfileId) return toast(`${SPECIAL_RESOURCE_LABELS[category]}必须关联皮肤`, 'err');
+    if (category !== 'star_legend' && !document.getElementById('sr-quality').value) return toast('品质不能为空', 'err');
+    if (category !== 'star_outfit' && !document.getElementById('sr-tag').value.trim()) return toast('标签不能为空', 'err');
+    if (!specialResourceImgFile && !document.getElementById('sr-img-url').value) return toast('首发资源必须上传资源图片', 'err');
+  }
 
   button.disabled = true;
   button.textContent = '保存中…';
   try {
     let imgUrl = document.getElementById('sr-img-url').value || null;
     let tagImgUrl = document.getElementById('sr-tag-img-url').value || null;
-    if (specialResourceImgFile) {
+    if (!isReturn && specialResourceImgFile) {
       const upload = await uploadSpecialResourceImage(specialResourceImgFile, 'main');
       if (upload.error) return toast('图片上传失败：' + upload.error, 'err');
       imgUrl = upload.url;
     }
-    if (category !== 'star_outfit' && specialResourceTagImgFile) {
+    if (!isReturn && category !== 'star_outfit' && specialResourceTagImgFile) {
       const upload = await uploadSpecialResourceImage(specialResourceTagImgFile, 'tag');
       if (upload.error) return toast('标签图片上传失败：' + upload.error, 'err');
       tagImgUrl = upload.url;
@@ -2369,23 +2412,26 @@ async function doSaveSpecialResource() {
 
     const body = {
       category,
-      name,
       date,
-      release_type: document.getElementById('sr-release-type').value,
-      obtain: document.getElementById('sr-obtain').value.trim(),
-      price: document.getElementById('sr-price').value.trim(),
-      img_url: imgUrl,
+      release_type: releaseType,
+      obtain,
+      price,
       notes: document.getElementById('sr-notes').value.trim() || null,
-      is_available: document.getElementById('sr-available').value === 'true',
     };
-    if (requiresSkin) body.skin_profile_id = parseInt(skinProfileId, 10);
-    if (category !== 'star_outfit') {
-      body.quality = document.getElementById('sr-quality').value.trim() || null;
-      body.tag = document.getElementById('sr-tag').value.trim() || null;
-      body.permanent = document.getElementById('sr-permanent').value;
-      body.tag_img_url = tagImgUrl;
+    if (isReturn) {
+      if (!id) body.parent_resource_id = parseInt(parentResourceId, 10);
+    } else {
+      body.name = name;
+      body.img_url = imgUrl;
+      if (requiresSkin) body.skin_profile_id = parseInt(skinProfileId, 10);
+      if (category !== 'star_legend') body.quality = document.getElementById('sr-quality').value;
+      if (category !== 'star_outfit') {
+        body.tag = document.getElementById('sr-tag').value.trim();
+        body.permanent = document.getElementById('sr-permanent').value;
+        body.tag_img_url = tagImgUrl;
+      }
+      if (category === 'yuanliu_suit') body.collab = document.getElementById('sr-collab').value.trim() || null;
     }
-    if (category === 'yuanliu_suit') body.collab = document.getElementById('sr-collab').value.trim() || null;
 
     const response = id
       ? await api('PUT', `/special-resources/${category}/${id}`, body)
