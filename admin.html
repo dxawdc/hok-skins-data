@@ -187,32 +187,6 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
 .pg-btn.active { background: var(--gold); color: #fff; border-color: var(--gold); }
 .pg-btn:disabled { opacity: 0.35; cursor: default; }
 
-/* IMPORT */
-.upload-zone {
-  border: 2px dashed var(--border); border-radius: var(--radius);
-  padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.2s;
-}
-.upload-zone:hover, .upload-zone.drag { border-color: var(--gold); background: #fffdf0; }
-.upload-zone .icon { font-size: 40px; display: block; margin-bottom: 12px; }
-.upload-zone p { color: var(--text2); font-size: 14px; }
-.upload-zone small { color: var(--text3); font-size: 12px; }
-.mode-select { display: flex; gap: 12px; margin-bottom: 20px; }
-.mode-opt {
-  flex: 1; border: 2px solid var(--border); border-radius: 10px; padding: 14px;
-  cursor: pointer; transition: all 0.2s;
-}
-.mode-opt:hover { border-color: var(--gold); }
-.mode-opt.selected { border-color: var(--gold); background: #fffdf0; }
-.import-log {
-  background: #1a1d23; color: #e8e0d0; border-radius: 8px;
-  padding: 14px 16px; font-family: monospace; font-size: 13px;
-  max-height: 200px; overflow-y: auto; display: none;
-}
-.log-line { margin-bottom: 4px; }
-.log-line.ok  { color: #68d391; }
-.log-line.err { color: #fc8181; }
-.log-line.info { color: #63b3ed; }
-
 /* MODAL */
 .modal-bg {
   position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100;
@@ -299,6 +273,7 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
   .table-toolbar { padding: 10px; align-items: stretch; }
   .special-type-tabs { width: 100%; overflow-x: auto; }
   .special-type-tab { flex: 1; padding: 6px 8px; }
+  #special-release-filter { width: 100% !important; }
   #special-res-search { width: 100% !important; }
   .special-form-grid, .special-image-grid { grid-template-columns: 1fr; }
   #modal-special-resource .modal { padding: 20px; width: calc(100vw - 24px); }
@@ -361,9 +336,6 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
         </div>
         <div class="nav-item" data-page="special-resources" onclick="navTo('special-resources',this)">
           <span class="icon">✨</span> 套装资源
-        </div>
-        <div class="nav-item" data-page="import" onclick="navTo('import',this)">
-          <span class="icon">📥</span> Excel 导入
         </div>
         <div class="nav-item admin-only" data-page="users" onclick="navTo('users',this)">
           <span class="icon">👥</span> 用户管理
@@ -489,58 +461,6 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
         </div>
       </div>
 
-      <div class="page" id="page-import">
-        <div class="page-header">
-          <div><div class="page-title">Excel 导入</div><div class="page-subtitle">上传 Excel 文件更新数据</div></div>
-        </div>
-        <div class="page-body">
-          <div class="card">
-            <div class="card-header"><span class="card-title">导入模式</span></div>
-            <div class="card-body">
-              <div class="mode-select">
-                <div class="mode-opt selected" id="mode-append" onclick="selectMode('append')">
-                  <h4>➕ 追加模式（推荐）</h4>
-                  <p>只导入 Excel 中新增的记录，已存在的跳过。<br>适合日常更新。</p>
-                </div>
-                <div class="mode-opt" id="mode-overwrite" onclick="selectMode('overwrite')">
-                  <h4>🔄 全量覆盖</h4>
-                  <p>先清空数据库所有记录，再重新导入。<br>适合数据修正后的全量重建。</p>
-                </div>
-              </div>
-              <div id="overwrite-warning" style="display:none;background:#fff5f5;border:1px solid #fecaca;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#c53030">
-                ⚠️ <b>全量覆盖将删除数据库中所有现有记录</b>，此操作不可撤销，请谨慎使用。
-              </div>
-              <div class="upload-zone" id="upload-zone"
-                   ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)"
-                   onclick="document.getElementById('file-input').click()">
-                <span class="icon">📂</span>
-                <p>点击选择文件，或将 Excel 文件拖拽到此处</p>
-                <small>支持 .xlsx 格式，与原始数据表格式保持一致</small>
-              </div>
-              <input type="file" id="file-input" accept=".xlsx" style="display:none" onchange="onFileSelect(event)">
-              <div id="file-selected" style="display:none;margin-top:12px;padding:12px 16px;background:#f0fff4;border:1px solid #c6f6d5;border-radius:8px;display:flex;align-items:center;gap:10px">
-                <span style="font-size:20px">📊</span>
-                <div>
-                  <div id="file-name" style="font-weight:600;font-size:14px"></div>
-                  <div id="file-size" style="font-size:12px;color:var(--text3)"></div>
-                </div>
-                <button class="btn btn-outline btn-sm" onclick="clearFile()" style="margin-left:auto">移除</button>
-              </div>
-              <div id="import-progress" style="display:none;margin-top:12px">
-                <div style="font-size:13px;color:var(--text2)" id="progress-text">准备中...</div>
-                <div class="progress-wrap"><div class="progress-bar" id="progress-bar" style="width:0%"></div></div>
-              </div>
-              <div class="import-log" id="import-log"></div>
-            </div>
-            <div style="padding:0 20px 20px;display:flex;gap:10px">
-              <button class="btn btn-primary" id="import-btn" onclick="doImport()" disabled>
-                开始导入
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- ══ 资源管理页 ══ -->
       <div class="page" id="page-resources">
         <div class="page-header">
@@ -597,6 +517,11 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
               <button class="special-type-tab" data-special-category="star_outfit" onclick="setSpecialResourceCategory('star_outfit')">星元套装</button>
               <button class="special-type-tab" data-special-category="yuanliu_suit" onclick="setSpecialResourceCategory('yuanliu_suit')">元流套装</button>
             </div>
+            <select class="filter-select" id="special-release-filter" style="width:130px" onchange="setSpecialResourceReleaseFilter(this.value)" aria-label="首发返场筛选">
+              <option value="">全部记录</option>
+              <option value="首发">首发</option>
+              <option value="返场">返场</option>
+            </select>
             <input class="search-input" id="special-res-search" placeholder="搜索资源、皮肤或英雄…" oninput="debounceSpecialResourceSearch()" style="width:240px">
           </div>
           <div class="data-table-wrap" style="border-top:none;border-radius:0 0 var(--radius) var(--radius)">
@@ -1077,8 +1002,6 @@ let token = localStorage.getItem('admin_token') || '';
 let currentUser = null;
 let skinPage = 1; const SKIN_PER_PAGE = 50;
 let selectedIds = new Set();
-let importMode = 'append';
-let importFile = null;
 let searchTimer = null;
 
 // ▼ 补全英雄与资源管理的全局变量
@@ -1091,6 +1014,7 @@ let resPage = 1; const RES_PER_PAGE = 20;
 let resImgFile = null;
 let resTagImgFile = null;
 let specialResourceCategory = 'star_legend';
+let specialResourceReleaseType = '';
 let allSpecialResources = [];
 let specialResourcePage = 1; const SPECIAL_RESOURCE_PER_PAGE = 20;
 let specialResourceImgFile = null;
@@ -1768,69 +1692,6 @@ async function doBatchUpdate() {
   clearSelection(); loadSkins();
 }
 
-// ── Import ────────────────────────────────────────────────────
-function selectMode(m) {
-  importMode = m;
-  document.getElementById('mode-append').classList.toggle('selected', m==='append');
-  document.getElementById('mode-overwrite').classList.toggle('selected', m==='overwrite');
-  document.getElementById('overwrite-warning').style.display = m==='overwrite'?'block':'none';
-}
-function onDragOver(e) { e.preventDefault(); document.getElementById('upload-zone').classList.add('drag'); }
-function onDragLeave()  { document.getElementById('upload-zone').classList.remove('drag'); }
-function onDrop(e) { e.preventDefault(); onDragLeave(); if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]); }
-function onFileSelect(e) { if (e.target.files[0]) setFile(e.target.files[0]); }
-function setFile(file) {
-  importFile = file;
-  document.getElementById('upload-zone').style.display = 'none';
-  const sel = document.getElementById('file-selected');
-  sel.style.display = 'flex';
-  document.getElementById('file-name').textContent = file.name;
-  document.getElementById('file-size').textContent = (file.size/1024/1024).toFixed(1) + ' MB';
-  document.getElementById('import-btn').disabled = false;
-}
-function clearFile() {
-  importFile = null;
-  document.getElementById('upload-zone').style.display = 'block';
-  document.getElementById('file-selected').style.display = 'none';
-  document.getElementById('import-btn').disabled = true;
-  document.getElementById('file-input').value = '';
-  document.getElementById('import-log').style.display = 'none';
-}
-async function doImport() {
-  if (!importFile) return;
-  const btn = document.getElementById('import-btn');
-  btn.disabled = true; btn.textContent = '解析中…';
-  setProgress(10, '读取文件…');
-  const reader = new FileReader();
-  reader.onload = async (e) => {
-    const b64 = btoa(String.fromCharCode(...new Uint8Array(e.target.result)));
-    setProgress(30, '上传到服务器…');
-    addLog('info', `开始${importMode==='append'?'追加':'全量覆盖'}导入…`);
-    const res = await api('POST', '/import', { file_b64: b64, mode: importMode });
-    setProgress(100, '完成');
-    btn.disabled = false; btn.textContent = '开始导入';
-    if (res.error) {
-      addLog('err', '导入失败：' + res.error);
-      toast('导入失败', 'err');
-    } else {
-      addLog('ok', `✅ 导入完成！新增 ${res.inserted} 条，跳过 ${res.skipped} 条，图片 ${res.images} 张`);
-      toast(`导入成功，新增 ${res.inserted} 条`, 'ok');
-    }
-  };
-  reader.readAsArrayBuffer(importFile);
-}
-function setProgress(pct, text) {
-  document.getElementById('import-progress').style.display = 'block';
-  document.getElementById('progress-text').textContent = text;
-  document.getElementById('progress-bar').style.width = pct + '%';
-}
-function addLog(type, text) {
-  const log = document.getElementById('import-log');
-  log.style.display = 'block';
-  log.innerHTML += `<div class="log-line ${type}">[${new Date().toLocaleTimeString()}] ${escapeHtml(text)}</div>`;
-  log.scrollTop = log.scrollHeight;
-}
-
 // ── Users ─────────────────────────────────────────────────────
 async function loadUsers() {
   const res = await api('GET', '/users');
@@ -2127,6 +1988,12 @@ function setSpecialResourceCategory(category) {
   loadSpecialResources();
 }
 
+function setSpecialResourceReleaseFilter(releaseType) {
+  specialResourceReleaseType = ['首发', '返场'].includes(releaseType) ? releaseType : '';
+  specialResourcePage = 1;
+  loadSpecialResources();
+}
+
 function debounceSpecialResourceSearch() {
   clearTimeout(specialResourceSearchTimer);
   specialResourceSearchTimer = setTimeout(() => {
@@ -2138,6 +2005,7 @@ function debounceSpecialResourceSearch() {
 async function loadSpecialResources() {
   const search = (document.getElementById('special-res-search')?.value || '').trim();
   let url = `/special-resources?category=${encodeURIComponent(specialResourceCategory)}`;
+  if (specialResourceReleaseType) url += `&release_type=${encodeURIComponent(specialResourceReleaseType)}`;
   if (search) url += `&search=${encodeURIComponent(search)}`;
   const res = await api('GET', url);
   if (res.error) return toast(res.error, 'err');

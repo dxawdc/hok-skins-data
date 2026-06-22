@@ -351,7 +351,6 @@ module.exports = async function handler(req, res) {
   if (path.endsWith('/batch-update') && m === 'POST')   { const [u,e]=requireAuth(h); if(e) return send(e); return send(await batchUpdate(body,u)); }
   if (path.endsWith('/images')       && m === 'POST')   { const [u,e]=requireAuth(h); if(e) return send(e); return send(await uploadImage(body,u)); }
   if (path.endsWith('/images')       && m === 'DELETE') { const [u,e]=requireAuth(h); if(e) return send(e); return send(await deleteImage(body,u)); }
-  if (path.endsWith('/import')       && m === 'POST')   { const [u,e]=requireAuth(h); if(e) return send(e); return send(await doImport(body,u)); }
   if (path.endsWith('/logs')         && m === 'GET')    { const [u,e]=requireAuth(h); if(e) return send(e); return send(await listLogs(qs)); }
 
   if (path.endsWith('/heroes')            && m === 'GET')    { const [u,e]=requireAuth(h); if(e) return send(e); return send(await listHeroes(qs)); }
@@ -739,35 +738,6 @@ async function insertSkin(data, user) {
   return ok({ skin: normalizeSkinRecord(inserted) });
 }
 
-async function resolveHeroIdByName(client, heroName) {
-  if (!heroName) return null;
-  const { data } = await client
-    .from('heroes')
-    .select('id')
-    .eq('name', heroName)
-    .maybeSingle();
-  return data?.id || null;
-}
-
-async function insertImportedSkin(client, record) {
-  const clean = { ...record };
-  clean.quality = normalizeQuality(clean.quality);
-  if (!clean.hero_id) clean.hero_id = await resolveHeroIdByName(client, clean.hero);
-  let profile = await findSkinProfile(client, clean);
-  if (!profile) profile = await upsertSkinProfile(client, clean);
-  const row = {
-    date: clean.date,
-    price: clean.price || '',
-    obtain: clean.obtain || '',
-    type: clean.type || TYPE_FIRST,
-    skin_profile_id: profile.id,
-    notes: clean.type === TYPE_RETURN ? (clean.notes || null) : null,
-    ...legacyFieldsFromProfile(profile),
-  };
-  const { error } = await client.from('skins').insert(row);
-  if (error) throw error;
-}
-
 // ── 上传图片（改为 Supabase Storage，包含精确大小校验）────────────────────────
 async function uploadImage({ img_id, img_type, data, mime_type }, user) {
   if (!img_id || !data || !mime_type) return fail('缺少必要字段');
@@ -835,69 +805,6 @@ async function listLogs(params) {
   return ok({ logs: data || [] });
 }
 
-// ── Excel 导入 ───────────────────────────────────────────────
-async function doImport({ file_b64, mode = 'append' }, user) {
-  if (!file_b64) return fail('请提供 file_b64');
-  let records;
-  try {
-    const buf = Buffer.from(file_b64, 'base64');
-    records = parseExcel(buf);
-  } catch (e) {
-    return fail('Excel 解析失败：' + e.message);
-  }
-  const client = getClient();
-  const BATCH  = 100;
-  let inserted = 0, skipped = 0;
-
-  if (mode === 'overwrite') {
-    await client.from('skins').delete().neq('id', 0);
-    await client.from('skin_profiles').delete().neq('id', 0);
-    for (const record of records) {
-      await insertImportedSkin(client, record);
-    }
-    inserted = records.length;
-  } else {
-    const { data: existing } = await client.from('skins').select('hero,name,date,type');
-    const keys = new Set((existing || []).map(r => `${r.hero}|${r.name}|${r.date}|${r.type}`));
-    const newR = records.filter(r => !keys.has(`${r.hero}|${r.name}|${r.date}|${r.type}`));
-    for (const record of newR) {
-      await insertImportedSkin(client, record);
-    }
-    inserted = newR.length;
-    skipped  = records.length - newR.length;
-  }
-  await log(client, user.username, 'import', null, { mode, total: records.length, inserted, skipped });
-  return ok({ inserted, skipped, images: 0 });
-}
-
-function parseExcel(buf) {
-  const XLSX = require('xlsx');
-  const wb   = XLSX.read(buf, { type: 'buffer', cellDates: true });
-  const ws   = wb.Sheets[wb.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
-
-  const fmtDate = v => {
-    if (!v) return '';
-    if (v instanceof Date) return v.toISOString().slice(0, 10);
-    return String(v).slice(0, 10);
-  };
-  const safe = (v, d='') => { const s = String(v??'').trim(); return ['undefined','null','nan'].includes(s.toLowerCase()) ? d : s; };
-
-  return rows.map(r => ({
-    date:         fmtDate(r['日期']),
-    name:         safe(r['皮肤名称']),
-    quality:      normalizeQuality(safe(r['皮肤品质'])),
-    tag:          safe(r['皮肤标签']),
-    hero:         safe(r['归属英雄']),
-    job:          safe(r['英雄职业']),
-    price:        safe(r['价格']),
-    obtain:       safe(r['获取方式']),
-    type:         safe(r['首发or返场']),
-    permanent:    safe(r['是否常驻'], '否'),
-    skin_img_url: safe(r['皮肤图片URL']),
-    tag_img_url:  safe(r['标签图片URL']),
-  })).filter(r => r.name && r.hero && r.date);
-}
 // ── 英雄列表 ─────────────────────────────────────────────────
 async function listHeroes(params) {
   const page    = Math.max(1, parseInt(params.page     || '1'));
