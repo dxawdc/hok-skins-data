@@ -607,13 +607,22 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
           <button class="btn btn-outline btn-sm" onclick="loadFeedback()">刷新</button>
         </div>
         <div class="page-body">
-          <div class="card">
-            <div class="card-body" style="padding:0">
-              <table>
-                <thead><tr><th>时间</th><th>反馈人</th><th>反馈内容</th><th>来源</th><th>页面</th></tr></thead>
-                <tbody id="feedback-tbody"></tbody>
-              </table>
-            </div>
+          <div class="table-toolbar">
+            <input type="text" class="search-input" id="feedback-search" placeholder="搜索反馈人/内容..." oninput="debounceFeedbackSearch()">
+            <input type="date" class="filter-select" id="feedback-start-date" onchange="filterFeedbackByDate()" aria-label="开始日期">
+            <input type="date" class="filter-select" id="feedback-end-date" onchange="filterFeedbackByDate()" aria-label="结束日期">
+            <button class="btn btn-outline btn-sm" onclick="resetFeedbackFilters()">清除筛选</button>
+            <span style="color:var(--text3);font-size:12px;margin-left:auto" id="feedback-total-label"></span>
+          </div>
+          <div class="data-table-wrap">
+            <table>
+              <thead><tr><th>时间</th><th>反馈人</th><th>反馈内容</th><th>来源</th><th>页面</th></tr></thead>
+              <tbody id="feedback-tbody"></tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <div class="pg-info" id="feedback-pg-info"></div>
+            <div class="pg-btns" id="feedback-pg-btns"></div>
           </div>
         </div>
       </div>
@@ -1041,6 +1050,8 @@ let specialResourceImgFile = null;
 let specialResourceTagImgFile = null;
 let specialResourceSearchTimer = null;
 let heroSkinCountCache = {};
+let feedbackPage = 1; const FEEDBACK_PER_PAGE = 20;
+let feedbackSearchTimer = null;
 
 // ── 安全：HTML 转义 ──────────────────────────────────────────
 // 后台大量使用 innerHTML 拼接数据库内容，必须对文本/属性上下文转义，
@@ -1761,7 +1772,14 @@ async function loadLogs() {
 
 // ── Feedback ─────────────────────────────────────────────────
 async function loadFeedback() {
-  const res = await api('GET', '/feedback?per_page=100');
+  const search = (document.getElementById('feedback-search')?.value || '').trim();
+  const startDate = document.getElementById('feedback-start-date')?.value || '';
+  const endDate = document.getElementById('feedback-end-date')?.value || '';
+  let url = `/feedback?page=${feedbackPage}&per_page=${FEEDBACK_PER_PAGE}`;
+  if (search) url += `&search=${encodeURIComponent(search)}`;
+  if (startDate) url += `&start_date=${encodeURIComponent(startDate)}`;
+  if (endDate) url += `&end_date=${encodeURIComponent(endDate)}`;
+  const res = await api('GET', url);
   if (!res.feedback) return;
   document.getElementById('feedback-tbody').innerHTML = res.feedback.map(f => `
     <tr>
@@ -1771,6 +1789,49 @@ async function loadFeedback() {
       <td style="font-size:12px;color:var(--text3);white-space:nowrap">${escapeHtml(f.source || '—')}</td>
       <td style="font-size:12px;color:var(--text3);white-space:nowrap">${escapeHtml(f.page || '—')}</td>
     </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text3)">暂无反馈</td></tr>';
+  renderFeedbackPagination(res.total || 0, res.page || feedbackPage, res.per_page || FEEDBACK_PER_PAGE);
+}
+
+function renderFeedbackPagination(total, page, perPage) {
+  document.getElementById('feedback-total-label').textContent = `共 ${total} 条`;
+  const totalPages = Math.max(1, Math.ceil(total / perPage));
+  const start = total > 0 ? (page - 1) * perPage + 1 : 0;
+  const end = Math.min(page * perPage, total);
+  document.getElementById('feedback-pg-info').textContent = `第 ${page} / ${totalPages} 页 · 第 ${start}–${end} 条`;
+  let btns = `<button class="pg-btn" onclick="goFeedbackPage(${page - 1})" ${page <= 1 ? 'disabled' : ''}>‹</button>`;
+  const s = Math.max(1, page - 2), e = Math.min(totalPages, page + 2);
+  if (s > 1) btns += `<button class="pg-btn" onclick="goFeedbackPage(1)">1</button>${s > 2 ? '<span style="padding:4px;color:var(--text3)">…</span>' : ''}`;
+  for (let i = s; i <= e; i++) btns += `<button class="pg-btn${i === page ? ' active' : ''}" onclick="goFeedbackPage(${i})">${i}</button>`;
+  if (e < totalPages) btns += `${e < totalPages - 1 ? '<span style="padding:4px;color:var(--text3)">…</span>' : ''}<button class="pg-btn" onclick="goFeedbackPage(${totalPages})">${totalPages}</button>`;
+  btns += `<button class="pg-btn" onclick="goFeedbackPage(${page + 1})" ${page >= totalPages ? 'disabled' : ''}>›</button>`;
+  document.getElementById('feedback-pg-btns').innerHTML = btns;
+}
+
+function goFeedbackPage(page) {
+  if (page < 1) return;
+  feedbackPage = page;
+  loadFeedback();
+}
+
+function debounceFeedbackSearch() {
+  clearTimeout(feedbackSearchTimer);
+  feedbackSearchTimer = setTimeout(() => {
+    feedbackPage = 1;
+    loadFeedback();
+  }, 350);
+}
+
+function filterFeedbackByDate() {
+  feedbackPage = 1;
+  loadFeedback();
+}
+
+function resetFeedbackFilters() {
+  document.getElementById('feedback-search').value = '';
+  document.getElementById('feedback-start-date').value = '';
+  document.getElementById('feedback-end-date').value = '';
+  feedbackPage = 1;
+  loadFeedback();
 }
 
 // ── 资源管理 ─────────────────────────────────────────────────

@@ -837,14 +837,31 @@ async function submitFeedback(data, headers) {
 }
 
 async function listFeedback(params) {
-  const perPage = Math.min(200, Math.max(1, parseInt(params.per_page || '100')));
-  const { data, error } = await getClient()
+  const page = Math.max(1, parseInt(params.page || '1'));
+  const perPage = Math.min(100, Math.max(1, parseInt(params.per_page || '20')));
+  const offset = (page - 1) * perPage;
+  const search = cleanText(params.search ? decodeURIComponent(params.search) : '', 80)
+    .replace(/[%,()]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const startDate = cleanText(params.start_date ? decodeURIComponent(params.start_date) : '', 20);
+  const endDate = cleanText(params.end_date ? decodeURIComponent(params.end_date) : '', 20);
+
+  let q = getClient()
     .from('feedback')
-    .select('*')
+    .select('*', { count: 'exact' });
+  if (search) q = q.or(`reporter.ilike.%${search}%,content.ilike.%${search}%`);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(startDate)) q = q.gte('created_at', `${startDate}T00:00:00.000Z`);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
+    const next = new Date(`${endDate}T00:00:00.000Z`);
+    next.setUTCDate(next.getUTCDate() + 1);
+    q = q.lt('created_at', next.toISOString());
+  }
+  const { data, count, error } = await q
     .order('created_at', { ascending: false })
-    .limit(perPage);
+    .range(offset, offset + perPage - 1);
   if (error) return fail(error.message);
-  return ok({ feedback: data || [] });
+  return ok({ feedback: data || [], total: count || 0, page, per_page: perPage });
 }
 
 // ── 英雄列表 ─────────────────────────────────────────────────
