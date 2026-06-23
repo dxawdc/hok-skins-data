@@ -83,4 +83,6 @@ git commit -m "..."
 git push origin main
 ```
 
+所有后续提交的备注必须使用中文，说明本次提交的实际变更内容；不要再使用英文 commit message。
+
 推送小程序前确认远端是私有仓库。

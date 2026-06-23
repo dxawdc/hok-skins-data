@@ -337,6 +337,9 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
         <div class="nav-item" data-page="special-resources" onclick="navTo('special-resources',this)">
           <span class="icon">✨</span> 套装资源
         </div>
+        <div class="nav-item" data-page="feedback" onclick="navTo('feedback',this)">
+          <span class="icon">💬</span> 反馈管理
+        </div>
         <div class="nav-item admin-only" data-page="users" onclick="navTo('users',this)">
           <span class="icon">👥</span> 用户管理
         </div>
@@ -592,6 +595,23 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
               <table>
                 <thead><tr><th>用户名</th><th>显示名称</th><th>角色</th><th>创建时间</th><th>操作</th></tr></thead>
                 <tbody id="user-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="page" id="page-feedback">
+        <div class="page-header">
+          <div><div class="page-title">反馈管理</div><div class="page-subtitle">查看小程序用户提交的意见反馈</div></div>
+          <button class="btn btn-outline btn-sm" onclick="loadFeedback()">刷新</button>
+        </div>
+        <div class="page-body">
+          <div class="card">
+            <div class="card-body" style="padding:0">
+              <table>
+                <thead><tr><th>时间</th><th>反馈人</th><th>反馈内容</th><th>来源</th><th>页面</th></tr></thead>
+                <tbody id="feedback-tbody"></tbody>
               </table>
             </div>
           </div>
@@ -1091,6 +1111,7 @@ function navTo(page, el) {
   if (page === 'heroes')    { heroSkinCountCache={}; loadHeroes(); }
   if (page === 'resources') loadResources();
   if (page === 'special-resources') loadSpecialResources();
+  if (page === 'feedback')  loadFeedback();
 }
 
 // ── Overview ─────────────────────────────────────────────────
@@ -1736,6 +1757,20 @@ async function loadLogs() {
       <td style="font-size:12px;color:var(--text3)">${escapeHtml(l.target_id)||'—'}</td>
       <td style="font-size:12px;color:var(--text3);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(JSON.stringify(l.detail||{}))}</td>
     </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text3)">暂无日志</td></tr>';
+}
+
+// ── Feedback ─────────────────────────────────────────────────
+async function loadFeedback() {
+  const res = await api('GET', '/feedback?per_page=100');
+  if (!res.feedback) return;
+  document.getElementById('feedback-tbody').innerHTML = res.feedback.map(f => `
+    <tr>
+      <td style="font-size:12px;color:var(--text3);white-space:nowrap">${escapeHtml(fmtTime(f.created_at))}</td>
+      <td style="font-weight:600;white-space:nowrap">${escapeHtml(f.reporter)}</td>
+      <td style="font-size:13px;color:var(--text2);min-width:260px;max-width:520px;white-space:normal;line-height:1.6">${escapeHtml(f.content)}</td>
+      <td style="font-size:12px;color:var(--text3);white-space:nowrap">${escapeHtml(f.source || '—')}</td>
+      <td style="font-size:12px;color:var(--text3);white-space:nowrap">${escapeHtml(f.page || '—')}</td>
+    </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text3)">暂无反馈</td></tr>';
 }
 
 // ── 资源管理 ─────────────────────────────────────────────────

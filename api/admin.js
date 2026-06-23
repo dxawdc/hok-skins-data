@@ -333,6 +333,8 @@ module.exports = async function handler(req, res) {
 
   if (path.endsWith('/login')        && m === 'POST')   return send(await doLogin(body));
   if (path.endsWith('/me')           && m === 'GET')    { const [u,e]=requireAuth(h); if(e) return send(e); return send(ok({ user: u })); }
+  if (path.endsWith('/feedback')     && m === 'POST')   return send(await submitFeedback(body, h));
+  if (path.endsWith('/feedback')     && m === 'GET')    { const [u,e]=requireAuth(h); if(e) return send(e); return send(await listFeedback(qs)); }
   if (path.endsWith('/users')        && m === 'GET')    { const [u,e]=requireAdmin(h); if(e) return send(e); return send(await listUsers()); }
   if (path.endsWith('/users')        && m === 'POST')   { const [u,e]=requireAdmin(h); if(e) return send(e); return send(await createUser(body,u)); }
   if (/\/users\/\d+$/.test(path)     && m === 'DELETE') { const [u,e]=requireAdmin(h); if(e) return send(e); return send(await deleteUser(path.split('/').pop(),u)); }
@@ -803,6 +805,46 @@ async function listLogs(params) {
   const { data } = await getClient().from('audit_log')
     .select('*').order('created_at', { ascending: false }).limit(perPage);
   return ok({ logs: data || [] });
+}
+
+// ── 用户反馈 ─────────────────────────────────────────────────
+function cleanText(value, maxLen) {
+  const text = String(value === undefined || value === null ? '' : value).trim();
+  return maxLen ? text.slice(0, maxLen) : text;
+}
+
+async function submitFeedback(data, headers) {
+  const reporter = cleanText(data?.reporter || data?.contact, 80);
+  const content = cleanText(data?.content, 200);
+  if (!reporter) return fail('反馈人不能为空');
+  if (!content) return fail('反馈内容不能为空');
+  if (content.length > 150) return fail('反馈内容不能超过150字');
+
+  const row = {
+    reporter,
+    content,
+    source: cleanText(data?.source, 40) || 'miniprogram',
+    page: cleanText(data?.page || data?.path, 120),
+    user_agent: cleanText(headers?.['user-agent'], 300),
+  };
+  const { data: inserted, error } = await getClient()
+    .from('feedback')
+    .insert(row)
+    .select('id,created_at')
+    .maybeSingle();
+  if (error) return fail('反馈提交失败：' + error.message);
+  return ok({ ok: true, feedback: inserted });
+}
+
+async function listFeedback(params) {
+  const perPage = Math.min(200, Math.max(1, parseInt(params.per_page || '100')));
+  const { data, error } = await getClient()
+    .from('feedback')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(perPage);
+  if (error) return fail(error.message);
+  return ok({ feedback: data || [] });
 }
 
 // ── 英雄列表 ─────────────────────────────────────────────────
