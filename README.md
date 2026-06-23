@@ -1,16 +1,20 @@
-# 王者荣耀皮肤展示项目
+# 王者荣耀皮肤展示项目（网页版）
 
-这是网页版代码仓库，包含公开展示页、后台管理页和 Vercel 后台管理接口。小程序版本位于同级目录 `D:\AI\Hok\miniprogram`，两者保持独立 Git 边界。
+这是公开仓库，提供网页版公开展示页、后台管理页，以及部署在 Vercel 的公开/后台 API。小程序版本位于同级目录 `../miniprogram`，两个目录是独立 Git 仓库。
 
-## 目录
+## 项目结构
 
-- `index.html`：网页版公开展示页
-- `admin.html`：网页版后台管理页
-- `api/admin.js`：后台管理 API
-- `docs/ARCHITECTURE.md`：架构、同步边界和部署现状
-- `01_supabase_schema.sql`：历史建表脚本，当前不等同于完整生产 schema
-- `02_import_data.py`：历史数据导入脚本
-- `03_create_admin.sql`：后台账号初始化脚本
+- `index.html`：公开展示页，读取 `/api/skins`、`/api/heroes`、`/api/resources`。
+- `admin.html`：后台管理页，登录后调用 `/api/admin/*`。
+- `api/skins.js`：公开皮肤接口，支持 `limit` 和 `offset` 查询参数。
+- `api/heroes.js`：公开英雄接口。
+- `api/resources.js`：公开资源图鉴接口。
+- `api/admin.js`：后台管理 API，包含登录、用户、皮肤、英雄、资源、图片上传和操作日志。
+- `vercel.json`：Vercel 路由与 CORS 配置。
+- `docs/ARCHITECTURE.md`：架构、数据流、部署和仓库边界说明。
+- `01_*.sql` 到 `08_*.sql`：历史数据库建表/迁移脚本，应以线上真实 schema 为准。
+- `02_import_data.py`：历史数据导入脚本。
+- `maintenance.html`：维护页备用页面。
 
 ## 本地检查
 
@@ -19,33 +23,52 @@ npm install
 npm run check
 ```
 
-`npm run check` 会对 `api/admin.js` 做 Node.js 语法检查。
+`npm run check` 会对 `api/admin.js`、`api/skins.js`、`api/heroes.js`、`api/resources.js` 做 Node.js 语法检查。
 
-## 同步策略
+## 环境变量
 
-网页版需要提交到本地 Git 并推送 GitHub：
+部署到 Vercel 时需要配置：
+
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_KEY`
+- `JWT_SECRET`
+
+公开接口代码允许读取 `SUPABASE_ANON_KEY` 作为兜底，但后台管理接口必须使用 `SUPABASE_SERVICE_KEY`。
+
+## 数据与图片
+
+公开展示页、小程序和后台都围绕同一套 Supabase 数据。图片存储在 Supabase Storage，并通过 `https://skinsdata.top/img` 做 CDN 地址转换。
+
+当前公开接口：
+
+- `https://skinsdata.top/api/skins`
+- `https://skinsdata.top/api/heroes`
+- `https://skinsdata.top/api/resources`
+
+## 仓库同步
+
+网页版是公开 GitHub 仓库，常规流程：
 
 ```bash
+git status --short
+npm run check
 git add .
 git commit -m "..."
 git push origin main
 ```
 
-小程序版本只维护本地 Git，不推送 GitHub。
+小程序版是独立私有仓库，不要把小程序源码复制或提交到本仓库。
 
 ## 常见问题
 
-**Q：在后台修改数据后，前台什么时候生效？**
-A：保存后立即生效，前台每次打开都从数据库实时加载。
+**后台修改数据后，前台什么时候生效？**
 
-**Q：能回滚误操作吗？**
-A：每次修改都记录在**操作日志**里，可以看到改之前的值，但需要手动还原。
-   Supabase 免费版有 Point-in-Time Recovery，可以找 Supabase 支持。
+保存后数据库立即更新；公开页和小程序会在下次请求或本地缓存过期后读取新数据。Vercel/CDN 缓存可能造成短时间延迟。
 
-**Q：图片怎么更新？**
-A：在后台对应资源或皮肤的编辑表单中重新上传并保存。
+**误操作能回滚吗？**
 
-**Q：网站访问速度慢怎么办？**
-A：Vercel 的 CDN 在国内访问可能较慢。可以考虑：
-- 绑定自定义域名并套 Cloudflare CDN
-- 或者换用国内的 [Railway](https://railway.app) 部署
+后台修改会写入操作日志，可以根据日志手动还原。数据库级恢复应以 Supabase 项目当前备份能力为准。
+
+**图片怎么更新？**
+
+在后台对应皮肤、英雄或资源的编辑表单中重新上传并保存。

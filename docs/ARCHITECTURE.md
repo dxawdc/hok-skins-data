@@ -2,56 +2,71 @@
 
 ## 仓库边界
 
-本仓库是网页版代码仓库，需要同时维护本地 Git 和 GitHub 远端：
+- `hok-skins-data`：网页版公开仓库，包含公开页面、后台页面、Vercel API 和数据库迁移脚本。
+- `miniprogram`：微信小程序私有仓库，独立提交和推送，不并入公开仓库。
 
-- 本地路径：`D:\AI\Hok\hok-skins-data`
-- GitHub 远端：`https://github.com/dxawdc/hok-skins-data.git`
-- 当前主分支：`main`
-
-小程序版本位于同级目录 `D:\AI\Hok\miniprogram`，只维护本地 Git，不同步到 GitHub。
+两个仓库共享线上 Supabase 数据和图片资源，但代码、发布流程和 Git 历史相互独立。
 
 ## 网页版组成
 
-- `index.html`：公开展示页，读取公开 API 数据并做前端展示。
+- `index.html`：公开展示页，使用浏览器本地缓存、筛选、统计和图表能力展示数据。
 - `admin.html`：后台管理页，通过 JWT 调用 `/api/admin/*`。
-- `api/admin.js`：Vercel Serverless Function，负责后台登录、用户、皮肤、英雄、资源、图片上传和审计日志。
-- `api/resources.js`：公开资源图鉴接口，返回天幕/小兵数据和标签图片字段。
+- `api/skins.js`：公开皮肤接口，读取 `skins`、`skin_profiles` 和 `skin_profile_series`。
+- `api/heroes.js`：公开英雄接口，读取可用英雄。
+- `api/resources.js`：公开资源接口，读取可用资源。
+- `api/admin.js`：Vercel Serverless Function，负责后台登录、用户、皮肤、英雄、系列、资源、图片上传和审计日志。
 - `vercel.json`：Vercel 路由与 CORS 配置。
-- `01_supabase_schema.sql`、`02_import_data.py`、`03_create_admin.sql`：历史建表、导入和后台账号初始化脚本。
+- `01_*.sql` 到 `08_*.sql`：历史 schema 与迁移脚本，不应直接等同于完整生产 schema。
 
 ## 数据流
 
-公开展示页和小程序目前读取这些线上接口：
+公开展示页和小程序读取：
 
-- `https://skinsdata.top/api/skins`
-- `https://skinsdata.top/api/heroes`
-- `https://skinsdata.top/api/resources`
+- `/api/skins`
+- `/api/heroes`
+- `/api/resources`
 
-后台管理页读取当前仓库内的接口：
+后台管理页读取：
 
 - `/api/admin/login`
+- `/api/admin/me`
+- `/api/admin/users`
+- `/api/admin/skin-profiles`
+- `/api/admin/series`
 - `/api/admin/skins`
 - `/api/admin/heroes`
 - `/api/admin/resources`
+- `/api/admin/special-resources`
 - `/api/admin/images`
 - `/api/admin/logs`
 
-图片存储使用 Supabase Storage 的公开 bucket，并通过 `https://skinsdata.top/img` 做 CDN 地址转换。
+图片存储使用 Supabase Storage 公开 bucket，并通过 `https://skinsdata.top/img` 做 CDN 地址转换。
 
-## 需要收口的现状
+## 部署
 
-当前仓库包含后台管理接口 `api/admin.js` 和公开资源接口 `api/resources.js`。公开展示接口 `/api/skins`、`/api/heroes` 的实现仍不在本仓库内。线上接口目前可访问，并由 Cloudflare 缓存响应；后续迁移、灾备或重建部署前，需要把这部分实现纳入仓库，或者补充独立部署仓库/Worker 的位置。
+网页版部署目标是 Vercel。部署前需要配置：
 
-资源图鉴依赖 `/api/resources` 返回 `tag_img_url` 字段，用于天幕/小兵标签图片展示。如果公开 API 使用显式字段列表或有 Cloudflare 缓存，需要同步加入该字段并刷新缓存。
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_KEY`
+- `JWT_SECRET`
 
-`01_supabase_schema.sql` 是早期 schema，仍保留 `images` 表和 `skin_img_id/tag_img_id` 字段；当前代码已经使用 Supabase Storage、`skin_img_url/tag_img_url`、`hero_id`、`heroes`、`resources` 等结构。后续数据库迁移应以线上真实 schema 为准，不能直接把该 SQL 当作完整生产 schema 使用。
+公开接口设置了浏览器/CDN 缓存响应头；后台接口通过 JWT 鉴权，不应公开 service key。
 
-## 同步流程
+## 小程序关系
 
-网页版常规流程：
+小程序通过 `utils/api.js` 优先读取 `https://www.skinsdata.top` 下的公开接口。皮肤和资源接口失败时，小程序会降级访问 Supabase 只读接口；英雄接口失败时降级为空数据并继续运行。
+
+小程序使用微信本地存储维护主题、拥有/关注标记和接口缓存，后台数据修改不会直接写入小程序本地标记。
+
+## 清理说明
+
+仓库内保留源文件、API、迁移脚本和架构文档。旧的 `docs/index.html`、`docs/admin.html` 属于历史静态页面副本，已由根目录页面和 Vercel 路由替代，不再作为部署入口维护。
+
+## 常规流程
+
+网页版：
 
 ```bash
-cd D:\AI\Hok\hok-skins-data
 npm run check
 git status --short
 git add .
@@ -59,13 +74,13 @@ git commit -m "..."
 git push origin main
 ```
 
-小程序常规流程：
+小程序：
 
 ```bash
-cd D:\AI\Hok\miniprogram
 git status --short
 git add .
 git commit -m "..."
+git push origin main
 ```
 
-小程序不要添加 GitHub remote，除非之后明确改变同步策略。
+推送小程序前确认远端是私有仓库。
