@@ -870,26 +870,31 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
   <div class="modal" style="width:560px;max-width:96vw">
     <h3 id="modal-res-title">新增资源</h3>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      <div class="form-group"><label>资源名称 <span style="color:var(--red)">*</span></label><input type="text" id="er-name" placeholder="如：星空璀璨"></div>
-      <div class="form-group">
+      <div class="form-group" id="er-name-group"><label>资源名称 <span style="color:var(--red)">*</span></label><input type="text" id="er-name" placeholder="如：星空璀璨"></div>
+      <div class="form-group" id="er-type-group">
         <label>资源类型</label>
         <select id="er-type" class="filter-select" style="width:100%">
           <option>天幕</option><option>小兵</option>
         </select>
       </div>
-      <div class="form-group"><label>上线日期 <span style="color:var(--red)">*</span></label><input type="date" id="er-date"></div>
+      <div class="form-group" id="er-date-group"><label>上线日期 <span style="color:var(--red)">*</span></label><input type="date" id="er-date"></div>
       <div class="form-group">
         <label>首发/返场</label>
-        <select id="er-release-type" class="filter-select" style="width:100%">
+        <select id="er-release-type" class="filter-select" style="width:100%" onchange="updateResourceReleaseFields()">
           <option>首发</option><option>返场</option>
         </select>
       </div>
-      <div class="form-group"><label>品质</label><input type="text" id="er-quality" placeholder="如：传说"></div>
-      <div class="form-group"><label>标签</label><input type="text" id="er-tag" placeholder="如：限定"></div>
-      <div class="form-group"><label>获取方式</label><input type="text" id="er-obtain" placeholder="如：祈愿"></div>
-      <div class="form-group"><label>价格</label><input type="text" id="er-price" placeholder="如：保底3000点券"></div>
-      <div class="form-group"><label>IP联动</label><input type="text" id="er-collab" placeholder="如：三丽鸥联动"></div>
-      <div class="form-group">
+      <div class="form-group" id="er-parent-group" style="display:none;grid-column:1/-1">
+        <label>对应首发资源 <span style="color:var(--red)">*</span></label>
+        <select id="er-parent-resource" class="filter-select" style="width:100%" onchange="applySelectedResourceParent()"></select>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">返场将继承首发资源的名称、类型、品质、标签、联动、常驻状态和图片。</div>
+      </div>
+      <div class="form-group" id="er-quality-group"><label>品质</label><input type="text" id="er-quality" placeholder="如：传说"></div>
+      <div class="form-group" id="er-tag-group"><label>标签</label><input type="text" id="er-tag" placeholder="如：限定"></div>
+      <div class="form-group" id="er-obtain-group"><label>获取方式</label><input type="text" id="er-obtain" placeholder="如：祈愿"></div>
+      <div class="form-group" id="er-price-group"><label>价格</label><input type="text" id="er-price" placeholder="如：保底3000点券"></div>
+      <div class="form-group" id="er-collab-group"><label>IP联动</label><input type="text" id="er-collab" placeholder="如：三丽鸥联动"></div>
+      <div class="form-group" id="er-permanent-group">
         <label>是否常驻</label>
         <select id="er-permanent" class="filter-select" style="width:100%">
           <option>否</option><option>是</option>
@@ -898,7 +903,7 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
     </div>
     
     <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:12px;margin-top:12px">
-      <div class="form-group">
+      <div class="form-group" id="er-image-group">
         <label>资源图片 <span style="color:var(--text3);font-weight:400" id="res-img-type-hint">天幕图片比例约 21:10（横向长图），建议上传原始尺寸</span></label>
         <div class="img-upload-box" id="res-img-box" style="height:auto; min-height:100px; aspect-ratio:21/10; overflow:hidden;" onclick="document.getElementById('res-img-input').click()">
           <img id="res-img-preview" style="display:none;width:100%;height:100%;object-fit:contain;border-radius:6px">
@@ -909,7 +914,7 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
         </div>
         <input type="file" id="res-img-input" accept="image/*" style="display:none" onchange="previewResImg(event)">
       </div>
-      <div class="form-group">
+      <div class="form-group" id="er-tag-image-group">
         <label>标签图片 <span style="color:var(--text3);font-weight:400">类似皮肤标签图</span></label>
         <div class="img-upload-box" id="res-tag-img-box" style="height:100px;overflow:hidden;" onclick="document.getElementById('res-tag-img-input').click()">
           <img id="res-tag-img-preview" style="display:none;width:100%;height:100%;object-fit:contain;border-radius:6px">
@@ -922,7 +927,7 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
       </div>
     </div>
     
-    <div class="form-group">
+    <div class="form-group" id="er-notes-group">
       <label>备注 <span style="color:var(--text3);font-weight:400">（可选）</span></label>
       <textarea id="er-notes" placeholder="资源备注说明..." rows="2" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;outline:none;font-family:inherit;resize:vertical"></textarea>
     </div>
@@ -967,7 +972,7 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
       <div class="form-group" id="sr-date-group"><label>上线日期 <span style="color:var(--red)">*</span></label><input type="date" id="sr-date"></div>
       <div class="form-group" id="sr-parent-group" style="display:none;grid-column:1/-1">
         <label>对应首发资源 <span style="color:var(--red)">*</span></label>
-        <select id="sr-parent-resource" class="filter-select" style="width:100%"></select>
+        <select id="sr-parent-resource" class="filter-select" style="width:100%" onchange="applySelectedSpecialParent()"></select>
         <div class="special-skin-summary">返场将自动继承首发的名称、关联皮肤、品质、标签和图片</div>
       </div>
       <div class="form-group" id="sr-obtain-group"><label>获取方式</label><input type="text" id="sr-obtain" placeholder="如：商城直售、活动兑换"></div>
@@ -1013,6 +1018,7 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
       <textarea id="sr-notes" placeholder="资源备注说明…" rows="2" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;outline:none;font-family:inherit;resize:vertical"></textarea>
     </div>
     <input type="hidden" id="sr-id">
+    <input type="hidden" id="sr-source-category">
     <input type="hidden" id="sr-img-url">
     <input type="hidden" id="sr-tag-img-url">
     <div class="modal-footer">
@@ -1836,6 +1842,7 @@ function resetFeedbackFilters() {
 
 // ── 资源管理 ─────────────────────────────────────────────────
 let resSearchTimerInner = null;
+let resourceReturnParents = [];
 function debounceResSearch() {
   clearTimeout(resSearchTimerInner);
   resSearchTimerInner = setTimeout(() => { resPage=1; loadResources(); }, 400);
@@ -1932,9 +1939,68 @@ function updateResImgHint() {
   else hint.textContent='';
 }
 
+function setResourceImagePreview(prefix, url = '') {
+  const img = document.getElementById(`${prefix}-img-preview`);
+  const placeholder = document.getElementById(`${prefix}-img-placeholder`);
+  const box = document.getElementById(`${prefix}-img-box`);
+  if (img) { img.src = url; img.style.display = url ? 'block' : 'none'; }
+  if (placeholder) placeholder.style.display = url ? 'none' : 'block';
+  if (box) box.classList.toggle('has-img', !!url);
+}
+
+async function populateResourceParentOptions(selectedId = '') {
+  const response = await api('GET', '/resources?per_page=200');
+  resourceReturnParents = (response.resources || []).filter(resource => resource.release_type === '首发');
+  const select = document.getElementById('er-parent-resource');
+  if (!select) return;
+  select.innerHTML = '<option value="">请选择对应的首发资源</option>' + resourceReturnParents.map(resource =>
+    `<option value="${resource.id}">${escapeHtml(resource.type)} · ${escapeHtml(resource.name)}</option>`
+  ).join('');
+  if (selectedId) select.value = String(selectedId);
+}
+
+function applySelectedResourceParent() {
+  const parentId = document.getElementById('er-parent-resource')?.value;
+  const parent = resourceReturnParents.find(resource => String(resource.id) === String(parentId));
+  if (!parent) return;
+  document.getElementById('er-name').value = parent.name || '';
+  document.getElementById('er-type').value = parent.type || '天幕';
+  document.getElementById('er-quality').value = parent.quality || '';
+  document.getElementById('er-tag').value = parent.tag || '';
+  document.getElementById('er-collab').value = parent.collab || '';
+  document.getElementById('er-permanent').value = parent.permanent || '否';
+  document.getElementById('er-notes').value = parent.notes || '';
+  document.getElementById('er-img-url').value = parent.img_url || '';
+  document.getElementById('er-tag-img-url').value = parent.tag_img_url || '';
+  setResourceImagePreview('res', parent.img_url || '');
+  setResourceImagePreview('res-tag', parent.tag_img_url || '');
+  updateResImgHint();
+}
+
+function updateResourceReleaseFields(parentId = '') {
+  const isReturn = document.getElementById('er-release-type').value === '返场';
+  document.getElementById('er-parent-group').style.display = isReturn ? 'block' : 'none';
+  ['er-name','er-type','er-quality','er-tag','er-collab','er-permanent','er-notes'].forEach(id => {
+    const field = document.getElementById(id);
+    if (field) field.disabled = isReturn;
+  });
+  ['res-img-box','res-tag-img-box'].forEach(id => {
+    const box = document.getElementById(id);
+    if (box) { box.style.pointerEvents = isReturn ? 'none' : ''; box.style.opacity = isReturn ? '0.65' : ''; }
+  });
+  ['er-parent-group','er-date-group','er-obtain-group','er-price-group'].forEach(id => {
+    document.getElementById(id)?.classList.toggle('return-edit-highlight', isReturn);
+  });
+  if (isReturn) {
+    return populateResourceParentOptions(parentId || document.getElementById('er-parent-resource').value)
+      .then(() => applySelectedResourceParent());
+  }
+  return Promise.resolve();
+}
+
 function showAddResource() {
   document.getElementById('modal-res-title').textContent='新增资源';
-  ['er-id','er-name','er-date','er-quality','er-tag','er-collab','er-obtain','er-price','er-notes','er-img-url','er-tag-img-url'].forEach(id=>{
+  ['er-id','er-name','er-date','er-quality','er-tag','er-collab','er-obtain','er-price','er-notes','er-img-url','er-tag-img-url','er-parent-resource'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
   });
   document.getElementById('er-type').value='天幕';
@@ -1942,7 +2008,7 @@ function showAddResource() {
   document.getElementById('er-permanent').value='否';
   resetResourceImagePreview('res');
   resetResourceImagePreview('res-tag');
-  resImgFile=null; resTagImgFile=null; updateResImgHint();
+  resImgFile=null; resTagImgFile=null; updateResImgHint(); updateResourceReleaseFields();
   document.getElementById('er-type').onchange=updateResImgHint;
   document.getElementById('modal-resource').classList.add('show');
 }
@@ -1984,7 +2050,7 @@ function resetResourceImagePreview(prefix) {
   if (input) input.value='';
 }
 
-function editResource(jsonStr) {
+async function editResource(jsonStr) {
   const r=JSON.parse(jsonStr);
   document.getElementById('modal-res-title').textContent='编辑资源';
   document.getElementById('er-id').value          =r.id;
@@ -2002,16 +2068,11 @@ function editResource(jsonStr) {
   document.getElementById('er-img-url').value     =r.img_url||'';
   document.getElementById('er-tag-img-url').value =r.tag_img_url||'';
   resImgFile=null; resTagImgFile=null;
-  const img=document.getElementById('res-img-preview');
-  if(r.img_url){img.src=r.img_url;img.style.display='block';document.getElementById('res-img-placeholder').style.display='none';}
-  else{img.style.display='none';document.getElementById('res-img-placeholder').style.display='block';}
-  document.getElementById('res-img-box').classList.toggle('has-img', !!r.img_url);
-  const tagImg=document.getElementById('res-tag-img-preview');
-  if(r.tag_img_url){tagImg.src=r.tag_img_url;tagImg.style.display='block';document.getElementById('res-tag-img-placeholder').style.display='none';}
-  else{tagImg.style.display='none';document.getElementById('res-tag-img-placeholder').style.display='block';}
-  document.getElementById('res-tag-img-box').classList.toggle('has-img', !!r.tag_img_url);
+  setResourceImagePreview('res', r.img_url || '');
+  setResourceImagePreview('res-tag', r.tag_img_url || '');
   updateResImgHint();
   document.getElementById('er-type').onchange=updateResImgHint;
+  await updateResourceReleaseFields(r.parent_resource_id || '');
   document.getElementById('modal-resource').classList.add('show');
 }
 
@@ -2020,36 +2081,42 @@ async function doSaveResource() {
   const name =document.getElementById('er-name').value.trim();
   const type =document.getElementById('er-type').value;
   const date =document.getElementById('er-date').value;
-  if(!name) return toast('资源名称不能为空','err');
+  const releaseType = document.getElementById('er-release-type').value;
+  const isReturn = releaseType === '返场';
+  const parentResourceId = document.getElementById('er-parent-resource').value;
+  if(!isReturn && !name) return toast('资源名称不能为空','err');
   if(!date) return toast('上线日期不能为空','err');
+  if(isReturn && !parentResourceId) return toast('返场必须选择对应的首发资源','err');
   let imgUrl=document.getElementById('er-img-url').value;
   let tagImgUrl=document.getElementById('er-tag-img-url').value;
-  if(resImgFile){
+  if(!isReturn && resImgFile){
     const b64=await new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(',')[1]);r.readAsDataURL(resImgFile);});
     const up=await api('POST','/images',{img_id:`res_${Date.now()}`,img_type:'resource',data:b64,mime_type:resImgFile.type});
     if(up.error) return toast('图片上传失败：'+up.error,'err');
     imgUrl=up.url;
   }
-  if(resTagImgFile){
+  if(!isReturn && resTagImgFile){
     const b64=await new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(',')[1]);r.readAsDataURL(resTagImgFile);});
     const up=await api('POST','/images',{img_id:`res_tag_${Date.now()}`,img_type:'tag',data:b64,mime_type:resTagImgFile.type});
     if(up.error) return toast('标签图片上传失败：'+up.error,'err');
     tagImgUrl=up.url;
   }
-  const body={
-    type,name,date,
-    release_type:document.getElementById('er-release-type').value,
-    quality:     document.getElementById('er-quality').value.trim()||null,
-    tag:         document.getElementById('er-tag').value.trim()||null,
-    collab:      document.getElementById('er-collab').value.trim()||null,
-    obtain:      document.getElementById('er-obtain').value.trim()||null,
-    price:       document.getElementById('er-price').value.trim()||null,
-    permanent:   document.getElementById('er-permanent').value,
-    notes:       document.getElementById('er-notes').value.trim()||null,
-    img_url:     imgUrl||null,
-    tag_img_url: tagImgUrl||null,
-    is_available:true,
-  };
+  const body={ date, release_type: releaseType, obtain: document.getElementById('er-obtain').value.trim()||null, price: document.getElementById('er-price').value.trim()||null };
+  if (isReturn) {
+    body.parent_resource_id = parseInt(parentResourceId, 10);
+  } else {
+    Object.assign(body, {
+      type,name,
+      quality:     document.getElementById('er-quality').value.trim()||null,
+      tag:         document.getElementById('er-tag').value.trim()||null,
+      collab:      document.getElementById('er-collab').value.trim()||null,
+      permanent:   document.getElementById('er-permanent').value,
+      notes:       document.getElementById('er-notes').value.trim()||null,
+      img_url:     imgUrl||null,
+      tag_img_url: tagImgUrl||null,
+      is_available:true,
+    });
+  }
   const res=id?await api('PUT',`/resources/${id}`,body):await api('POST','/resources',body);
   if(res.error) return toast(res.error,'err');
   closeModal(); loadResources();
@@ -2069,6 +2136,7 @@ const SPECIAL_RESOURCE_LABELS = {
   star_outfit: '星元套装',
   yuanliu_suit: '元流套装',
 };
+let specialReturnParents = [];
 
 function syncSpecialResourceTabs() {
   document.querySelectorAll('[data-special-category]').forEach(button => {
@@ -2200,8 +2268,8 @@ async function populateSpecialParentOptions(selectedId = '') {
   const response = await api('GET', `/special-resources?category=${encodeURIComponent(category)}&release_type=${encodeURIComponent('首发')}`);
   const select = document.getElementById('sr-parent-resource');
   if (!select) return;
-  const resources = response.resources || [];
-  select.innerHTML = '<option value="">请选择对应首发资源</option>' + resources.map(resource => {
+  specialReturnParents = response.resources || [];
+  select.innerHTML = '<option value="">请选择对应首发资源</option>' + specialReturnParents.map(resource => {
     const skin = resource.skin_profile || {};
     const suffix = skin.name ? ` · ${skin.hero || ''} ${skin.name}` : '';
     return `<option value="${resource.id}">${escapeHtml(resource.name)}${escapeHtml(suffix)}</option>`;
@@ -2210,23 +2278,31 @@ async function populateSpecialParentOptions(selectedId = '') {
 }
 
 function updateSpecialReleaseFields() {
-  updateSpecialResourceFields();
+  return updateSpecialResourceFields();
 }
 
 function updateSpecialResourceFields(parentResourceId = '') {
   const category = document.getElementById('sr-category')?.value || specialResourceCategory;
   const isReturn = document.getElementById('sr-release-type')?.value === '返场';
   const requiresSkin = category !== 'yuanliu_suit';
-  document.getElementById('sr-name-group').style.display = isReturn ? 'none' : 'block';
+  document.getElementById('sr-name-group').style.display = 'block';
   document.getElementById('sr-parent-group').style.display = isReturn ? 'block' : 'none';
-  document.getElementById('sr-skin-group').style.display = !isReturn && requiresSkin ? 'block' : 'none';
-  document.getElementById('sr-rich-fields').style.display = isReturn ? 'none' : 'contents';
-  document.getElementById('sr-quality-group').style.display = !isReturn && category !== 'star_legend' ? 'block' : 'none';
-  document.getElementById('sr-tag-group').style.display = !isReturn && category !== 'star_outfit' ? 'block' : 'none';
-  document.getElementById('sr-collab-group').style.display = !isReturn && category === 'yuanliu_suit' ? 'block' : 'none';
-  document.getElementById('sr-permanent-group').style.display = !isReturn && category !== 'star_outfit' ? 'block' : 'none';
-  document.getElementById('sr-image-fields').style.display = isReturn ? 'none' : 'grid';
-  document.getElementById('sr-tag-image-group').style.display = !isReturn && category !== 'star_outfit' ? 'block' : 'none';
+  document.getElementById('sr-skin-group').style.display = requiresSkin ? 'block' : 'none';
+  document.getElementById('sr-rich-fields').style.display = 'contents';
+  document.getElementById('sr-quality-group').style.display = category !== 'star_legend' ? 'block' : 'none';
+  document.getElementById('sr-tag-group').style.display = category !== 'star_outfit' ? 'block' : 'none';
+  document.getElementById('sr-collab-group').style.display = category === 'yuanliu_suit' ? 'block' : 'none';
+  document.getElementById('sr-permanent-group').style.display = category !== 'star_outfit' ? 'block' : 'none';
+  document.getElementById('sr-image-fields').style.display = 'grid';
+  document.getElementById('sr-tag-image-group').style.display = category !== 'star_outfit' ? 'block' : 'none';
+  ['sr-name','sr-skin-search','sr-skin-profile','sr-quality','sr-tag','sr-collab','sr-permanent'].forEach(id => {
+    const field = document.getElementById(id);
+    if (field) field.disabled = isReturn;
+  });
+  ['sr-img-box','sr-tag-img-box'].forEach(id => {
+    const box = document.getElementById(id);
+    if (box) { box.style.pointerEvents = isReturn ? 'none' : ''; box.style.opacity = isReturn ? '0.65' : ''; }
+  });
   ['sr-category-group','sr-parent-group','sr-date-group','sr-obtain-group','sr-price-group','sr-notes-group'].forEach(id => {
     document.getElementById(id)?.classList.toggle('return-edit-highlight', isReturn);
   });
@@ -2240,9 +2316,30 @@ function updateSpecialResourceFields(parentResourceId = '') {
     hint.textContent = '建议上传正方形图片';
   }
   if (!isReturn && requiresSkin && !document.getElementById('sr-skin-profile').options.length) {
-    populateSpecialSkinOptions();
+    return populateSpecialSkinOptions();
   }
-  if (isReturn) populateSpecialParentOptions(parentResourceId || document.getElementById('sr-parent-resource').value);
+  if (isReturn) {
+    return populateSpecialParentOptions(parentResourceId || document.getElementById('sr-parent-resource').value)
+      .then(() => applySelectedSpecialParent());
+  }
+  return Promise.resolve();
+}
+
+async function applySelectedSpecialParent() {
+  const parentId = document.getElementById('sr-parent-resource')?.value;
+  const parent = specialReturnParents.find(resource => String(resource.id) === String(parentId));
+  if (!parent) return;
+  document.getElementById('sr-name').value = parent.name || '';
+  document.getElementById('sr-quality').value = parent.quality || '';
+  document.getElementById('sr-tag').value = parent.tag || '';
+  document.getElementById('sr-collab').value = parent.collab || '';
+  document.getElementById('sr-permanent').value = parent.permanent || '否';
+  document.getElementById('sr-notes').value = parent.notes || '';
+  document.getElementById('sr-img-url').value = parent.img_url || '';
+  document.getElementById('sr-tag-img-url').value = parent.tag_img_url || '';
+  setSpecialResourceImage('main', parent.img_url || '');
+  setSpecialResourceImage('tag', parent.tag_img_url || '');
+  if (parent.skin_profile_id) await populateSpecialSkinOptions(parent.skin_profile_id);
 }
 
 function setSpecialResourceImage(kind, url = '') {
@@ -2269,7 +2366,7 @@ function previewSpecialResourceImage(event, kind) {
 
 async function showAddSpecialResource() {
   document.getElementById('modal-special-res-title').textContent = '新增套装资源';
-  ['sr-id','sr-name','sr-date','sr-obtain','sr-price','sr-quality','sr-tag','sr-collab','sr-notes','sr-img-url','sr-tag-img-url','sr-skin-search','sr-parent-resource'].forEach(id => {
+  ['sr-id','sr-source-category','sr-name','sr-date','sr-obtain','sr-price','sr-quality','sr-tag','sr-collab','sr-notes','sr-img-url','sr-tag-img-url','sr-skin-search','sr-parent-resource'].forEach(id => {
     const element = document.getElementById(id); if (element) element.value = '';
   });
   const categorySelect = document.getElementById('sr-category');
@@ -2283,7 +2380,7 @@ async function showAddSpecialResource() {
   specialResourceTagImgFile = null;
   setSpecialResourceImage('main');
   setSpecialResourceImage('tag');
-  updateSpecialResourceFields();
+  await updateSpecialResourceFields();
   if (specialResourceCategory !== 'yuanliu_suit') await populateSpecialSkinOptions();
   document.getElementById('modal-special-resource').classList.add('show');
 }
@@ -2293,11 +2390,12 @@ async function editSpecialResource(category, jsonString) {
   document.getElementById('modal-special-res-title').textContent = `编辑${SPECIAL_RESOURCE_LABELS[category]}`;
   const categorySelect = document.getElementById('sr-category');
   categorySelect.value = category;
-  categorySelect.disabled = true;
+  categorySelect.disabled = false;
   const releaseSelect = document.getElementById('sr-release-type');
   releaseSelect.value = resource.release_type || '首发';
-  releaseSelect.disabled = true;
+  releaseSelect.disabled = false;
   document.getElementById('sr-id').value = resource.id || '';
+  document.getElementById('sr-source-category').value = category;
   document.getElementById('sr-name').value = resource.name || '';
   document.getElementById('sr-date').value = resource.date || '';
   document.getElementById('sr-obtain').value = resource.obtain || '';
@@ -2314,7 +2412,7 @@ async function editSpecialResource(category, jsonString) {
   specialResourceTagImgFile = null;
   setSpecialResourceImage('main', resource.img_url || '');
   setSpecialResourceImage('tag', resource.tag_img_url || '');
-  updateSpecialResourceFields(resource.parent_resource_id || '');
+  await updateSpecialResourceFields(resource.parent_resource_id || '');
   if (resource.release_type !== '返场' && category !== 'yuanliu_suit') {
     await populateSpecialSkinOptions(resource.skin_profile_id || '');
   }
@@ -2352,7 +2450,7 @@ async function doSaveSpecialResource() {
   if (!date) return toast('上线日期不能为空', 'err');
   if (!obtain) return toast('获取方式不能为空', 'err');
   if (!price) return toast('价格不能为空', 'err');
-  if (isReturn && !id && !parentResourceId) return toast('返场必须选择对应的首发资源', 'err');
+  if (isReturn && !parentResourceId) return toast('返场必须选择对应的首发资源', 'err');
   if (!isReturn) {
     if (!name) return toast('资源名称不能为空', 'err');
     if (requiresSkin && !skinProfileId) return toast(`${SPECIAL_RESOURCE_LABELS[category]}必须关联皮肤`, 'err');
@@ -2386,7 +2484,7 @@ async function doSaveSpecialResource() {
       notes: document.getElementById('sr-notes').value.trim() || null,
     };
     if (isReturn) {
-      if (!id) body.parent_resource_id = parseInt(parentResourceId, 10);
+      body.parent_resource_id = parseInt(parentResourceId, 10);
     } else {
       body.name = name;
       body.img_url = imgUrl;
@@ -2400,8 +2498,9 @@ async function doSaveSpecialResource() {
       if (category === 'yuanliu_suit') body.collab = document.getElementById('sr-collab').value.trim() || null;
     }
 
+    const sourceCategory = document.getElementById('sr-source-category').value || category;
     const response = id
-      ? await api('PUT', `/special-resources/${category}/${id}`, body)
+      ? await api('PUT', `/special-resources/${sourceCategory}/${id}`, body)
       : await api('POST', '/special-resources', body);
     if (response.error) return toast(response.error, 'err');
     specialResourceCategory = category;

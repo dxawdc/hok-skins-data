@@ -973,14 +973,39 @@ async function listResources(params) {
 
 // ── 新增资源 ─────────────────────────────────────────────────
 async function insertResource(data, user) {
-  const ALLOWED = new Set(['type','name','quality','tag','tag_img_url','collab','obtain','price','release_type','permanent','date','img_url','notes','is_available']);
+  const ALLOWED = new Set(['type','name','quality','tag','tag_img_url','collab','obtain','price','release_type','parent_resource_id','permanent','date','img_url','notes','is_available']);
   const clean = Object.fromEntries(Object.entries(data || {}).filter(([k]) => ALLOWED.has(k)));
-  if (!clean.type) return fail('资源类型为必填项');
-  if (!clean.name) return fail('资源名称为必填项');
-  if (!clean.date) return fail('上线日期为必填项');
-  if (!['天幕','小兵'].includes(clean.type)) return fail('type 只能是 天幕 或 小兵');
-
   const client = getClient();
+  const releaseType = clean.release_type || TYPE_FIRST;
+  if (![TYPE_FIRST, TYPE_RETURN].includes(releaseType)) return fail('首发/返场类型无效');
+  if (releaseType === TYPE_RETURN) {
+    const parentId = parseInt(clean.parent_resource_id, 10);
+    if (!parentId) return fail('返场记录必须选择对应的首发资源');
+    const { data: firstResource, error: parentError } = await client
+      .from('resources').select('*').eq('id', parentId).eq('release_type', TYPE_FIRST).maybeSingle();
+    if (parentError || !firstResource) return fail('对应的首发资源不存在，请重新选择');
+    if (!clean.date || !clean.obtain || !clean.price) return fail('返场日期、获取方式和价格不能为空');
+    Object.assign(clean, {
+      parent_resource_id: firstResource.id,
+      release_type: TYPE_RETURN,
+      type: firstResource.type,
+      name: firstResource.name,
+      quality: firstResource.quality,
+      tag: firstResource.tag,
+      tag_img_url: firstResource.tag_img_url,
+      collab: firstResource.collab,
+      permanent: firstResource.permanent,
+      img_url: firstResource.img_url,
+      notes: firstResource.notes,
+    });
+  } else {
+    clean.release_type = TYPE_FIRST;
+    clean.parent_resource_id = null;
+    if (!clean.type) return fail('资源类型为必填项');
+    if (!clean.name) return fail('资源名称为必填项');
+    if (!clean.date) return fail('上线日期为必填项');
+    if (!['天幕','小兵'].includes(clean.type)) return fail('type 只能是 天幕 或 小兵');
+  }
   const { data: inserted, error } = await client
     .from('resources').insert(clean).select().maybeSingle();
   if (error) return fail('创建失败：' + error.message);
@@ -990,12 +1015,49 @@ async function insertResource(data, user) {
 
 // ── 编辑资源 ─────────────────────────────────────────────────
 async function updateResource(id, updates, user) {
-  const ALLOWED = new Set(['type','name','quality','tag','tag_img_url','collab','obtain','price','release_type','permanent','date','img_url','notes','is_available']);
+  const ALLOWED = new Set(['type','name','quality','tag','tag_img_url','collab','obtain','price','release_type','parent_resource_id','permanent','date','img_url','notes','is_available']);
   const clean = Object.fromEntries(Object.entries(updates).filter(([k]) => ALLOWED.has(k)));
-  if (!Object.keys(clean).length) return fail('没有可更新的字段');
-
   const client = getClient();
   const { data: before } = await client.from('resources').select('*').eq('id', id).maybeSingle();
+  if (!before) return fail('资源不存在');
+  const releaseType = clean.release_type || before.release_type || TYPE_FIRST;
+  if (![TYPE_FIRST, TYPE_RETURN].includes(releaseType)) return fail('首发/返场类型无效');
+
+  if (releaseType === TYPE_RETURN) {
+    const parentId = parseInt(clean.parent_resource_id || before.parent_resource_id, 10);
+    if (!parentId) return fail('返场记录必须选择对应的首发资源');
+    if (parentId === parseInt(id, 10)) return fail('返场资源不能关联自身');
+    const { data: firstResource, error: parentError } = await client
+      .from('resources').select('*').eq('id', parentId).eq('release_type', TYPE_FIRST).maybeSingle();
+    if (parentError || !firstResource) return fail('对应的首发资源不存在，请重新选择');
+    const date = clean.date ?? before.date;
+    const obtain = clean.obtain ?? before.obtain;
+    const price = clean.price ?? before.price;
+    if (!date || !obtain || !price) return fail('返场日期、获取方式和价格不能为空');
+    Object.assign(clean, {
+      parent_resource_id: firstResource.id,
+      release_type: TYPE_RETURN,
+      date,
+      obtain,
+      price,
+      type: firstResource.type,
+      name: firstResource.name,
+      quality: firstResource.quality,
+      tag: firstResource.tag,
+      tag_img_url: firstResource.tag_img_url,
+      collab: firstResource.collab,
+      permanent: firstResource.permanent,
+      img_url: firstResource.img_url,
+      notes: firstResource.notes,
+    });
+  } else {
+    clean.release_type = TYPE_FIRST;
+    clean.parent_resource_id = null;
+    const merged = { ...before, ...clean };
+    if (!merged.type || !merged.name || !merged.date) return fail('资源类型、名称和上线日期不能为空');
+    if (!['天幕','小兵'].includes(merged.type)) return fail('type 只能是 天幕 或 小兵');
+  }
+  if (!Object.keys(clean).length) return fail('没有可更新的字段');
   const { data, error } = await client
     .from('resources').update(clean).eq('id', id).select().maybeSingle();
   if (error) return fail(error.message);
@@ -1173,19 +1235,56 @@ async function updateSpecialResource(category, id, updates, user) {
   const client = getClient();
   const { data: before } = await client.from(config.table).select('*').eq('id', id).maybeSingle();
   if (!before) return fail('资源不存在');
+  const targetCategory = String(updates?.category || category);
+  const targetConfig = getSpecialResourceConfig(targetCategory);
+  if (!targetConfig) return fail('不支持的套装资源类型');
+  if (targetCategory !== category) {
+    if (before.release_type === TYPE_FIRST) {
+      const { count, error } = await client
+        .from(config.table)
+        .select('id', { count: 'exact', head: true })
+        .eq('parent_resource_id', id);
+      if (error) return fail(error.message);
+      if (count) return fail('该首发资源已有返场记录，不能直接修改资源类型');
+    }
+    const created = await insertSpecialResource({ ...before, ...updates, category: targetCategory }, user);
+    if (created.statusCode >= 400) return created;
+    const { error: deleteError } = await client.from(config.table).delete().eq('id', id);
+    if (deleteError) return fail(`资源类型迁移失败：${deleteError.message}`);
+    const inserted = JSON.parse(created.body).resource;
+    await log(client, user.username, 'special_resource_move', parseInt(id, 10), {
+      from_category: category,
+      to_category: targetCategory,
+      new_resource_id: inserted?.id || null,
+    });
+    return ok({ category: targetCategory, resource: inserted, moved_from: { category, id: parseInt(id, 10) } });
+  }
   const requested = cleanSpecialResourceInput(updates, config);
-  if (requested.release_type && requested.release_type !== before.release_type) return fail('不能修改首发/返场类型');
-  delete requested.release_type;
-  delete requested.parent_resource_id;
+  const releaseType = requested.release_type || before.release_type || TYPE_FIRST;
+  if (![TYPE_FIRST, TYPE_RETURN].includes(releaseType)) return fail('首发/返场类型无效');
 
   let clean;
-  if (before.release_type === TYPE_RETURN) {
-    const allowed = new Set(['date','obtain','price','notes']);
-    clean = Object.fromEntries(Object.entries(requested).filter(([field]) => allowed.has(field)));
-    const merged = { ...before, ...clean };
-    if (!merged.date) return fail('返场日期不能为空');
-    if (!merged.obtain) return fail('返场获取方式不能为空');
-    if (!merged.price) return fail('返场价格不能为空');
+  if (releaseType === TYPE_RETURN) {
+    const parentId = requested.parent_resource_id || before.parent_resource_id;
+    if (!parentId) return fail('返场记录必须选择对应的首发资源');
+    if (parseInt(parentId, 10) === parseInt(id, 10)) return fail('返场资源不能关联自身');
+    const firstResource = await getFirstSpecialResource(client, config, parentId);
+    if (!firstResource) return fail('对应的首发资源不存在，请重新选择');
+    const date = requested.date ?? before.date;
+    const obtain = requested.obtain ?? before.obtain;
+    const price = requested.price ?? before.price;
+    if (!date) return fail('返场日期不能为空');
+    if (!obtain) return fail('返场获取方式不能为空');
+    if (!price) return fail('返场价格不能为空');
+    clean = {
+      parent_resource_id: firstResource.id,
+      release_type: TYPE_RETURN,
+      date,
+      obtain,
+      price,
+      notes: requested.notes ?? before.notes ?? null,
+    };
+    config.inheritedFields.forEach(field => { clean[field] = firstResource[field]; });
   } else {
     clean = requested;
     const merged = { ...before, ...clean, release_type: TYPE_FIRST, parent_resource_id: null };
@@ -1195,6 +1294,8 @@ async function updateSpecialResource(category, id, updates, user) {
     if (config.requiresSkin && !(await ensureSpecialResourceSkin(client, merged.skin_profile_id))) {
       return fail('关联皮肤不存在，请重新选择');
     }
+    clean.release_type = TYPE_FIRST;
+    clean.parent_resource_id = null;
   }
   if (!Object.keys(clean).length) return fail('没有可更新的字段');
   const { data, error } = await client
