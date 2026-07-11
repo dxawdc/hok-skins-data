@@ -130,6 +130,13 @@ a { color: var(--blue); text-decoration: none; }
   padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px;
   font-size: 14px; cursor: pointer; outline: none; font-family: inherit; background: var(--white);
 }
+.select-search-input {
+  width: 100%; margin: 0 0 6px; padding: 7px 10px;
+  border: 1px solid var(--border); border-radius: 7px; background: #fafbfc;
+  color: var(--text); font: inherit; font-size: 12px; outline: none;
+}
+.select-search-input:focus { border-color: var(--gold); background: var(--white); }
+.select-search-input:disabled { cursor: not-allowed; opacity: 0.55; }
 .special-type-tabs {
   display: inline-flex; align-items: center; padding: 3px; gap: 2px;
   border: 1px solid var(--border); border-radius: 8px; background: #f8f9fb;
@@ -2738,6 +2745,68 @@ async function api(method, path, body, skipAuth = false) {
   }
 }
 
+// ── 编辑弹窗下拉搜索 ──────────────────────────────────────────
+// 保留原生 select，以免影响现有 onchange、禁用状态和表单保存逻辑。
+function filterSearchableSelect(select) {
+  const searchInput = select._searchInput;
+  if (!searchInput) return;
+  const keyword = searchInput.value.trim().toLocaleLowerCase();
+  Array.from(select.options).forEach(option => {
+    const visible = !keyword || option.textContent.toLocaleLowerCase().includes(keyword);
+    option.hidden = !visible;
+  });
+  searchInput.disabled = select.disabled;
+}
+
+function setupSearchableSelects(root = document) {
+  const dedicatedSearchSelects = new Set(['series-add-select', 'es-profile-id', 'es-hero-id', 'sr-skin-profile']);
+  root.querySelectorAll('.modal select').forEach(select => {
+    if (select.dataset.searchReady === 'true' || dedicatedSearchSelects.has(select.id)) return;
+    select.dataset.searchReady = 'true';
+    const searchInput = document.createElement('input');
+    searchInput.type = 'search';
+    searchInput.className = 'select-search-input';
+    searchInput.placeholder = '搜索选项…';
+    const label = select.closest('.form-group')?.querySelector('label')?.textContent?.trim() || '下拉选项';
+    searchInput.setAttribute('aria-label', `搜索${label}`);
+    select.before(searchInput);
+    select._searchInput = searchInput;
+    searchInput.addEventListener('input', () => filterSearchableSelect(select));
+    select.addEventListener('change', () => {
+      searchInput.value = '';
+      filterSearchableSelect(select);
+    });
+    filterSearchableSelect(select);
+  });
+}
+
+function resetSearchableSelects(root) {
+  root.querySelectorAll('.modal select[data-search-ready="true"]').forEach(select => {
+    if (select._searchInput) select._searchInput.value = '';
+    filterSearchableSelect(select);
+  });
+}
+
+function initializeSearchableSelects() {
+  setupSearchableSelects();
+  const observer = new MutationObserver(mutations => {
+    const affectedSelects = new Set();
+    mutations.forEach(mutation => {
+      if (mutation.type === 'attributes' && mutation.target.matches?.('.modal-bg.show')) {
+        resetSearchableSelects(mutation.target);
+      }
+      const target = mutation.target;
+      const select = target.matches?.('select') ? target : target.closest?.('select');
+      if (select?.dataset.searchReady === 'true') affectedSelects.add(select);
+    });
+    setupSearchableSelects();
+    affectedSelects.forEach(filterSearchableSelect);
+  });
+  document.querySelectorAll('.modal-bg').forEach(modal => {
+    observer.observe(modal, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'disabled'] });
+  });
+}
+
 // ── UI Helpers ────────────────────────────────────────────────
 function closeModal() {
   document.querySelectorAll('.modal-bg').forEach(m => m.classList.remove('show'));
@@ -2761,6 +2830,7 @@ function fmtTime(str) {
 document.addEventListener('click', e => {
   if (e.target.classList.contains('modal-bg')) closeModal();
 });
+initializeSearchableSelects();
 checkAuth();
 </script>
 </body>
