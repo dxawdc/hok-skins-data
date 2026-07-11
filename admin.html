@@ -2760,8 +2760,9 @@ function filterSearchableSelect(select) {
 
 function setupSearchableSelects(root = document) {
   const dedicatedSearchSelects = new Set(['series-add-select', 'es-profile-id', 'es-hero-id', 'sr-skin-profile']);
+  const dynamicSearchSelects = new Set(['es-series', 'er-parent-resource', 'sr-parent-resource']);
   root.querySelectorAll('.modal select').forEach(select => {
-    if (select.dataset.searchReady === 'true' || dedicatedSearchSelects.has(select.id)) return;
+    if (select.dataset.searchReady === 'true' || dedicatedSearchSelects.has(select.id) || !dynamicSearchSelects.has(select.id)) return;
     select.dataset.searchReady = 'true';
     const searchInput = document.createElement('input');
     searchInput.type = 'search';
