@@ -721,25 +721,35 @@ async function publicProfile(client, row, options) {
 }
 
 async function login(req) {
-  requireLoginConfig();
-  const body = normalizeLoginBody(await readJson(req));
-  const identity = validateWechatSession(await requestWechatSession(body.code));
-  const client = getClient();
-  const user = await findOrCreateUser(client, identity);
-  // Identity creation must not wait for a Storage signed-URL request. The
-  // client fetches the full profile in the background immediately afterwards.
-  const session = await createSession(client, user.id);
-  const profile = await publicProfile(client, user, { includeAvatarUrl: false });
-  return {
-    status: 201,
-    body: {
-      token: session.token,
-      expiresAt: session.expiresAt,
-      userId: user.id,
-      profile,
-      marksRevision: safeIntegerFromDatabase(user.marks_revision, 'marksRevision'),
-    },
-  };
+  let stage = 'config';
+  try {
+    requireLoginConfig();
+    stage = 'request';
+    const body = normalizeLoginBody(await readJson(req));
+    stage = 'wechat';
+    const identity = validateWechatSession(await requestWechatSession(body.code));
+    stage = 'user';
+    const client = getClient();
+    const user = await findOrCreateUser(client, identity);
+    // Identity creation must not wait for a Storage signed-URL request. The
+    // client fetches the full profile in the background immediately afterwards.
+    stage = 'session';
+    const session = await createSession(client, user.id);
+    const profile = await publicProfile(client, user, { includeAvatarUrl: false });
+    return {
+      status: 201,
+      body: {
+        token: session.token,
+        expiresAt: session.expiresAt,
+        userId: user.id,
+        profile,
+        marksRevision: safeIntegerFromDatabase(user.marks_revision, 'marksRevision'),
+      },
+    };
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw serviceError(`LOGIN_${stage.toUpperCase()}_FAILED`, '登录服务暂不可用', error);
+  }
 }
 
 async function revokeSession(client, auth) {
