@@ -5,6 +5,7 @@
 // session tokens whose SHA-256 hashes are the only token values stored.
 
 const crypto = require('crypto');
+const https = require('https');
 const Busboy = require('busboy');
 const { createClient } = require('@supabase/supabase-js');
 
@@ -465,9 +466,15 @@ async function requestWechatSession(code) {
     grant_type: 'authorization_code',
   });
   const url = `https://api.weixin.qq.com/sns/jscode2session?${query.toString()}`;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 8000);
+  if (typeof fetch !== 'function' || typeof AbortController !== 'function') {
+    return requestWechatSessionWithHttps(url);
+  }
+
+  let controller;
+  let timer;
   try {
+    controller = new AbortController();
+    timer = setTimeout(() => controller.abort(), 8000);
     const response = await fetch(url, {
       signal: controller.signal,
       headers: { Accept: 'application/json' },
@@ -492,8 +499,47 @@ async function requestWechatSession(code) {
     }
     throw apiError(502, 'WECHAT_UNAVAILABLE', '微信登录服务暂不可用', error);
   } finally {
-    clearTimeout(timer);
+    if (timer) clearTimeout(timer);
   }
+}
+
+function requestWechatSessionWithHttps(url) {
+  return new Promise((resolve, reject) => {
+    let request;
+    try {
+      request = https.get(url, { timeout: 8000 }, response => {
+        const chunks = [];
+        let size = 0;
+        response.on('data', chunk => {
+          size += chunk.length;
+          if (size > 32 * 1024) {
+            request.destroy(apiError(502, 'WECHAT_UNAVAILABLE', '微信登录服务响应异常'));
+            return;
+          }
+          chunks.push(Buffer.from(chunk));
+        });
+        response.on('end', () => {
+          if (response.statusCode !== 200) {
+            reject(apiError(502, 'WECHAT_UNAVAILABLE', '微信登录服务暂不可用'));
+            return;
+          }
+          try {
+            resolve(JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}'));
+          } catch (error) {
+            reject(apiError(502, 'WECHAT_UNAVAILABLE', '微信登录服务响应异常', error));
+          }
+        });
+      });
+      request.on('timeout', () => request.destroy(apiError(504, 'WECHAT_TIMEOUT', '微信登录服务响应超时')));
+      request.on('error', error => {
+        reject(error instanceof ApiError
+          ? error
+          : apiError(502, 'WECHAT_UNAVAILABLE', '微信登录服务暂不可用', error));
+      });
+    } catch (error) {
+      reject(apiError(502, 'WECHAT_UNAVAILABLE', '微信登录服务暂不可用', error));
+    }
+  });
 }
 
 function validateWechatSession(value) {
