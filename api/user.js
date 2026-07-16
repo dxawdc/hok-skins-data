@@ -751,7 +751,11 @@ async function login(req) {
     };
   } catch (error) {
     if (error instanceof ApiError) throw error;
-    throw serviceError(`LOGIN_${stage.toUpperCase()}_FAILED`, '登录服务暂不可用', error);
+    const type = String(error && error.name || 'Unexpected')
+      .replace(/[^A-Za-z0-9]/g, '')
+      .slice(0, 40)
+      .toUpperCase() || 'UNEXPECTED';
+    throw serviceError(`LOGIN_${stage.toUpperCase()}_${type}`, '登录服务暂不可用', error);
   }
 }
 
