@@ -219,6 +219,10 @@ async function readJson(req) {
   if (length !== null && length > MAX_JSON_BYTES) {
     throw apiError(413, 'PAYLOAD_TOO_LARGE', '请求内容过大');
   }
+  // Some serverless adapters provide an already-parsed plain object even when
+  // raw parsing is disabled. Reusing it avoids attempting to consume a stream
+  // that the adapter has already finalized.
+  if (isPlainObject(req && req.body)) return req.body;
   const raw = await readRawBody(req, MAX_JSON_BYTES);
   if (!raw.length) throw apiError(400, 'INVALID_JSON', '请求内容不能为空');
   try {
