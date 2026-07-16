@@ -751,7 +751,11 @@ async function login(req) {
     };
   } catch (error) {
     if (error instanceof ApiError) throw error;
-    const type = String(error && error.name || 'Unexpected')
+    const errorMessage = String(error && error.message || '').toLowerCase();
+    const streamState = stage === 'body' && errorMessage.includes('not readable')
+      ? 'STREAM_NOT_READABLE'
+      : (stage === 'body' && errorMessage.includes('already') ? 'STREAM_ALREADY_USED' : '');
+    const type = streamState || String(error && error.name || 'Unexpected')
       .replace(/[^A-Za-z0-9]/g, '')
       .slice(0, 40)
       .toUpperCase() || 'UNEXPECTED';
