@@ -43,7 +43,7 @@ function normalizeBaseResource(row) {
 }
 
 function normalizeSpecialResource(row, config) {
-  return {
+  const resource = {
     ...row,
     id: `${config.category}-${row.id}`,
     source_id: row.id,
@@ -53,6 +53,9 @@ function normalizeSpecialResource(row, config) {
     display_type: config.label,
     skin_profile: normalizeRelation(row, 'skin_profile'),
   };
+  // 星元套装不再定义资源品质，历史列仅为兼容旧数据保留。
+  if (config.category === 'star_outfit') resource.quality = '';
+  return resource;
 }
 
 async function fetchSpecialResources(client) {

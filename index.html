@@ -471,6 +471,8 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
 }
 .res-card-img.tm { aspect-ratio: 21 / 10; } /* 横向长图比例 */
 .res-card-img.xb { aspect-ratio: 1 / 1; }
+.res-card-img.round { aspect-ratio: 1 / 1; border-radius: 50%; width: calc(100% - 24px); margin: 12px auto 0; }
+.res-card-img.round img { border-radius: inherit; }
 .res-card-img img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
 .res-card:hover .res-card-img img { transform: scale(1.05); }
 .res-card-body { padding: 12px; flex: 1; display: flex; flex-direction: column; }
@@ -1074,7 +1076,7 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 // ── 数据拉取：走 Cloudflare CDN 缓存 ──────────────────────────
 const CACHE_KEY       = 'wzry_skin_data_v7';   // v7: 新增 valuePoints 字段（皮肤价值点券），用于「我的」页估值
 const CACHE_KEY_HERO  = 'wzry_hero_data_v1';
-const CACHE_KEY_RES   = 'wzry_res_data_v3';
+const CACHE_KEY_RES   = 'wzry_res_data_v4';
 const CACHE_TTL       = 30 * 60 * 1000;
 const HERO_CACHE_TTL  = 2  * 60 * 60 * 1000;
 const RES_CACHE_TTL   = 30 * 60 * 1000;
@@ -1089,8 +1091,8 @@ let currentResType = '天幕';
 const RESOURCE_TYPE_CONFIG = [
   { type: '天幕', icon: '🌌', gridClass: 'res-grid-tm', imageClass: 'tm' },
   { type: '小兵', icon: '🛡️', gridClass: 'res-grid-xb', imageClass: 'xb' },
-  { type: '星传说', icon: '✨', gridClass: 'res-grid-special', imageClass: 'xb' },
-  { type: '星元套装', icon: '🎨', gridClass: 'res-grid-special', imageClass: 'xb' },
+  { type: '星传说', icon: '✨', gridClass: 'res-grid-special', imageClass: 'round' },
+  { type: '星元套装', icon: '🎨', gridClass: 'res-grid-special', imageClass: 'round' },
   { type: '元流套装', icon: '🧩', gridClass: 'res-grid-special', imageClass: 'xb' },
 ];
 
@@ -1165,8 +1167,11 @@ async function fetchAllResources() {
   if (!res.ok) return [];
   const data = await res.json();
   if (!Array.isArray(data)) return [];
-  try { sessionStorage.setItem(CACHE_KEY_RES, JSON.stringify({ data, ts: Date.now() })); } catch (e) {}
-  return data;
+  const normalized = data.map(resource => resource?.source_category === 'star_outfit'
+    ? { ...resource, quality: '' }
+    : resource);
+  try { sessionStorage.setItem(CACHE_KEY_RES, JSON.stringify({ data: normalized, ts: Date.now() })); } catch (e) {}
+  return normalized;
 }
 
 // ── 图片 URL 工具 ────────────────────────────────────────────
@@ -3213,6 +3218,7 @@ function openResDetail(groupKey) {
   
   const config = resourceTypeConfig(first.type);
   const isWide = config.imageClass === 'tm';
+  const isRound = config.imageClass === 'round';
   const imgSrc = first.img_url ? toCdnUrl(first.img_url) : null;
   const tagImgSrc = first.tag_img_url ? toCdnUrl(first.tag_img_url) : null;
   const skin = first.skin_profile || {};
@@ -3237,9 +3243,9 @@ function openResDetail(groupKey) {
       <div class="skin-detail-card">
         
         <div class="skin-detail-top" style="flex-direction: ${isMobile() ? 'column' : 'row'};">
-          <div class="skin-detail-img-wrap" style="width:${isMobile()?'100%':(isWide?'460px':'260px')}; aspect-ratio:${isWide?'21/10':'1/1'}; padding:10px; background:var(--bg4); display:flex; align-items:center; justify-content:center;">
+          <div class="skin-detail-img-wrap" style="width:${isMobile()?'100%':(isWide?'460px':'260px')}; aspect-ratio:${isWide?'21/10':'1/1'}; padding:10px; background:var(--bg4); display:flex; align-items:center; justify-content:center;${isRound?'border-radius:50%;overflow:hidden;':''}">
             ${imgSrc 
-              ? `<img src="${imgSrc}" style="width:100%; height:100%; object-fit:contain; border-radius:8px; box-shadow:var(--shadow);">` 
+              ? `<img src="${imgSrc}" style="width:100%; height:100%; object-fit:contain; border-radius:${isRound?'50%':'8px'}; box-shadow:var(--shadow);">`
               : `<div style="font-size:50px; color:var(--text3);">✨</div>`}
           </div>
           <div class="skin-detail-info" style="padding: 24px;">

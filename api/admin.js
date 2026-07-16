@@ -40,8 +40,8 @@ const SPECIAL_RESOURCE_CONFIG = {
     table: 'star_outfit_resources',
     label: '星元套装',
     requiresSkin: true,
-    fields: ['skin_profile_id','parent_resource_id','name','date','release_type','quality','obtain','price','img_url','notes'],
-    inheritedFields: ['skin_profile_id','name','quality','img_url'],
+    fields: ['skin_profile_id','parent_resource_id','name','date','release_type','obtain','price','img_url','notes'],
+    inheritedFields: ['skin_profile_id','name','img_url'],
   },
   yuanliu_suit: {
     table: 'yuanliu_suit_resources',
@@ -1134,6 +1134,9 @@ async function listSpecialResources(params) {
     .limit(500);
   if (error) return fail(error.message);
   let resources = (data || []).map(normalizeSpecialResourceRow);
+  if (category === 'star_outfit') {
+    resources = resources.map(resource => ({ ...resource, quality: '' }));
+  }
   if (params.release_type) {
     const releaseType = decodeURIComponent(params.release_type);
     resources = resources.filter(resource => resource.release_type === releaseType);
@@ -1156,7 +1159,7 @@ function validateFirstSpecialResource(clean, config, category) {
   if (!clean.price) return '价格不能为空';
   if (!clean.img_url) return '首发资源必须上传资源图片';
   if (config.requiresSkin && !clean.skin_profile_id) return `${config.label}必须关联皮肤`;
-  if (category !== 'star_legend') {
+  if (category === 'yuanliu_suit') {
     if (!clean.quality) return '品质不能为空';
     if (!SPECIAL_RESOURCE_QUALITIES.has(clean.quality)) return '品质只能是绿色、蓝色、紫色或金色';
   }

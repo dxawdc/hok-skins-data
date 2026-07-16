@@ -538,7 +538,7 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
             <table>
               <thead><tr>
                 <th style="width:68px">图片</th><th>名称</th><th>关联皮肤</th><th>英雄</th>
-                <th>上线日期</th><th>首发/返场</th><th>品质</th><th>获取方式</th>
+                <th>上线日期</th><th>首发/返场</th><th id="special-res-quality-col">品质</th><th>获取方式</th>
                 <th>价格</th><th style="width:120px">操作</th>
               </tr></thead>
               <tbody id="special-res-tbody"></tbody>
@@ -2203,6 +2203,9 @@ function renderSpecialResourceTable() {
   const rows = allSpecialResources.slice(start, start + SPECIAL_RESOURCE_PER_PAGE);
   const tbody = document.getElementById('special-res-tbody');
   if (!tbody) return;
+  const hideQuality = specialResourceCategory === 'star_outfit';
+  const qualityHeader = document.getElementById('special-res-quality-col');
+  if (qualityHeader) qualityHeader.style.display = hideQuality ? 'none' : '';
 
   tbody.innerHTML = rows.map(resource => {
     const skin = resource.skin_profile || {};
@@ -2221,7 +2224,7 @@ function renderSpecialResourceTable() {
       <td style="font-size:12px;color:var(--text3)">${escapeHtml(skin.hero)||'—'}</td>
       <td style="font-size:12px;white-space:nowrap">${escapeHtml(resource.date)||'—'}</td>
       <td><span class="badge badge-${escapeHtml(resource.release_type)}">${escapeHtml(resource.release_type)||'—'}</span></td>
-      <td style="font-size:12px">${escapeHtml(resource.quality)||'—'}</td>
+      ${hideQuality ? '' : `<td style="font-size:12px">${escapeHtml(resource.quality)||'—'}</td>`}
       <td style="font-size:12px;color:var(--text2)">${escapeHtml(resource.obtain)||'—'}</td>
       <td style="font-size:12px;color:var(--gold)">${escapeHtml(resource.price)||'—'}</td>
       <td style="white-space:nowrap">
@@ -2229,7 +2232,7 @@ function renderSpecialResourceTable() {
         <button class="btn btn-danger btn-sm" onclick="doDeleteSpecialResource('${specialResourceCategory}',${resource.id},'${esc(resource.name)}')">删除</button>
       </td>
     </tr>`;
-  }).join('') || '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text3)">暂无套装资源</td></tr>';
+  }).join('') || `<tr><td colspan="${hideQuality ? 9 : 10}" style="text-align:center;padding:40px;color:var(--text3)">暂无套装资源</td></tr>`;
 
   document.getElementById('special-res-pg-info').textContent = total
     ? `共 ${total} 条 · 第 ${start+1}–${Math.min(start+SPECIAL_RESOURCE_PER_PAGE,total)} 条`
@@ -2305,7 +2308,7 @@ function updateSpecialResourceFields(parentResourceId = '') {
   document.getElementById('sr-parent-group').style.display = isReturn ? 'block' : 'none';
   document.getElementById('sr-skin-group').style.display = requiresSkin ? 'block' : 'none';
   document.getElementById('sr-rich-fields').style.display = 'contents';
-  document.getElementById('sr-quality-group').style.display = category !== 'star_legend' ? 'block' : 'none';
+  document.getElementById('sr-quality-group').style.display = category === 'yuanliu_suit' ? 'block' : 'none';
   document.getElementById('sr-tag-group').style.display = category !== 'star_outfit' ? 'block' : 'none';
   document.getElementById('sr-collab-group').style.display = category === 'yuanliu_suit' ? 'block' : 'none';
   document.getElementById('sr-permanent-group').style.display = category !== 'star_outfit' ? 'block' : 'none';
@@ -2346,7 +2349,7 @@ async function applySelectedSpecialParent() {
   const parent = specialReturnParents.find(resource => String(resource.id) === String(parentId));
   if (!parent) return;
   document.getElementById('sr-name').value = parent.name || '';
-  document.getElementById('sr-quality').value = parent.quality || '';
+  document.getElementById('sr-quality').value = category === 'yuanliu_suit' ? (parent.quality || '') : '';
   document.getElementById('sr-tag').value = parent.tag || '';
   document.getElementById('sr-collab').value = parent.collab || '';
   document.getElementById('sr-permanent').value = parent.permanent || '否';
@@ -2470,7 +2473,7 @@ async function doSaveSpecialResource() {
   if (!isReturn) {
     if (!name) return toast('资源名称不能为空', 'err');
     if (requiresSkin && !skinProfileId) return toast(`${SPECIAL_RESOURCE_LABELS[category]}必须关联皮肤`, 'err');
-    if (category !== 'star_legend' && !document.getElementById('sr-quality').value) return toast('品质不能为空', 'err');
+    if (category === 'yuanliu_suit' && !document.getElementById('sr-quality').value) return toast('品质不能为空', 'err');
     if (category !== 'star_outfit' && !document.getElementById('sr-tag').value.trim()) return toast('标签不能为空', 'err');
     if (!specialResourceImgFile && !document.getElementById('sr-img-url').value) return toast('首发资源必须上传资源图片', 'err');
   }
@@ -2505,7 +2508,7 @@ async function doSaveSpecialResource() {
       body.name = name;
       body.img_url = imgUrl;
       if (requiresSkin) body.skin_profile_id = parseInt(skinProfileId, 10);
-      if (category !== 'star_legend') body.quality = document.getElementById('sr-quality').value;
+      if (category === 'yuanliu_suit') body.quality = document.getElementById('sr-quality').value;
       if (category !== 'star_outfit') {
         body.tag = document.getElementById('sr-tag').value.trim();
         body.permanent = document.getElementById('sr-permanent').value;
