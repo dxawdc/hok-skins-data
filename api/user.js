@@ -166,19 +166,19 @@ function readRawBody(req, maxBytes) {
       }
       return Promise.resolve(body);
     }
-    let encoded;
-    try {
-      encoded = Buffer.from(JSON.stringify(req.body), 'utf8');
-    } catch {
-      return Promise.reject(apiError(400, 'INVALID_JSON', '请求内容不是有效的 JSON'));
-    }
-    if (encoded.length > maxBytes) {
-      return Promise.reject(apiError(413, 'PAYLOAD_TOO_LARGE', '请求内容过大'));
-    }
-    return Promise.resolve(encoded);
+    if (typeof req.body.on === 'function') return readNodeStream(req.body, maxBytes);
+    return Promise.reject(apiError(400, 'INVALID_JSON', '请求内容不是有效的 JSON'));
   }
 
+  return readNodeStream(req, maxBytes);
+}
+
+function readNodeStream(stream, maxBytes) {
   return new Promise((resolve, reject) => {
+    if (!stream || typeof stream.on !== 'function') {
+      reject(apiError(400, 'REQUEST_READ_FAILED', '读取请求失败'));
+      return;
+    }
     const chunks = [];
     let size = 0;
     let tooLarge = false;
@@ -190,24 +190,28 @@ function readRawBody(req, maxBytes) {
       callback(value);
     };
 
-    req.on('data', chunk => {
-      const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-      size += buffer.length;
-      if (size > maxBytes) {
-        tooLarge = true;
-        return;
-      }
-      chunks.push(buffer);
-    });
-    req.on('end', () => {
-      if (tooLarge) {
-        finish(reject, apiError(413, 'PAYLOAD_TOO_LARGE', '请求内容过大'));
-      } else {
-        finish(resolve, Buffer.concat(chunks));
-      }
-    });
-    req.on('aborted', () => finish(reject, apiError(400, 'REQUEST_ABORTED', '请求已中断')));
-    req.on('error', error => finish(reject, apiError(400, 'REQUEST_READ_FAILED', '读取请求失败', error)));
+    try {
+      stream.on('data', chunk => {
+        const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+        size += buffer.length;
+        if (size > maxBytes) {
+          tooLarge = true;
+          return;
+        }
+        chunks.push(buffer);
+      });
+      stream.on('end', () => {
+        if (tooLarge) {
+          finish(reject, apiError(413, 'PAYLOAD_TOO_LARGE', '请求内容过大'));
+        } else {
+          finish(resolve, Buffer.concat(chunks));
+        }
+      });
+      stream.on('aborted', () => finish(reject, apiError(400, 'REQUEST_ABORTED', '请求已中断')));
+      stream.on('error', error => finish(reject, apiError(400, 'REQUEST_READ_FAILED', '读取请求失败', error)));
+    } catch (error) {
+      finish(reject, apiError(400, 'REQUEST_READ_FAILED', '读取请求失败', error));
+    }
   });
 }
 
