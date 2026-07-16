@@ -15,6 +15,7 @@ const {
   parseMultipartAvatar,
   publicProfile,
   readMarks,
+  requestWechatSession,
   routePath,
   validateWechatSession,
 } = require('../api/user')._private;
@@ -43,6 +44,16 @@ test('login codes are strict and WeChat identity output excludes session secrets
   assert.deepEqual(identity, { openid: 'server-only-openid', unionid: 'server-only-unionid' });
   assert.equal(Object.prototype.hasOwnProperty.call(identity, 'session_key'), false);
   expectApiError(() => validateWechatSession({ errcode: 40029 }), 'WECHAT_CODE_INVALID');
+});
+
+test('WeChat session transport returns structured upstream failures', async () => {
+  const previousFetch = global.fetch;
+  global.fetch = async () => ({ ok: true, text: async () => '{"errcode":40029}' });
+  try {
+    assert.deepEqual(await requestWechatSession('test-code'), { errcode: 40029 });
+  } finally {
+    global.fetch = previousFetch;
+  }
 });
 
 test('opaque session tokens are strictly parsed and only hash to storage form', () => {
