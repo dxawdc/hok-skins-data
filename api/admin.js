@@ -1008,6 +1008,7 @@ async function insertResource(data, user) {
   }
   const { data: inserted, error } = await client
     .from('resources').insert(clean).select().maybeSingle();
+  if (error?.code === '23505') return fail('相同的资源记录已存在，请勿重复提交', 409);
   if (error) return fail('创建失败：' + error.message);
   await log(client, user.username, 'resource_insert', inserted?.id || null, { name: clean.name, type: clean.type });
   return ok({ resource: inserted });

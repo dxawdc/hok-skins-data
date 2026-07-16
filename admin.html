@@ -945,7 +945,7 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
     
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal()">取消</button>
-      <button class="btn btn-primary" onclick="doSaveResource()">保存</button>
+      <button class="btn btn-primary" id="er-save-btn" onclick="doSaveResource()">保存</button>
     </div>
   </div>
 </div>
@@ -2084,6 +2084,8 @@ async function editResource(jsonStr) {
 }
 
 async function doSaveResource() {
+  const button = document.getElementById('er-save-btn');
+  if (button.disabled) return;
   const id   =document.getElementById('er-id').value;
   const name =document.getElementById('er-name').value.trim();
   const type =document.getElementById('er-type').value;
@@ -2094,6 +2096,9 @@ async function doSaveResource() {
   if(!isReturn && !name) return toast('资源名称不能为空','err');
   if(!date) return toast('上线日期不能为空','err');
   if(isReturn && !parentResourceId) return toast('返场必须选择对应的首发资源','err');
+  button.disabled = true;
+  button.textContent = '保存中…';
+  try {
   let imgUrl=document.getElementById('er-img-url').value;
   let tagImgUrl=document.getElementById('er-tag-img-url').value;
   if(!isReturn && resImgFile){
@@ -2128,6 +2133,10 @@ async function doSaveResource() {
   if(res.error) return toast(res.error,'err');
   closeModal(); loadResources();
   toast(id?'资源已更新':'资源新增成功','ok');
+  } finally {
+    button.disabled = false;
+    button.textContent = '保存';
+  }
 }
 
 async function doDeleteResource(id,name){
