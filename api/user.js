@@ -72,6 +72,7 @@ function configureResponse(res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-MiniProgram-User-Api', 'v2-20260716');
 }
 
 function sendJson(res, status, body) {
