@@ -182,6 +182,7 @@ function readRawBody(req, maxBytes, providedBody) {
       }
       return Promise.resolve(encoded);
     }
+    if (typeof body.getReader === 'function') return readWebStream(body, maxBytes);
     if (typeof body === 'string') {
       const encoded = Buffer.from(body, 'utf8');
       if (encoded.length > maxBytes) {
@@ -236,6 +237,30 @@ function readNodeStream(stream, maxBytes) {
       finish(reject, apiError(400, 'REQUEST_READ_FAILED', '读取请求失败', error));
     }
   });
+}
+
+async function readWebStream(stream, maxBytes) {
+  let reader;
+  try {
+    reader = stream.getReader();
+    const chunks = [];
+    let size = 0;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = Buffer.from(value);
+      size += chunk.length;
+      if (size > maxBytes) {
+        try { await reader.cancel(); } catch {}
+        throw apiError(413, 'PAYLOAD_TOO_LARGE', '请求内容过大');
+      }
+      chunks.push(chunk);
+    }
+    return Buffer.concat(chunks);
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw apiError(400, 'REQUEST_READ_FAILED', '读取请求失败', error);
+  }
 }
 
 async function readJson(req) {
