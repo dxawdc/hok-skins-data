@@ -33,18 +33,21 @@ npm run check
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_KEY`
 - `JWT_SECRET`
+- `WECHAT_MINIPROGRAM_APP_ID`（未配置时使用代码中的当前小程序 AppID）
 - `WECHAT_MINIPROGRAM_APP_SECRET`
-- `MINIPROGRAM_JWT_SECRET`
+- `MINIPROGRAM_SESSION_TTL_DAYS`（可选，默认 30，范围 1–90）
 
 公开接口代码允许读取 `SUPABASE_ANON_KEY` 作为兜底，但后台管理接口必须使用 `SUPABASE_SERVICE_KEY`。
 
-`WECHAT_MINIPROGRAM_APP_SECRET` 仅配置在服务端，用于将 `wx.login` 返回的临时 code 换取 OpenID；绝不能写入小程序源码。`MINIPROGRAM_JWT_SECRET` 用于签发小程序用户的同步凭证，必须与后台 `JWT_SECRET` 使用不同的随机值。
+`WECHAT_MINIPROGRAM_APP_SECRET` 仅配置在服务端，用于将 `wx.login` 返回的临时 code 换取 OpenID；绝不能写入小程序源码。小程序会话使用服务端生成的随机 opaque token，数据库只保存 SHA-256 哈希，不再需要 JWT 密钥。
 
 ## 小程序用户同步部署
 
-首次启用用户同步时先执行 `11_create_miniprogram_user_sync.sql`；部署当前版本前还需执行 `13_secure_miniprogram_avatars.sql`，它会创建私有头像桶并添加头像路径字段。完成迁移后再部署 `api/user.js`，否则旧数据库缺少字段会导致登录失败。
+当前小程序登录/同步功能尚未上线，部署 v2 前执行破坏性迁移 `14_rebuild_miniprogram_auth_sync.sql`。它会清空测试用户、会话和收藏数据，创建可撤销会话、带 revision/幂等收据的收藏同步表与私有头像桶。必须先完成迁移再部署 `api/user.js`。
 
-新头像只保存在私有 `user-avatars` 桶中，接口按需返回一小时有效的签名 URL。此前存放于公开 `skin-images` 桶的头像不会自动迁移或删除，应在确认无误后另行清理。
+新头像只保存在私有 `miniprogram-avatars` 桶中，接口按需返回一小时有效的签名 URL 及 `avatarExpiresAt`。旧 `user-avatars` 测试桶需通过 Storage API 清空后删除。
+
+资料响应中的 `nickname` 可直接展示；`hasNickname` 明确区分用户填写的昵称与“收藏用户”占位文案，`hasAvatar` 则表示服务端是否保存了真实头像。客户端不得把占位资料回写为用户授权资料。
 
 ## 数据与图片
 

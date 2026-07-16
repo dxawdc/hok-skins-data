@@ -3,11 +3,13 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "check": "node -c api/admin.js && node -c api/user.js && node -c api/skins.js && node -c api/heroes.js && node -c api/resources.js"
+    "check": "node -c api/admin.js && node -c api/user.js && node -c api/skins.js && node -c api/heroes.js && node -c api/resources.js && node --test test/*.test.js",
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
     "bcryptjs": "^2.4.3",
+    "busboy": "^1.6.0",
     "jsonwebtoken": "^9.0.2"
   }
 }
