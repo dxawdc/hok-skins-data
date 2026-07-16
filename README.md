@@ -9,6 +9,7 @@
 - `api/skins.js`：公开皮肤接口，支持 `limit` 和 `offset` 查询参数。
 - `api/heroes.js`：公开英雄接口。
 - `api/resources.js`：公开资源图鉴接口。
+- `api/user.js`：微信小程序登录、用户头像资料与已拥有/关注标记同步接口。
 - `api/admin.js`：后台管理 API，包含登录、用户、皮肤、英雄、资源、图片上传和操作日志。
 - `vercel.json`：Vercel 路由与 CORS 配置。
 - `docs/ARCHITECTURE.md`：架构、数据流、部署和仓库边界说明。
@@ -32,8 +33,12 @@ npm run check
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_KEY`
 - `JWT_SECRET`
+- `WECHAT_MINIPROGRAM_APP_SECRET`
+- `MINIPROGRAM_JWT_SECRET`
 
 公开接口代码允许读取 `SUPABASE_ANON_KEY` 作为兜底，但后台管理接口必须使用 `SUPABASE_SERVICE_KEY`。
+
+`WECHAT_MINIPROGRAM_APP_SECRET` 仅配置在服务端，用于将 `wx.login` 返回的临时 code 换取 OpenID；绝不能写入小程序源码。`MINIPROGRAM_JWT_SECRET` 用于签发小程序用户的同步凭证，必须与后台 `JWT_SECRET` 使用不同的随机值。
 
 ## 数据与图片
 

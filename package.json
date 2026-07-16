@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "check": "node -c api/admin.js && node -c api/skins.js && node -c api/heroes.js && node -c api/resources.js"
+    "check": "node -c api/admin.js && node -c api/user.js && node -c api/skins.js && node -c api/heroes.js && node -c api/resources.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
