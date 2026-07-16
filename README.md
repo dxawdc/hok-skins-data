@@ -40,6 +40,12 @@ npm run check
 
 `WECHAT_MINIPROGRAM_APP_SECRET` 仅配置在服务端，用于将 `wx.login` 返回的临时 code 换取 OpenID；绝不能写入小程序源码。`MINIPROGRAM_JWT_SECRET` 用于签发小程序用户的同步凭证，必须与后台 `JWT_SECRET` 使用不同的随机值。
 
+## 小程序用户同步部署
+
+首次启用用户同步时先执行 `11_create_miniprogram_user_sync.sql`；部署当前版本前还需执行 `13_secure_miniprogram_avatars.sql`，它会创建私有头像桶并添加头像路径字段。完成迁移后再部署 `api/user.js`，否则旧数据库缺少字段会导致登录失败。
+
+新头像只保存在私有 `user-avatars` 桶中，接口按需返回一小时有效的签名 URL。此前存放于公开 `skin-images` 桶的头像不会自动迁移或删除，应在确认无误后另行清理。
+
 ## 数据与图片
 
 公开展示页、小程序和后台都围绕同一套 Supabase 数据。图片存储在 Supabase Storage，并通过 `https://skinsdata.top/img` 做 CDN 地址转换。

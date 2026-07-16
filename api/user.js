@@ -1,6 +1,7 @@
 // api/user.js — WeChat Mini Program user login and cloud mark sync.
 
 const https = require('https');
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const { createClient } = require('@supabase/supabase-js');
 
@@ -15,6 +16,9 @@ const TOKEN_AUDIENCE = 'skinsdata-miniprogram-user';
 const TOKEN_TTL = '30d';
 const MAX_MARKS = 2000;
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+const MAX_REQUEST_BODY_BYTES = 3 * 1024 * 1024;
+const USER_AVATAR_BUCKET = 'user-avatars';
+const AVATAR_URL_TTL_SECONDS = 60 * 60;
 
 function ok(data, status = 200) {
   return { statusCode: status, body: JSON.stringify(data) };
@@ -28,14 +32,30 @@ function readBody(req) {
   return new Promise(resolve => {
     if (req.body !== undefined) {
       if (typeof req.body === 'string') {
-        try { return resolve(JSON.parse(req.body)); } catch { return resolve({}); }
+        if (Buffer.byteLength(req.body, 'utf8') > MAX_REQUEST_BODY_BYTES) return resolve({ value: {}, tooLarge: true });
+        try { return resolve({ value: JSON.parse(req.body), tooLarge: false }); } catch { return resolve({ value: {}, tooLarge: false }); }
       }
-      return resolve(req.body || {});
+      try {
+        if (Buffer.byteLength(JSON.stringify(req.body || {}), 'utf8') > MAX_REQUEST_BODY_BYTES) return resolve({ value: {}, tooLarge: true });
+      } catch {
+        return resolve({ value: {}, tooLarge: true });
+      }
+      return resolve({ value: req.body || {}, tooLarge: false });
     }
     let raw = '';
-    req.on('data', chunk => { raw += chunk; });
-    req.on('end', () => { try { resolve(raw ? JSON.parse(raw) : {}); } catch { resolve({}); } });
-    req.on('error', () => resolve({}));
+    let size = 0;
+    let tooLarge = false;
+    req.on('data', chunk => {
+      size += Buffer.byteLength(chunk);
+      if (size > MAX_REQUEST_BODY_BYTES) tooLarge = true;
+      else raw += chunk;
+    });
+    req.on('end', () => {
+      if (tooLarge) return resolve({ value: {}, tooLarge: true });
+      try { resolve({ value: raw ? JSON.parse(raw) : {}, tooLarge: false }); }
+      catch { resolve({ value: {}, tooLarge: false }); }
+    });
+    req.on('error', () => resolve({ value: {}, tooLarge: false }));
   });
 }
 
@@ -98,21 +118,35 @@ function parseAvatarData(value) {
   throw new Error('头像仅支持 PNG、JPG 或 WEBP 格式');
 }
 
-async function uploadAvatar(client, openid, avatar) {
-  const objectPath = `user-avatars/${encodeURIComponent(openid)}/avatar.${avatar.extension}`;
-  const { error } = await client.storage.from('skin-images').upload(objectPath, avatar.buffer, {
+async function uploadAvatar(client, avatar) {
+  const objectPath = `avatars/${crypto.randomUUID()}.${avatar.extension}`;
+  const { error } = await client.storage.from(USER_AVATAR_BUCKET).upload(objectPath, avatar.buffer, {
     contentType: avatar.contentType,
     cacheControl: '3600',
-    upsert: true,
+    upsert: false,
   });
   if (error) throw error;
-  return client.storage.from('skin-images').getPublicUrl(objectPath).data.publicUrl;
+  return objectPath;
 }
 
-function publicProfile(row) {
+async function removeAvatar(client, objectPath) {
+  if (!objectPath) return;
+  const { error } = await client.storage.from(USER_AVATAR_BUCKET).remove([objectPath]);
+  if (error) throw error;
+}
+
+async function publicProfile(client, row) {
+  let avatarUrl = '';
+  if (row && row.avatar_path) {
+    const { data, error } = await client.storage
+      .from(USER_AVATAR_BUCKET)
+      .createSignedUrl(row.avatar_path, AVATAR_URL_TTL_SECONDS);
+    if (error) throw error;
+    avatarUrl = data && data.signedUrl ? data.signedUrl : '';
+  }
   return {
     nickname: row && row.nickname ? row.nickname : '',
-    avatarUrl: row && row.avatar_url ? row.avatar_url : '',
+    avatarUrl,
   };
 }
 
@@ -146,7 +180,7 @@ function requireUser(headers) {
 async function getUser(client, openid) {
   const { data, error } = await client
     .from('miniprogram_users')
-    .select('openid,nickname,avatar_url')
+    .select('openid,nickname,avatar_path')
     .eq('openid', openid)
     .maybeSingle();
   if (error) throw error;
@@ -175,6 +209,57 @@ function normalizeMarks(input) {
   });
   if (result.size > MAX_MARKS) throw new Error(`最多可同步 ${MAX_MARKS} 条标记`);
   return result;
+}
+
+function normalizeMarkChanges(input) {
+  if (!Array.isArray(input)) throw new Error('标记变更数据格式无效');
+  const result = new Map();
+  input.forEach(change => {
+    const key = trimText(change && change.key, 300);
+    const type = change && change.type;
+    if (!key) return;
+    if (type !== 'owned' && type !== 'follow' && type !== null) {
+      throw new Error('标记类型无效');
+    }
+    result.set(key, type);
+  });
+  if (result.size > MAX_MARKS) throw new Error(`单次最多可同步 ${MAX_MARKS} 条标记`);
+  return result;
+}
+
+async function applyMarkChanges(client, openid, input) {
+  const changes = normalizeMarkChanges(input);
+  if (!changes.size) return getMarks(client, openid);
+
+  const existing = await getMarks(client, openid);
+  const next = new Map(existing.map(row => [row.key, row.type]));
+  changes.forEach((type, key) => {
+    if (type === null) next.delete(key);
+    else next.set(key, type);
+  });
+  if (next.size > MAX_MARKS) throw new Error(`最多可同步 ${MAX_MARKS} 条标记`);
+
+  const deleted = [];
+  const upserts = [];
+  changes.forEach((type, key) => {
+    if (type === null) deleted.push(key);
+    else upserts.push({ openid, skin_key: key, mark_type: type });
+  });
+  if (deleted.length) {
+    const { error } = await client
+      .from('miniprogram_skin_marks')
+      .delete()
+      .eq('openid', openid)
+      .in('skin_key', deleted);
+    if (error) throw error;
+  }
+  if (upserts.length) {
+    const { error } = await client
+      .from('miniprogram_skin_marks')
+      .upsert(upserts, { onConflict: 'openid,skin_key' });
+    if (error) throw error;
+  }
+  return getMarks(client, openid);
 }
 
 async function replaceMarks(client, openid, marks) {
@@ -231,20 +316,25 @@ async function login(body) {
   try {
     const client = getClient();
     const previous = await getUser(client, session.openid);
-    const avatarUrl = avatar ? await uploadAvatar(client, session.openid, avatar) : (previous && previous.avatar_url) || '';
+    const avatarPath = avatar ? await uploadAvatar(client, avatar) : (previous && previous.avatar_path) || '';
     const row = {
       openid: session.openid,
       nickname: profile.nickname || (previous && previous.nickname) || '',
-      avatar_url: avatarUrl,
+      avatar_path: avatarPath,
     };
     const { data, error } = await client
       .from('miniprogram_users')
       .upsert(row, { onConflict: 'openid' })
-      .select('nickname,avatar_url')
+      .select('nickname,avatar_path')
       .maybeSingle();
     if (error) throw error;
+    if (avatar && previous && previous.avatar_path && previous.avatar_path !== avatarPath) {
+      removeAvatar(client, previous.avatar_path).catch(error => {
+        console.warn('[user login] previous avatar cleanup failed', error && error.message ? error.message : error);
+      });
+    }
     const marks = await getMarks(client, session.openid);
-    return ok({ token: issueToken(session.openid), profile: publicProfile(data || row), marks });
+    return ok({ token: issueToken(session.openid), profile: await publicProfile(client, data || row), marks });
   } catch (error) {
     console.error('[user login] database operation failed', error && error.message ? error.message : error);
     return fail('登录服务暂不可用', 503);
@@ -257,7 +347,7 @@ async function getCurrentUser(user) {
     const profile = await getUser(client, user.sub);
     if (!profile) return fail('用户不存在，请重新登录', 401);
     const marks = await getMarks(client, user.sub);
-    return ok({ profile: publicProfile(profile), marks });
+    return ok({ profile: await publicProfile(client, profile), marks });
   } catch (error) {
     console.error('[user me] database operation failed', error && error.message ? error.message : error);
     return fail('用户服务暂不可用', 503);
@@ -267,7 +357,10 @@ async function getCurrentUser(user) {
 async function syncMarks(user, body) {
   try {
     const client = getClient();
-    const marks = await replaceMarks(client, user.sub, body && body.marks);
+    const hasChanges = body && Object.prototype.hasOwnProperty.call(body, 'changes');
+    const marks = hasChanges
+      ? await applyMarkChanges(client, user.sub, body.changes)
+      : await replaceMarks(client, user.sub, body && body.marks);
     return ok({ marks });
   } catch (error) {
     if (error && /标记数据格式|最多可同步/.test(error.message || '')) return fail(error.message);
@@ -283,7 +376,9 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end();
 
   const path = (req.url || '/').split('?')[0];
-  const body = await readBody(req);
+  const parsedBody = await readBody(req);
+  if (parsedBody.tooLarge) return res.status(413).json({ error: '请求内容过大' });
+  const body = parsedBody.value;
   const send = response => res.status(response.statusCode).json(JSON.parse(response.body));
 
   if (path.endsWith('/login') && req.method === 'POST') return send(await login(body));
