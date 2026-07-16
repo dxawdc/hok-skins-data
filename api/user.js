@@ -14,6 +14,7 @@ const TOKEN_ISSUER = 'skinsdata-miniprogram';
 const TOKEN_AUDIENCE = 'skinsdata-miniprogram-user';
 const TOKEN_TTL = '30d';
 const MAX_MARKS = 2000;
+const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 
 function ok(data, status = 200) {
   return { statusCode: status, body: JSON.stringify(data) };
@@ -79,11 +80,33 @@ function trimText(value, max) {
 
 function normalizeProfile(profile) {
   const nickname = trimText(profile && profile.nickName, 80);
-  const avatarUrl = trimText(profile && profile.avatarUrl, 1000);
   return {
     nickname,
-    avatarUrl: /^https:\/\//.test(avatarUrl) ? avatarUrl : '',
+    avatarData: trimText(profile && profile.avatarData, Math.ceil(MAX_AVATAR_BYTES * 4 / 3) + 16),
   };
+}
+
+function parseAvatarData(value) {
+  if (!value) return null;
+  const encoded = String(value).replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '');
+  if (!encoded || !/^[A-Za-z0-9+/]+={0,2}$/.test(encoded)) throw new Error('头像数据格式无效');
+  const buffer = Buffer.from(encoded, 'base64');
+  if (!buffer.length || buffer.length > MAX_AVATAR_BYTES) throw new Error('头像图片不能超过 2MB');
+  if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) return { buffer, contentType: 'image/png', extension: 'png' };
+  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return { buffer, contentType: 'image/jpeg', extension: 'jpg' };
+  if (buffer.subarray(0, 4).toString() === 'RIFF' && buffer.subarray(8, 12).toString() === 'WEBP') return { buffer, contentType: 'image/webp', extension: 'webp' };
+  throw new Error('头像仅支持 PNG、JPG 或 WEBP 格式');
+}
+
+async function uploadAvatar(client, openid, avatar) {
+  const objectPath = `user-avatars/${encodeURIComponent(openid)}/avatar.${avatar.extension}`;
+  const { error } = await client.storage.from('skin-images').upload(objectPath, avatar.buffer, {
+    contentType: avatar.contentType,
+    cacheControl: '3600',
+    upsert: true,
+  });
+  if (error) throw error;
+  return client.storage.from('skin-images').getPublicUrl(objectPath).data.publicUrl;
 }
 
 function publicProfile(row) {
@@ -197,14 +220,22 @@ async function login(body) {
   }
   if (!session || !session.openid) return fail('微信登录验证失败', 401);
 
-  const profile = normalizeProfile(body && body.profile);
+  let profile;
+  let avatar;
+  try {
+    profile = normalizeProfile(body && body.profile);
+    avatar = parseAvatarData(profile.avatarData);
+  } catch (error) {
+    return fail(error && error.message ? error.message : '头像数据无效');
+  }
   try {
     const client = getClient();
     const previous = await getUser(client, session.openid);
+    const avatarUrl = avatar ? await uploadAvatar(client, session.openid, avatar) : (previous && previous.avatar_url) || '';
     const row = {
       openid: session.openid,
       nickname: profile.nickname || (previous && previous.nickname) || '',
-      avatar_url: profile.avatarUrl || (previous && previous.avatar_url) || '',
+      avatar_url: avatarUrl,
     };
     const { data, error } = await client
       .from('miniprogram_users')
