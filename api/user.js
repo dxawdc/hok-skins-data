@@ -151,22 +151,31 @@ function contentLength(req) {
   return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : null;
 }
 
+function existingRequestBody(req) {
+  try {
+    return req && req.body;
+  } catch {
+    return undefined;
+  }
+}
+
 function readRawBody(req, maxBytes) {
-  if (req.body !== undefined && req.body !== null) {
-    if (Buffer.isBuffer(req.body)) {
-      if (req.body.length > maxBytes) {
-        return Promise.reject(apiError(413, 'PAYLOAD_TOO_LARGE', '请求内容过大'));
-      }
-      return Promise.resolve(req.body);
-    }
-    if (typeof req.body === 'string') {
-      const body = Buffer.from(req.body, 'utf8');
+  const body = existingRequestBody(req);
+  if (body !== undefined && body !== null) {
+    if (Buffer.isBuffer(body)) {
       if (body.length > maxBytes) {
         return Promise.reject(apiError(413, 'PAYLOAD_TOO_LARGE', '请求内容过大'));
       }
       return Promise.resolve(body);
     }
-    if (typeof req.body.on === 'function') return readNodeStream(req.body, maxBytes);
+    if (typeof body === 'string') {
+      const encoded = Buffer.from(body, 'utf8');
+      if (encoded.length > maxBytes) {
+        return Promise.reject(apiError(413, 'PAYLOAD_TOO_LARGE', '请求内容过大'));
+      }
+      return Promise.resolve(encoded);
+    }
+    if (typeof body.on === 'function') return readNodeStream(body, maxBytes);
     return Promise.reject(apiError(400, 'INVALID_JSON', '请求内容不是有效的 JSON'));
   }
 
@@ -226,7 +235,8 @@ async function readJson(req) {
   // Some serverless adapters provide an already-parsed plain object even when
   // raw parsing is disabled. Reusing it avoids attempting to consume a stream
   // that the adapter has already finalized.
-  if (isPlainObject(req && req.body)) return req.body;
+  const parsedBody = existingRequestBody(req);
+  if (isPlainObject(parsedBody)) return parsedBody;
   const raw = await readRawBody(req, MAX_JSON_BYTES);
   if (!raw.length) throw apiError(400, 'INVALID_JSON', '请求内容不能为空');
   try {
