@@ -163,21 +163,19 @@ function fetchWechatAvatar(url, redirects = 0) {
   });
 }
 
-async function uploadAvatar(client, avatar) {
-  const objectPath = `avatars/${crypto.randomUUID()}.${avatar.extension}`;
+function avatarObjectPath(openid) {
+  return `avatars/${crypto.createHash('sha256').update(openid).digest('hex')}`;
+}
+
+async function uploadAvatar(client, openid, avatar) {
+  const objectPath = avatarObjectPath(openid);
   const { error } = await client.storage.from(USER_AVATAR_BUCKET).upload(objectPath, avatar.buffer, {
     contentType: avatar.contentType,
     cacheControl: '3600',
-    upsert: false,
+    upsert: true,
   });
   if (error) throw error;
   return objectPath;
-}
-
-async function removeAvatar(client, objectPath) {
-  if (!objectPath) return;
-  const { error } = await client.storage.from(USER_AVATAR_BUCKET).remove([objectPath]);
-  if (error) throw error;
 }
 
 async function publicProfile(client, row) {
@@ -337,7 +335,7 @@ async function replaceMarks(client, openid, marks) {
 
 async function saveUserProfile(client, openid, profile, avatar) {
   const previous = await getUser(client, openid);
-  const avatarPath = avatar ? await uploadAvatar(client, avatar) : (previous && previous.avatar_path) || '';
+  const avatarPath = avatar ? await uploadAvatar(client, openid, avatar) : (previous && previous.avatar_path) || '';
   const row = {
     openid,
     nickname: profile.nickname || (previous && previous.nickname) || '',
@@ -349,11 +347,6 @@ async function saveUserProfile(client, openid, profile, avatar) {
     .select('nickname,avatar_path,avatar_url')
     .maybeSingle();
   if (error) throw error;
-  if (avatar && previous && previous.avatar_path && previous.avatar_path !== avatarPath) {
-    removeAvatar(client, previous.avatar_path).catch(error => {
-      console.warn('[user profile] previous avatar cleanup failed', error && error.message ? error.message : error);
-    });
-  }
   return data || row;
 }
 
