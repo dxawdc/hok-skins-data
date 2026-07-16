@@ -103,19 +103,64 @@ function normalizeProfile(profile) {
   return {
     nickname,
     avatarData: trimText(profile && profile.avatarData, Math.ceil(MAX_AVATAR_BYTES * 4 / 3) + 16),
+    avatarUrl: trimText(profile && profile.avatarUrl, 2048),
   };
+}
+
+function parseAvatarBuffer(buffer) {
+  if (!buffer.length || buffer.length > MAX_AVATAR_BYTES) throw new Error('头像图片不能超过 2MB');
+  if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) return { buffer, contentType: 'image/png', extension: 'png' };
+  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return { buffer, contentType: 'image/jpeg', extension: 'jpg' };
+  if (buffer.subarray(0, 4).toString() === 'RIFF' && buffer.subarray(8, 12).toString() === 'WEBP') return { buffer, contentType: 'image/webp', extension: 'webp' };
+  throw new Error('头像仅支持 PNG、JPG 或 WEBP 格式');
 }
 
 function parseAvatarData(value) {
   if (!value) return null;
   const encoded = String(value).replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '');
   if (!encoded || !/^[A-Za-z0-9+/]+={0,2}$/.test(encoded)) throw new Error('头像数据格式无效');
-  const buffer = Buffer.from(encoded, 'base64');
-  if (!buffer.length || buffer.length > MAX_AVATAR_BYTES) throw new Error('头像图片不能超过 2MB');
-  if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) return { buffer, contentType: 'image/png', extension: 'png' };
-  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return { buffer, contentType: 'image/jpeg', extension: 'jpg' };
-  if (buffer.subarray(0, 4).toString() === 'RIFF' && buffer.subarray(8, 12).toString() === 'WEBP') return { buffer, contentType: 'image/webp', extension: 'webp' };
-  throw new Error('头像仅支持 PNG、JPG 或 WEBP 格式');
+  return parseAvatarBuffer(Buffer.from(encoded, 'base64'));
+}
+
+function isWechatAvatarUrl(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && (url.hostname === 'qlogo.cn' || url.hostname.endsWith('.qlogo.cn'));
+  } catch {
+    return false;
+  }
+}
+
+function fetchWechatAvatar(url, redirects = 0) {
+  if (!isWechatAvatarUrl(url)) return Promise.reject(new Error('微信头像地址无效'));
+  return new Promise((resolve, reject) => {
+    const req = https.get(url, { timeout: 8000 }, res => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location && redirects < 3) {
+        res.resume();
+        return fetchWechatAvatar(new URL(res.headers.location, url).toString(), redirects + 1).then(resolve, reject);
+      }
+      if (res.statusCode !== 200) {
+        res.resume();
+        return reject(new Error('微信头像服务响应异常'));
+      }
+      const chunks = [];
+      let size = 0;
+      res.on('data', chunk => {
+        size += chunk.length;
+        if (size > MAX_AVATAR_BYTES) {
+          req.destroy(new Error('头像图片不能超过 2MB'));
+          return;
+        }
+        chunks.push(chunk);
+      });
+      res.on('end', () => {
+        try { resolve(parseAvatarBuffer(Buffer.concat(chunks))); }
+        catch (error) { reject(error); }
+      });
+    });
+    req.on('timeout', () => req.destroy(new Error('微信头像下载超时')));
+    req.on('error', reject);
+  });
 }
 
 async function uploadAvatar(client, avatar) {
@@ -136,7 +181,7 @@ async function removeAvatar(client, objectPath) {
 }
 
 async function publicProfile(client, row) {
-  let avatarUrl = '';
+  let avatarUrl = row && row.avatar_url ? row.avatar_url : '';
   if (row && row.avatar_path) {
     const { data, error } = await client.storage
       .from(USER_AVATAR_BUCKET)
@@ -180,7 +225,7 @@ function requireUser(headers) {
 async function getUser(client, openid) {
   const { data, error } = await client
     .from('miniprogram_users')
-    .select('openid,nickname,avatar_path')
+    .select('openid,nickname,avatar_path,avatar_url')
     .eq('openid', openid)
     .maybeSingle();
   if (error) throw error;
@@ -313,6 +358,13 @@ async function login(body) {
   } catch (error) {
     return fail(error && error.message ? error.message : '头像数据无效');
   }
+  if (!avatar && profile.avatarUrl) {
+    try {
+      avatar = await fetchWechatAvatar(profile.avatarUrl);
+    } catch (error) {
+      console.warn('[user login] WeChat avatar fetch failed', error && error.message ? error.message : error);
+    }
+  }
   try {
     const client = getClient();
     const previous = await getUser(client, session.openid);
@@ -325,7 +377,7 @@ async function login(body) {
     const { data, error } = await client
       .from('miniprogram_users')
       .upsert(row, { onConflict: 'openid' })
-      .select('nickname,avatar_path')
+      .select('nickname,avatar_path,avatar_url')
       .maybeSingle();
     if (error) throw error;
     if (avatar && previous && previous.avatar_path && previous.avatar_path !== avatarPath) {
