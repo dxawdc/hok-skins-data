@@ -394,9 +394,16 @@ async function updateProfile(user, body) {
   try {
     profile = normalizeProfile(body && body.profile);
     avatar = parseAvatarData(profile.avatarData);
-    if (!avatar && profile.avatarUrl) avatar = await fetchWechatAvatar(profile.avatarUrl);
   } catch (error) {
     return fail(error && error.message ? error.message : '用户资料更新失败');
+  }
+  if (!avatar && profile.avatarUrl) {
+    try {
+      avatar = await fetchWechatAvatar(profile.avatarUrl);
+    } catch (error) {
+      // 头像拉取失败不能阻断昵称更新和收藏同步；下次登录会自动重试。
+      console.warn('[user profile] WeChat avatar fetch failed', error && error.message ? error.message : error);
+    }
   }
   try {
     const client = getClient();
