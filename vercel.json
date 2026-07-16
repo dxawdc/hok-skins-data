@@ -16,6 +16,7 @@
     { "src": "/api/skins",      "dest": "/api/skins.js" },
     { "src": "/api/heroes",     "dest": "/api/heroes.js" },
     { "src": "/api/resources",  "dest": "/api/resources.js" },
+    { "src": "/api/analytics",  "dest": "/api/analytics.js" },
     { "src": "/admin",         "dest": "/admin.html" },
     { "src": "/",              "dest": "/index.html" },
     { "src": "/(.*)",          "dest": "/index.html" }
