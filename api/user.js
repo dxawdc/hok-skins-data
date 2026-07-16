@@ -159,8 +159,8 @@ function existingRequestBody(req) {
   }
 }
 
-function readRawBody(req, maxBytes) {
-  const body = existingRequestBody(req);
+function readRawBody(req, maxBytes, providedBody) {
+  const body = arguments.length >= 3 ? providedBody : existingRequestBody(req);
   if (body !== undefined && body !== null) {
     if (Buffer.isBuffer(body)) {
       if (body.length > maxBytes) {
@@ -237,7 +237,7 @@ async function readJson(req) {
   // that the adapter has already finalized.
   const parsedBody = existingRequestBody(req);
   if (isPlainObject(parsedBody)) return parsedBody;
-  const raw = await readRawBody(req, MAX_JSON_BYTES);
+  const raw = await readRawBody(req, MAX_JSON_BYTES, parsedBody);
   if (!raw.length) throw apiError(400, 'INVALID_JSON', '请求内容不能为空');
   try {
     return JSON.parse(raw.toString('utf8'));
