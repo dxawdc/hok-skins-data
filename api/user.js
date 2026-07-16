@@ -72,7 +72,6 @@ function configureResponse(res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-MiniProgram-User-Api', 'v2-20260716');
 }
 
 function sendJson(res, status, body) {
@@ -779,45 +778,25 @@ async function publicProfile(client, row, options) {
 }
 
 async function login(req) {
-  let stage = 'config';
-  try {
-    requireLoginConfig();
-    stage = 'body';
-    const payload = await readJson(req);
-    stage = 'validation';
-    const body = normalizeLoginBody(payload);
-    stage = 'wechat';
-    const identity = validateWechatSession(await requestWechatSession(body.code));
-    stage = 'user';
-    const client = getClient();
-    const user = await findOrCreateUser(client, identity);
-    // Identity creation must not wait for a Storage signed-URL request. The
-    // client fetches the full profile in the background immediately afterwards.
-    stage = 'session';
-    const session = await createSession(client, user.id);
-    const profile = await publicProfile(client, user, { includeAvatarUrl: false });
-    return {
-      status: 201,
-      body: {
-        token: session.token,
-        expiresAt: session.expiresAt,
-        userId: user.id,
-        profile,
-        marksRevision: safeIntegerFromDatabase(user.marks_revision, 'marksRevision'),
-      },
-    };
-  } catch (error) {
-    if (error instanceof ApiError) throw error;
-    const errorMessage = String(error && error.message || '').toLowerCase();
-    const streamState = stage === 'body' && errorMessage.includes('not readable')
-      ? 'STREAM_NOT_READABLE'
-      : (stage === 'body' && errorMessage.includes('already') ? 'STREAM_ALREADY_USED' : '');
-    const type = streamState || String(error && error.name || 'Unexpected')
-      .replace(/[^A-Za-z0-9]/g, '')
-      .slice(0, 40)
-      .toUpperCase() || 'UNEXPECTED';
-    throw serviceError(`LOGIN_${stage.toUpperCase()}_${type}`, '登录服务暂不可用', error);
-  }
+  requireLoginConfig();
+  const body = normalizeLoginBody(await readJson(req));
+  const identity = validateWechatSession(await requestWechatSession(body.code));
+  const client = getClient();
+  const user = await findOrCreateUser(client, identity);
+  // Identity creation must not wait for a Storage signed-URL request. The
+  // client fetches the full profile in the background immediately afterwards.
+  const session = await createSession(client, user.id);
+  const profile = await publicProfile(client, user, { includeAvatarUrl: false });
+  return {
+    status: 201,
+    body: {
+      token: session.token,
+      expiresAt: session.expiresAt,
+      userId: user.id,
+      profile,
+      marksRevision: safeIntegerFromDatabase(user.marks_revision, 'marksRevision'),
+    },
+  };
 }
 
 async function revokeSession(client, auth) {
