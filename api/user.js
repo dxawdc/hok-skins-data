@@ -957,6 +957,12 @@ async function handler(req, res) {
 }
 
 module.exports = handler;
+// JSON and multipart bodies are parsed by the bounded readers above. Disabling
+// Vercel's eager parser prevents it from consuming multipart streams and keeps
+// the WeChat code request on the same deterministic path.
+module.exports.config = {
+  api: { bodyParser: false },
+};
 module.exports._private = {
   ApiError,
   applyMarkBatch,
