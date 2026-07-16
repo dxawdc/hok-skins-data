@@ -335,6 +335,28 @@ async function replaceMarks(client, openid, marks) {
   return getMarks(client, openid);
 }
 
+async function saveUserProfile(client, openid, profile, avatar) {
+  const previous = await getUser(client, openid);
+  const avatarPath = avatar ? await uploadAvatar(client, avatar) : (previous && previous.avatar_path) || '';
+  const row = {
+    openid,
+    nickname: profile.nickname || (previous && previous.nickname) || '',
+    avatar_path: avatarPath,
+  };
+  const { data, error } = await client
+    .from('miniprogram_users')
+    .upsert(row, { onConflict: 'openid' })
+    .select('nickname,avatar_path,avatar_url')
+    .maybeSingle();
+  if (error) throw error;
+  if (avatar && previous && previous.avatar_path && previous.avatar_path !== avatarPath) {
+    removeAvatar(client, previous.avatar_path).catch(error => {
+      console.warn('[user profile] previous avatar cleanup failed', error && error.message ? error.message : error);
+    });
+  }
+  return data || row;
+}
+
 async function login(body) {
   const configError = getConfigError();
   if (configError) return fail(configError, 503);
@@ -351,45 +373,38 @@ async function login(body) {
   if (!session || !session.openid) return fail('微信登录验证失败', 401);
 
   let profile;
+  try {
+    profile = normalizeProfile(body && body.profile);
+  } catch (error) {
+    return fail(error && error.message ? error.message : '用户资料无效');
+  }
+  try {
+    const client = getClient();
+    const row = await saveUserProfile(client, session.openid, profile, null);
+    return ok({ token: issueToken(session.openid), profile: await publicProfile(client, row) });
+  } catch (error) {
+    console.error('[user login] database operation failed', error && error.message ? error.message : error);
+    return fail('登录服务暂不可用', 503);
+  }
+}
+
+async function updateProfile(user, body) {
+  let profile;
   let avatar;
   try {
     profile = normalizeProfile(body && body.profile);
     avatar = parseAvatarData(profile.avatarData);
+    if (!avatar && profile.avatarUrl) avatar = await fetchWechatAvatar(profile.avatarUrl);
   } catch (error) {
-    return fail(error && error.message ? error.message : '头像数据无效');
-  }
-  if (!avatar && profile.avatarUrl) {
-    try {
-      avatar = await fetchWechatAvatar(profile.avatarUrl);
-    } catch (error) {
-      console.warn('[user login] WeChat avatar fetch failed', error && error.message ? error.message : error);
-    }
+    return fail(error && error.message ? error.message : '用户资料更新失败');
   }
   try {
     const client = getClient();
-    const previous = await getUser(client, session.openid);
-    const avatarPath = avatar ? await uploadAvatar(client, avatar) : (previous && previous.avatar_path) || '';
-    const row = {
-      openid: session.openid,
-      nickname: profile.nickname || (previous && previous.nickname) || '',
-      avatar_path: avatarPath,
-    };
-    const { data, error } = await client
-      .from('miniprogram_users')
-      .upsert(row, { onConflict: 'openid' })
-      .select('nickname,avatar_path,avatar_url')
-      .maybeSingle();
-    if (error) throw error;
-    if (avatar && previous && previous.avatar_path && previous.avatar_path !== avatarPath) {
-      removeAvatar(client, previous.avatar_path).catch(error => {
-        console.warn('[user login] previous avatar cleanup failed', error && error.message ? error.message : error);
-      });
-    }
-    const marks = await getMarks(client, session.openid);
-    return ok({ token: issueToken(session.openid), profile: await publicProfile(client, data || row), marks });
+    const row = await saveUserProfile(client, user.sub, profile, avatar);
+    return ok({ profile: await publicProfile(client, row) });
   } catch (error) {
-    console.error('[user login] database operation failed', error && error.message ? error.message : error);
-    return fail('登录服务暂不可用', 503);
+    console.error('[user profile] database operation failed', error && error.message ? error.message : error);
+    return fail('用户资料更新失败', 503);
   }
 }
 
@@ -439,6 +454,7 @@ module.exports = async function handler(req, res) {
   if (configError) return send(fail(configError, 503));
   const [user, authError] = requireUser(req.headers);
   if (authError) return send(authError);
+  if (path.endsWith('/profile') && req.method === 'POST') return send(await updateProfile(user, body));
   if (path.endsWith('/me') && req.method === 'GET') return send(await getCurrentUser(user));
   if (path.endsWith('/marks') && req.method === 'GET') return send(await getCurrentUser(user));
   if (path.endsWith('/marks') && req.method === 'POST') return send(await syncMarks(user, body));
