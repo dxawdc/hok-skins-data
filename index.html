@@ -453,6 +453,14 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
 /* ── RESOURCE MODULE STYLES ── */
 .res-grid-tm { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; padding: 20px 28px; }
 .res-grid-xb { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; padding: 20px 28px; }
+.res-grid-special { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; padding: 20px 28px; }
+.resource-filter-bar { justify-content: space-between; align-items: flex-end; gap: 16px; }
+.resource-filter-title { min-width: 180px; }
+.resource-page-title { font-family: 'Noto Serif SC', serif; font-size: 22px; font-weight: 900; color: var(--gold); line-height: 1.2; }
+.resource-page-sub { font-size: 12px; color: var(--text3); margin-top: 4px; }
+.resource-filter-main { display: flex; align-items: center; justify-content: flex-end; gap: 12px; flex: 1; flex-wrap: wrap; }
+.resource-type-chips { justify-content: flex-end; }
+.resource-search-box { max-width: 320px; }
 .res-card {
   background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius);
   cursor: pointer; transition: all 0.2s; overflow: hidden; display: flex; flex-direction: column;
@@ -467,17 +475,6 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
 .res-card:hover .res-card-img img { transform: scale(1.05); }
 .res-card-body { padding: 12px; flex: 1; display: flex; flex-direction: column; }
 .res-card-name { font-weight: 700; font-size: 14px; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-/* 盘点标题栏优化（为右上角按钮腾出空间） */
-.ranking-title-bar { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 6px; flex-wrap: wrap; gap: 10px; }
-/* 个性资源图鉴入口按钮 */
-.res-entry-btn {
-  background: rgba(201,168,76,0.12); color: var(--gold); border: 1px solid var(--border);
-  padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer;
-  transition: all 0.2s; display: inline-flex; align-items: center; gap: 4px;
-  white-space: nowrap; flex-shrink: 0; /* 关键：强制按钮在一行且不被挤压 */
-}
-.res-entry-btn:hover { background: rgba(201,168,76,0.2); border-color: var(--gold); }
 
 #loading { position: fixed; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; }
 .loading-title { font-family: 'Noto Serif SC', serif; font-size: 30px; font-weight: 900; background: linear-gradient(135deg, var(--gold-light), var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
@@ -511,7 +508,7 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
 
 /* BOTTOM NAV BAR */
 .bottom-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 90; background: var(--bg2); border-top: 1px solid var(--border); padding: 8px 0 max(8px, env(safe-area-inset-bottom)); flex-direction: row; }
-.bottom-nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; padding: 4px 0; color: var(--text3); transition: color 0.2s; font-size: 11px; font-weight: 500; }
+.bottom-nav-item { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; padding: 4px 0; color: var(--text3); transition: color 0.2s; font-size: 11px; font-weight: 500; }
 .bottom-nav-item .bn-icon { font-size: 20px; line-height: 1; }
 .bottom-nav-item.active { color: var(--gold); }
 .bottom-nav-item:active { opacity: 0.7; }
@@ -542,10 +539,14 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
   .header-stats { display: none; }
   .header-right { margin-left: auto; }
   .refresh-label { display: none; }
-  .theme-btn { padding: 3px 6px; font-size: 13px; }
-  .theme-btn span { display: none; }
+  .theme-btn { width: 28px; height: 26px; padding: 3px 0; font-size: 0; display: flex; align-items: center; justify-content: center; }
+  .theme-btn[data-t="light"]::before { content: "☀️"; font-size: 13px; }
+  .theme-btn[data-t="dark"]::before { content: "🌙"; font-size: 13px; }
+  .theme-btn[data-t="auto"]::before { content: "⚙️"; font-size: 13px; }
   .sidebar { display: none !important; }
   .bottom-nav { display: flex; }
+  .bottom-nav-item { font-size: 10px; }
+  .bottom-nav-item .bn-icon { font-size: 18px; }
   .main-content { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
   .app-layout { display: block; }
   .nav-tabs { display: none !important; } 
@@ -625,6 +626,11 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
   .contact-cards { grid-template-columns: 1fr; }
 
   /* 移动端资源模块适配 */
+  .resource-filter-bar { align-items: stretch; }
+  .resource-filter-title { width: 100%; }
+  .resource-filter-main { width: 100%; justify-content: flex-start; }
+  .resource-type-chips { width: 100%; justify-content: flex-start; }
+  .resource-search-box { width: 100%; max-width: none; flex-basis: 100%; }
   /* 1. 天幕保持一行2个 */
   .res-grid-tm { grid-template-columns: repeat(2, 1fr); padding: 10px 12px; gap: 12px; }
   .res-grid-tm .res-card-body { padding: 10px; }
@@ -634,6 +640,9 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
   .res-grid-xb { grid-template-columns: repeat(3, 1fr); padding: 10px 12px; gap: 6px; }
   .res-grid-xb .res-card-body { padding: 8px 6px; }
   .res-grid-xb .res-card-name { font-size: 12px; margin-bottom: 4px; gap: 4px; }
+  .res-grid-special { grid-template-columns: repeat(2, 1fr); padding: 10px 12px; gap: 10px; }
+  .res-grid-special .res-card-body { padding: 10px; }
+  .res-grid-special .res-card-name { font-size: 13px; }
   
   /* 缩小底部徽章、联动和日期的字号，防止由于卡片变窄导致文字溢出或强行换行 */
   .res-grid-xb .badge { padding: 1px 4px !important; font-size: 9px !important; }
@@ -669,6 +678,7 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
       <div class="nav-tab" id="tab-heroes" onclick="showView('heroes',this)">英雄皮肤</div>
       <div class="nav-tab" id="tab-series" onclick="showView('series',this)">皮肤套系</div>
       <div class="nav-tab" id="tab-ranking" onclick="showView('ranking',this)">皮肤盘点</div>
+      <div class="nav-tab" id="tab-resources" onclick="showView('resources',this)">个性资源</div>
       <div class="nav-tab" id="tab-stats" onclick="showView('stats',this)">统计分析</div>
       <div class="nav-tab" id="tab-mine" onclick="showView('mine',this)">我的收藏</div>
     </div>
@@ -703,6 +713,7 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
         <div class="sidebar-nav-item" id="snav-heroes" onclick="showView('heroes', null, 'heroes')">🎭 英雄皮肤</div>
         <div class="sidebar-nav-item" id="snav-series" onclick="showView('series', null, 'series')">🎨 皮肤套系</div>
         <div class="sidebar-nav-item" id="snav-ranking" onclick="showView('ranking', null, 'ranking')">🏆 皮肤盘点</div>
+        <div class="sidebar-nav-item" id="snav-resources" onclick="showView('resources', null, 'resources')">✨ 个性资源</div>
         <div class="sidebar-nav-item" id="snav-stats" onclick="showView('stats', null, 'stats')">📊 统计分析</div>
         <div class="sidebar-nav-item" id="snav-mine" onclick="showView('mine', null, 'mine')">⭐ 我的收藏</div>
         <div class="sidebar-nav-item" id="snav-contact" onclick="showView('contact', null, 'contact')">📬 联系我们</div>
@@ -878,22 +889,26 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
     <div class="ranking-wrap" id="ranking-content"></div>
   </div>
   
-  <!-- 资源盘点视图 -->
+  <!-- 个性资源视图 -->
   <div id="view-resources" class="view">
     <div id="resources-list-wrap">
-      <div class="filter-bar" style="justify-content: space-between;">
-        <div style="display:flex; gap: 16px; align-items: center; flex-wrap: wrap;">
-          <a style="cursor:pointer; color:var(--text3); font-size:14px; font-weight:500; white-space: nowrap; flex-shrink: 0;" onclick="closeResourcesView()">
-            ← 返回盘点
-          </a>
-          <div class="filter-chips">
-            <div class="chip active" id="chip-res-tm" onclick="setResType('天幕')">🌌 天幕</div>
-            <div class="chip" id="chip-res-xb" onclick="setResType('小兵')">🛡️ 小兵</div>
-          </div>
+      <div class="filter-bar resource-filter-bar">
+        <div class="resource-filter-title">
+          <div class="resource-page-title">✨ 个性资源</div>
+          <div class="resource-page-sub">天幕、小兵、星传说、星元套装与元流套装</div>
         </div>
-        <div class="search-box" style="max-width: none;">
-          <span class="icon">🔍</span>
-          <input type="text" id="search-res" placeholder="搜索资源..." oninput="filterResources()">
+        <div class="resource-filter-main">
+          <div class="filter-chips resource-type-chips" id="resource-type-chips">
+            <div class="chip active" data-res-type="天幕" onclick="setResType('天幕')">🌌 天幕</div>
+            <div class="chip" data-res-type="小兵" onclick="setResType('小兵')">🛡️ 小兵</div>
+            <div class="chip" data-res-type="星传说" onclick="setResType('星传说')">✨ 星传说</div>
+            <div class="chip" data-res-type="星元套装" onclick="setResType('星元套装')">🎨 星元套装</div>
+            <div class="chip" data-res-type="元流套装" onclick="setResType('元流套装')">🧩 元流套装</div>
+          </div>
+          <div class="search-box resource-search-box">
+            <span class="icon">🔍</span>
+            <input type="text" id="search-res" placeholder="搜索资源 / 皮肤 / 英雄..." oninput="filterResources()">
+          </div>
         </div>
       </div>
       <div id="resource-grid"></div>
@@ -1037,6 +1052,9 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
     <div class="bottom-nav-item" id="bnav-ranking" onclick="showView('ranking',null,'ranking');setBottomNav('ranking')">
       <span class="bn-icon">🏆</span>盘点
     </div>
+    <div class="bottom-nav-item" id="bnav-resources" onclick="showView('resources',null,'resources');setBottomNav('resources')">
+      <span class="bn-icon">✨</span>资源
+    </div>
     <div class="bottom-nav-item" id="bnav-stats" onclick="showView('stats',null,'stats');setBottomNav('stats')">
       <span class="bn-icon">📊</span>统计
     </div>
@@ -1056,7 +1074,7 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 // ── 数据拉取：走 Cloudflare CDN 缓存 ──────────────────────────
 const CACHE_KEY       = 'wzry_skin_data_v7';   // v7: 新增 valuePoints 字段（皮肤价值点券），用于「我的」页估值
 const CACHE_KEY_HERO  = 'wzry_hero_data_v1';
-const CACHE_KEY_RES   = 'wzry_res_data_v2';
+const CACHE_KEY_RES   = 'wzry_res_data_v3';
 const CACHE_TTL       = 30 * 60 * 1000;
 const HERO_CACHE_TTL  = 2  * 60 * 60 * 1000;
 const RES_CACHE_TTL   = 30 * 60 * 1000;
@@ -1068,6 +1086,13 @@ let HERO_BY_ID   = {};
 let HERO_BY_NAME = {};   
 let RESOURCES = [];
 let currentResType = '天幕';
+const RESOURCE_TYPE_CONFIG = [
+  { type: '天幕', icon: '🌌', gridClass: 'res-grid-tm', imageClass: 'tm' },
+  { type: '小兵', icon: '🛡️', gridClass: 'res-grid-xb', imageClass: 'xb' },
+  { type: '星传说', icon: '✨', gridClass: 'res-grid-special', imageClass: 'xb' },
+  { type: '星元套装', icon: '🎨', gridClass: 'res-grid-special', imageClass: 'xb' },
+  { type: '元流套装', icon: '🧩', gridClass: 'res-grid-special', imageClass: 'xb' },
+];
 
 async function fetchAllHeroes() {
   try {
@@ -1305,6 +1330,7 @@ window.onload = async () => {
     filterHeroList();
     renderHeroGrid();
     renderStats();
+    if (document.getElementById('view-resources')?.classList.contains('active')) filterResources();
 
     const total = RAW.length.toLocaleString();
     const heroes = HEROES.length; 
@@ -1351,6 +1377,7 @@ async function refreshData() {
     filterHeroList();
     renderHeroGrid();
     renderStats();
+    if (document.getElementById('view-resources')?.classList.contains('active')) filterResources();
 
     const total = RAW.length.toLocaleString();
     const heroes = HEROES.length; 
@@ -1406,6 +1433,7 @@ function showView(v, el, snavId) {
     }, 50);
   }
   if (v === 'ranking') renderRanking();
+  if (v === 'resources') openResourcesView();
   if (v === 'series') { backToSeriesList(); renderSeriesGrid(); }
   if (v === 'mine') renderMine();
 }
@@ -2936,12 +2964,7 @@ function renderRanking() {
 
   document.getElementById('ranking-content').innerHTML = `
     <div class="ranking-wrap">
-      <!-- 第一排：标题和按钮同行居中对齐 -->
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-        <div class="ranking-title" style="margin-bottom: 0;">🏆 皮肤盘点</div>
-        <button class="res-entry-btn" onclick="openResourcesView()">✨ 个性资源图鉴 →</button>
-      </div>
-      <!-- 第二排：原汁原味的副标题 -->
+      <div class="ranking-title">🏆 皮肤盘点</div>
       <div class="ranking-sub">按英雄皮肤总数排名 · 皮肤按首发时间由早到晚排列 · 点击皮肤可查看详情</div>
       
       <div class="ranking-table-wrap" id="ranking-table-wrap"></div>
@@ -3032,8 +3055,6 @@ function goRankingPage(p) {
 
 // ── Resource Logic ──────────────────────────────────────────────────
 async function openResourcesView() {
-  document.getElementById('view-ranking').classList.remove('active');
-  document.getElementById('view-resources').classList.add('active');
   if (!RESOURCES.length) {
     const grid = document.getElementById('resource-grid');
     if (grid) {
@@ -3048,18 +3069,51 @@ async function openResourcesView() {
       return;
     }
   }
-  setResType('天幕');
+  if (!RESOURCE_TYPE_CONFIG.some(config => config.type === currentResType)) currentResType = '天幕';
+  syncResourceTypeChips();
+  document.getElementById('resource-detail-wrap').style.display = 'none';
+  document.getElementById('resources-list-wrap').style.display = 'block';
+  filterResources();
 }
 
 function closeResourcesView() {
-  document.getElementById('view-resources').classList.remove('active');
-  document.getElementById('view-ranking').classList.add('active');
+  showView('ranking', document.getElementById('tab-ranking'), 'ranking');
+}
+
+function resourceTypeConfig(type) {
+  return RESOURCE_TYPE_CONFIG.find(config => config.type === type) || RESOURCE_TYPE_CONFIG[0];
+}
+
+function syncResourceTypeChips() {
+  document.querySelectorAll('[data-res-type]').forEach(chip => {
+    chip.classList.toggle('active', chip.dataset.resType === currentResType);
+  });
+}
+
+function resourceGroupKey(resource) {
+  const skinId = resource.skin_profile_id || resource.skin_profile?.id || '';
+  return [resource.source_category || 'resource', resource.type || '', resource.name || '', skinId].join('|');
+}
+
+function resourceSearchText(resource) {
+  const skin = resource.skin_profile || {};
+  return [
+    resource.name,
+    resource.type,
+    resource.quality,
+    resource.tag,
+    resource.obtain,
+    resource.price,
+    resource.collab,
+    resource.notes,
+    skin.name,
+    skin.hero,
+  ].map(value => String(value || '').toLowerCase()).join(' ');
 }
 
 function setResType(type) {
   currentResType = type;
-  document.getElementById('chip-res-tm').classList.toggle('active', type === '天幕');
-  document.getElementById('chip-res-xb').classList.toggle('active', type === '小兵');
+  syncResourceTypeChips();
   document.getElementById('resource-detail-wrap').style.display = 'none';
   document.getElementById('resources-list-wrap').style.display = 'block';
   document.getElementById('search-res').value = '';
@@ -3068,57 +3122,59 @@ function setResType(type) {
 
 function filterResources() {
   const kw = (document.getElementById('search-res').value || '').toLowerCase();
-  // 1. 先过滤出当前类型（天幕/小兵）并匹配搜索词的记录
-  const resFiltered = RESOURCES.filter(r => r.type === currentResType && (!kw || r.name.toLowerCase().includes(kw)));
+  const resFiltered = RESOURCES.filter(r => r.type === currentResType && (!kw || resourceSearchText(r).includes(kw)));
   
-  // 2. 按名称聚合，同名资源合并为一项，准备展示时间线
   const groupedMap = new Map();
   resFiltered.forEach(r => {
-    if (!groupedMap.has(r.name)) groupedMap.set(r.name, []);
-    groupedMap.get(r.name).push(r);
+    const key = resourceGroupKey(r);
+    if (!groupedMap.has(key)) groupedMap.set(key, []);
+    groupedMap.get(key).push(r);
   });
 
-  // 3. 提取每组数据的“首发”记录作为主显数据
   const groupedList = Array.from(groupedMap.values()).map(records => {
-    // 按时间先后排序
     records.sort((a,b) => a.date > b.date ? 1 : -1);
     const first = records.find(x => x.release_type === '首发') || records[0];
+    const latest = records[records.length - 1] || first;
     return {
-      ...first,        // 继承首发信息（如名称、品质、获取方式）
-      records: records // 挂载所有记录（供详情页时间线使用）
+      ...first,
+      date: latest?.date || first?.date || '',
+      first_date: first?.date || '',
+      group_key: resourceGroupKey(first),
+      records,
     };
   });
 
-  // 4. 列表整体按照最新时间倒序排列
-  groupedList.sort((a,b) => b.date > a.date ? 1 : -1);
+  groupedList.sort((a,b) => String(b.date || '').localeCompare(String(a.date || '')));
 
   renderResourceGrid(groupedList);
 }
 
 function renderResourceGrid(list) {
   const grid = document.getElementById('resource-grid');
-  grid.className = currentResType === '天幕' ? 'res-grid-tm' : 'res-grid-xb';
+  const config = resourceTypeConfig(currentResType);
+  grid.className = config.gridClass;
   
   if (!list.length) {
     grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
-      <div class="icon">🌌</div><p>未找到匹配的${currentResType}</p>
+      <div class="icon">${config.icon}</div><p>未找到匹配的${currentResType}</p>
     </div>`;
     return;
   }
   
   grid.innerHTML = list.map(r => {
-    // 核心修复：移除 ?width 和 quality 参数，直接获取原始图片，避免服务器强制裁剪
     const imgSrc = r.img_url ? toCdnUrl(r.img_url) : null;
     const tagImgSrc = r.tag_img_url ? toCdnUrl(r.tag_img_url) : null;
+    const skin = r.skin_profile || {};
+    const primaryBadge = r.quality || r.display_type || r.type || '资源';
+    const firstDate = r.first_date || r.records?.find(x => x.release_type === '首发')?.date || r.date || '';
     const tagInlineHtml = r.tag
       ? (tagImgSrc
         ? `<span style="height:18px; max-width:86px; display:flex; align-items:center; flex-shrink:0; margin-top:2px;" title="${esc(r.tag)}"><img src="${tagImgSrc}" loading="lazy" style="max-height:18px; max-width:100%; object-fit:contain;" alt="${esc(r.tag)}"></span>`
         : `<span class="badge" style="background:rgba(201,168,76,0.15); color:var(--gold); border:1px solid rgba(201,168,76,0.3); font-size:10px; padding:2px 5px; max-width:86px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex-shrink:0; margin-top:2px;" title="${esc(r.tag)}">${escapeHtml(r.tag)}</span>`)
       : '';
     
-    return `<div class="res-card" onclick="openResDetail('${esc(r.name)}')">
-      <div class="res-card-img ${currentResType === '天幕' ? 'tm' : 'xb'}">
-        <!-- 使用 object-fit: contain 保证列表页也能查看到 100% 完整的全图内容 -->
+    return `<div class="res-card" onclick="openResDetail('${esc(r.group_key || resourceGroupKey(r))}')">
+      <div class="res-card-img ${config.imageClass}">
         ${imgSrc ? `<img src="${imgSrc}" loading="lazy" style="object-fit:contain; width:100%; height:100%;">` : `<div style="font-size:28px">✨</div>`}
       </div>
       <div class="res-card-body">
@@ -3126,18 +3182,25 @@ function renderResourceGrid(list) {
           <span style="flex:1; line-height:1.4; word-break:break-word;">${escapeHtml(r.name)}</span>
           ${tagInlineHtml}
         </div>
+        ${skin.name ? `<div style="font-size:11px;color:var(--gold-light);margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(skin.hero || '')}${skin.hero ? ' · ' : ''}${escapeHtml(skin.name)}</div>` : ''}
         <div style="display:flex; align-items:center; justify-content:space-between; margin-top:auto;">
-          <!-- 统一品质配色：直接复用皮肤的 badge-{quality} 样式 -->
-          <span class="badge badge-${r.quality||'无'}" style="font-size:11px;">${escapeHtml(r.quality)||'—'}</span>
-          <span style="font-size:11px; color:var(--text3);">${escapeHtml(r.date)||'—'}</span>
+          <span class="badge badge-${primaryBadge}" style="font-size:11px;">${escapeHtml(primaryBadge)}</span>
+          <span style="font-size:11px; color:var(--text3);">${escapeHtml(firstDate)||'—'}</span>
         </div>
       </div>
     </div>`;
   }).join('');
 }
 
-function openResDetail(name) {
-  const records = RESOURCES.filter(x => x.name === name && x.type === currentResType).sort((a,b) => a.date > b.date ? 1 : -1);
+function resourceAttr(label, value, options = {}) {
+  if (!value && !options.keepEmpty) return '';
+  return `<div class="attr-item"${options.full ? ' style="grid-column:1/-1"' : ''}><label>${label}</label><div class="val"${options.style ? ` style="${options.style}"` : ''}>${value || '—'}</div></div>`;
+}
+
+function openResDetail(groupKey) {
+  const records = RESOURCES
+    .filter(x => resourceGroupKey(x) === groupKey)
+    .sort((a,b) => a.date > b.date ? 1 : -1);
   if (!records.length) return;
   
   const first = records.find(x => x.release_type === '首发') || records[0];
@@ -3148,15 +3211,21 @@ function openResDetail(name) {
   const wrap = document.getElementById('resource-detail-wrap');
   wrap.style.display = 'block';
   
-  const isTm = first.type === '天幕';
-  // 核心修复：同样移除宽高参数，请求原图，保证详情页全貌显示
+  const config = resourceTypeConfig(first.type);
+  const isWide = config.imageClass === 'tm';
   const imgSrc = first.img_url ? toCdnUrl(first.img_url) : null;
   const tagImgSrc = first.tag_img_url ? toCdnUrl(first.tag_img_url) : null;
+  const skin = first.skin_profile || {};
   const tagDetailHtml = first.tag
     ? (tagImgSrc
       ? `<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;"><img src="${tagImgSrc}" style="height:28px;max-width:100%;object-fit:contain;" alt="${esc(first.tag)}"><span>${escapeHtml(first.tag)}</span></div>`
       : first.tag)
     : '无';
+  const qualityHtml = first.quality ? `<span class="badge badge-${first.quality}" style="border:none;">${escapeHtml(first.quality)}</span>` : '';
+  const skinHtml = skin.name
+    ? `<span style="color:var(--gold-light)">${escapeHtml(skin.hero || '—')}</span> · ${escapeHtml(skin.name)}`
+    : '';
+  const permanentHtml = first.permanent ? `<span class="badge badge-${first.permanent}">${escapeHtml(first.permanent)}</span>` : '';
   
   wrap.innerHTML = `
     <div class="hero-detail-header">
@@ -3168,8 +3237,7 @@ function openResDetail(name) {
       <div class="skin-detail-card">
         
         <div class="skin-detail-top" style="flex-direction: ${isMobile() ? 'column' : 'row'};">
-          <!-- 容器锁定 21:10 比例，图片使用 object-fit: contain 居中显示全貌 -->
-          <div class="skin-detail-img-wrap" style="width:${isMobile()?'100%':(isTm?'460px':'240px')}; aspect-ratio:${isTm?'21/10':'1/1'}; padding:10px; background:var(--bg4); display:flex; align-items:center; justify-content:center;">
+          <div class="skin-detail-img-wrap" style="width:${isMobile()?'100%':(isWide?'460px':'260px')}; aspect-ratio:${isWide?'21/10':'1/1'}; padding:10px; background:var(--bg4); display:flex; align-items:center; justify-content:center;">
             ${imgSrc 
               ? `<img src="${imgSrc}" style="width:100%; height:100%; object-fit:contain; border-radius:8px; box-shadow:var(--shadow);">` 
               : `<div style="font-size:50px; color:var(--text3);">✨</div>`}
@@ -3182,15 +3250,16 @@ function openResDetail(name) {
             </div>
             
             <div class="skin-detail-attrs">
-              <!-- 统一品质配色：直接复用皮肤的 badge-{quality} 样式 -->
-              <div class="attr-item"><label>资源品质</label><div class="val"><span class="badge badge-${first.quality||'无'}" style="border:none;">${escapeHtml(first.quality)||'未知'}</span></div></div>
-              <div class="attr-item"><label>首发日期</label><div class="val" style="color:var(--green)">${escapeHtml(first.date)||'—'}</div></div>
-              <div class="attr-item"><label>获取方式</label><div class="val" style="font-size:12px;color:var(--text2)">${escapeHtml(first.obtain)||'—'}</div></div>
-              <div class="attr-item"><label>首发价格</label><div class="val" style="color:var(--gold)">${escapeHtml(first.price)||'—'}</div></div>
-              <div class="attr-item"><label>是否常驻</label><div class="val"><span class="badge badge-${first.permanent||'否'}">${escapeHtml(first.permanent)||'否'}</span></div></div>
-              <div class="attr-item"><label>资源标签</label><div class="val" style="font-size:12px;">${tagDetailHtml}</div></div>
-              <div class="attr-item"><label>返场次数</label><div class="val" style="color:var(--accent2);font-size:20px;font-weight:700">${returns.length}</div></div>
-              ${latestReturn ? `<div class="attr-item" style="grid-column:1/-1"><label>最近返场</label><div class="val" style="color:var(--gold)">${escapeHtml(latestReturn.date)} · ${escapeHtml(latestReturn.obtain)}</div></div>` : ''}
+              ${resourceAttr('资源类型', `<span class="badge">${escapeHtml(first.type)}</span>`, { keepEmpty: true })}
+              ${qualityHtml ? resourceAttr('资源品质', qualityHtml) : ''}
+              ${skinHtml ? resourceAttr('归属皮肤', skinHtml, { full: true }) : ''}
+              ${resourceAttr('首发日期', escapeHtml(first.date), { style: 'color:var(--green)', keepEmpty: true })}
+              ${resourceAttr('获取方式', escapeHtml(first.obtain), { style: 'font-size:12px;color:var(--text2)', keepEmpty: true })}
+              ${resourceAttr('首发价格', escapeHtml(first.price), { style: 'color:var(--gold)', keepEmpty: true })}
+              ${permanentHtml ? resourceAttr('是否常驻', permanentHtml) : ''}
+              ${first.tag || tagImgSrc ? resourceAttr('资源标签', tagDetailHtml, { style: 'font-size:12px;' }) : ''}
+              ${resourceAttr('返场次数', returns.length, { style: 'color:var(--accent2);font-size:20px;font-weight:700', keepEmpty: true })}
+              ${latestReturn ? resourceAttr('最近返场', `${escapeHtml(latestReturn.date)} · ${escapeHtml(latestReturn.obtain)}${latestReturn.price ? ' · ' + escapeHtml(latestReturn.price) : ''}`, { style: 'color:var(--gold)', full: true }) : ''}
             </div>
           </div>
         </div>
@@ -3210,7 +3279,7 @@ function openResDetail(name) {
               return `<div class="timeline-item ${r.release_type === '首发' ? 'first' : 'return'}${isLatest ? ' latest' : ''}">
                 <div class="timeline-date">${escapeHtml(r.date)}</div>
                 <div class="timeline-label">${r.release_type === '首发' ? '🌟 首发上线' : `🔄 第 ${retIdx} 次返场`}</div>
-                <div class="timeline-obtain">${escapeHtml(r.obtain)||'—'}${r.release_type === '首发' && r.price ? ' · ' + escapeHtml(r.price) : ''}</div>
+                <div class="timeline-obtain">${escapeHtml(r.obtain)||'—'}${r.price ? ' · ' + escapeHtml(r.price) : ''}</div>
                 ${isLatest ? '<div class="timeline-latest-tag">最近</div>' : ''}
               </div>`;
             }).join('')}
