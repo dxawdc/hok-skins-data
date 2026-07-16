@@ -168,6 +168,20 @@ function readRawBody(req, maxBytes, providedBody) {
       }
       return Promise.resolve(body);
     }
+    if (ArrayBuffer.isView(body)) {
+      const encoded = Buffer.from(body.buffer, body.byteOffset, body.byteLength);
+      if (encoded.length > maxBytes) {
+        return Promise.reject(apiError(413, 'PAYLOAD_TOO_LARGE', '请求内容过大'));
+      }
+      return Promise.resolve(encoded);
+    }
+    if (body instanceof ArrayBuffer) {
+      const encoded = Buffer.from(body);
+      if (encoded.length > maxBytes) {
+        return Promise.reject(apiError(413, 'PAYLOAD_TOO_LARGE', '请求内容过大'));
+      }
+      return Promise.resolve(encoded);
+    }
     if (typeof body === 'string') {
       const encoded = Buffer.from(body, 'utf8');
       if (encoded.length > maxBytes) {
