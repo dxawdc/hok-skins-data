@@ -725,8 +725,10 @@ async function login(req) {
   let stage = 'config';
   try {
     requireLoginConfig();
-    stage = 'request';
-    const body = normalizeLoginBody(await readJson(req));
+    stage = 'body';
+    const payload = await readJson(req);
+    stage = 'validation';
+    const body = normalizeLoginBody(payload);
     stage = 'wechat';
     const identity = validateWechatSession(await requestWechatSession(body.code));
     stage = 'user';
