@@ -254,8 +254,9 @@ function normalizeNickname(value) {
 
 function normalizeLoginBody(value) {
   const body = requireObject(value, ['code']);
-  if (typeof body.code !== 'string' || body.code.length < 1 || body.code.length > 256
-    || body.code.trim() !== body.code || /\s/.test(body.code)) {
+  // wx.login codes are opaque, non-whitespace ASCII-like tokens. A single
+  // expression avoids calling methods on framework-parsed request values.
+  if (typeof body.code !== 'string' || !/^[^\s]{1,256}$/.test(body.code)) {
     throw apiError(400, 'INVALID_WECHAT_CODE', '微信登录凭证无效');
   }
   return { code: body.code };
