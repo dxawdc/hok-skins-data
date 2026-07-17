@@ -3127,29 +3127,28 @@ function setResType(type) {
 
 function filterResources() {
   const kw = (document.getElementById('search-res').value || '').toLowerCase();
-  const resFiltered = RESOURCES.filter(r => r.type === currentResType && (!kw || resourceSearchText(r).includes(kw)));
+  const typeResources = RESOURCES.filter(r => r.type === currentResType);
   
   const groupedMap = new Map();
-  resFiltered.forEach(r => {
+  typeResources.forEach(r => {
     const key = resourceGroupKey(r);
     if (!groupedMap.has(key)) groupedMap.set(key, []);
     groupedMap.get(key).push(r);
   });
 
-  const groupedList = Array.from(groupedMap.values()).map(records => {
+  let groupedList = Array.from(groupedMap.values()).map(records => {
     records.sort((a,b) => a.date > b.date ? 1 : -1);
     const first = records.find(x => x.release_type === '首发') || records[0];
-    const latest = records[records.length - 1] || first;
     return {
       ...first,
-      date: latest?.date || first?.date || '',
       first_date: first?.date || '',
       group_key: resourceGroupKey(first),
       records,
     };
   });
 
-  groupedList.sort((a,b) => String(b.date || '').localeCompare(String(a.date || '')));
+  if (kw) groupedList = groupedList.filter(group => group.records.some(resource => resourceSearchText(resource).includes(kw)));
+  groupedList.sort((a,b) => String(b.first_date || '').localeCompare(String(a.first_date || '')));
 
   renderResourceGrid(groupedList);
 }
