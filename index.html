@@ -341,6 +341,33 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
 }
 .skin-detail-img-wrap img { width: auto; height: auto; max-width: 100%; max-height: 100%; object-fit: contain; image-rendering: pixelated; }
 .skin-detail-img-wrap .img-ph { font-size: 48px; color: var(--text3); }
+.resource-detail-round-cover {
+  width: 260px; height: 260px; min-height: 0; padding: 10px; box-sizing: border-box;
+  border-radius: 50%; border: 1px solid var(--gold-dark); margin: 0 auto;
+}
+.resource-detail-round-cover img { width: 100%; height: 100%; border-radius: 50%; object-fit: contain; }
+.resource-skin-link {
+  display: inline-flex; align-items: center; gap: 6px; padding: 0; border: 0; background: transparent;
+  color: var(--gold-light); font: inherit; cursor: pointer; text-align: left;
+}
+.resource-skin-link:hover { color: var(--gold); text-decoration: underline; }
+.resource-skin-link-arrow { color: var(--gold); font-size: 15px; }
+.skin-related-res { padding: 20px 22px; border-top: 1px solid var(--border); }
+.skin-related-title { font-size: 14px; color: var(--text3); font-weight: 600; margin-bottom: 12px; }
+.skin-related-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
+.skin-related-card {
+  display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid var(--border);
+  border-radius: 10px; background: var(--bg4); cursor: pointer; transition: border-color .2s, background .2s;
+}
+.skin-related-card:hover { border-color: var(--gold); background: rgba(201,168,76,.08); }
+.skin-related-img {
+  width: 56px; height: 56px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  overflow: hidden; border-radius: 50%; background: var(--bg2); border: 1px solid var(--gold-dark); color: var(--gold);
+}
+.skin-related-img img { width: 100%; height: 100%; object-fit: contain; }
+.skin-related-info { min-width: 0; flex: 1; }
+.skin-related-name { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.skin-related-meta { margin-top: 4px; color: var(--text3); font-size: 11px; }
 .skin-detail-info { padding: 22px; flex: 1; min-width: 0; }
 .skin-detail-name { font-family: 'Noto Serif SC', serif; font-size: 24px; font-weight: 900; margin-bottom: 5px; }
 .skin-detail-hero { font-size: 14px; color: var(--text2); margin-bottom: 16px; }
@@ -595,6 +622,7 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
   .skin-detail-wrap { padding: 12px; }
   .skin-detail-top { flex-direction: column; }
   .skin-detail-img-wrap { width: 100%; height: 160px; min-height: unset; }
+  .resource-detail-round-cover { width: min(72vw, 280px); height: min(72vw, 280px); }
   .skin-detail-info { padding: 14px; }
   .skin-detail-name { font-size: 20px; }
   .skin-detail-attrs { grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -2240,6 +2268,25 @@ function backToSeriesList() {
   if (listWrap) listWrap.style.display = 'block';
 }
 
+function relatedStarResources(hero, skinName) {
+  const allowedTypes = new Set(['星传说', '星传说·典藏', '星元套装']);
+  const groups = {};
+  RESOURCES.forEach(resource => {
+    if (!allowedTypes.has(resource.type)) return;
+    const skin = resource.skin_profile || {};
+    const resourceHero = skin.hero || resource.skinHero || '';
+    const resourceSkin = skin.name || resource.skinName || '';
+    if (resourceHero !== hero || resourceSkin !== skinName) return;
+    const key = resourceGroupKey(resource);
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(resource);
+  });
+  return Object.keys(groups).map(key => {
+    const records = groups[key].slice().sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
+    return { key, first: records.find(item => item.release_type === '首发') || records[0] };
+  }).sort((a, b) => String(b.first.date || '').localeCompare(String(a.first.date || '')));
+}
+
 function openSkinDetail(hero, skinName) {
   document.getElementById('heroes-list-wrap').style.display='none';
   const records = RAW.filter(r=>r.hero===hero && r.name===skinName).sort((a,b)=>a.date>b.date?1:-1);
@@ -2250,7 +2297,12 @@ function openSkinDetail(hero, skinName) {
   const skinImgSrc = fullUrl(first.si || records.find(r=>r.si)?.si || null);
   const qImgSrc = first.qi || records.find(r=>r.qi)?.qi || null;
   const tagImgUrl = thumbUrl(qImgSrc, 120);
+  const skinTag = String(first.tag || '').trim();
+  const skinTagHtml = tagImgUrl
+    ? `<img src="${tagImgUrl}" style="height:20px;object-fit:contain;image-rendering:pixelated" alt="${escapeHtml(skinTag)}">${skinTag ? `<span style="font-size:12px;color:var(--text2)">${escapeHtml(skinTag)}</span>` : ''}`
+    : `<span style="font-size:12px;color:var(--text2)">${escapeHtml(skinTag)}</span>`;
   const series = skinSeriesList(first);
+  const relatedResources = relatedStarResources(hero, skinName);
   const wrap = document.getElementById('hero-detail-wrap');
   wrap.style.display='block';
   wrap.innerHTML = `
@@ -2283,12 +2335,7 @@ function openSkinDetail(hero, skinName) {
               <div class="attr-item"><label>皮肤品质</label><div class="val">
                 <span class="badge badge-${first.quality}">${escapeHtml(first.quality)}</span>
               </div></div>
-              <div class="attr-item"><label>皮肤标签</label><div class="val" style="display:flex;align-items:center;gap:6px">
-                ${tagImgUrl
-                  ? `<img src="${tagImgUrl}" style="height:20px;object-fit:contain;image-rendering:pixelated" alt="${escapeHtml(first.tag)}">`
-                  : ''}
-                <span style="font-size:12px;color:var(--text2)">${escapeHtml(first.tag)}</span>
-              </div></div>
+              ${(skinTag || tagImgUrl) ? `<div class="attr-item"><label>皮肤标签</label><div class="val" style="display:flex;align-items:center;gap:6px">${skinTagHtml}</div></div>` : ''}
               <div class="attr-item"><label>首发日期</label><div class="val" style="color:var(--green)">${escapeHtml(first.date)}</div></div>
               <div class="attr-item"><label>首发价格</label><div class="val">${first.price&&first.price!=='/'&&first.price!=='nan'?escapeHtml(first.price):'-'}</div></div>
               <div class="attr-item"><label>获取方式</label><div class="val" style="font-size:12px;color:var(--text2)">${escapeHtml(first.obtain)}</div></div>
@@ -2302,6 +2349,22 @@ function openSkinDetail(hero, skinName) {
           </div>
         </div>
         ${(()=>{const n=first.notes||records.find(r=>r.notes)?.notes||'';return n?`<div style="padding:16px 22px;border-top:1px solid var(--border)"><div style="font-size:13px;color:var(--text3);margin-bottom:6px;font-weight:500">📝 备注</div><div style="font-size:14px;color:var(--text2);line-height:1.7">${escapeHtml(n)}</div></div>`:''})()}
+        ${relatedResources.length ? `<div class="skin-related-res">
+          <div class="skin-related-title">✨ 星元（含星传说与星元套装）</div>
+          <div class="skin-related-list">
+            ${relatedResources.map(entry => {
+              const resource = entry.first;
+              const resourceImg = resource.img_url ? toCdnUrl(resource.img_url) : null;
+              return `<div class="skin-related-card" onclick="openResDetail('${esc(entry.key)}')">
+                <div class="skin-related-img">${resourceImg ? `<img src="${resourceImg}" loading="lazy" alt="${escapeHtml(resource.name)}">` : '✨'}</div>
+                <div class="skin-related-info">
+                  <div class="skin-related-name">${escapeHtml(resource.name)}</div>
+                  <div class="skin-related-meta">${escapeHtml(resource.type)}${resource.date ? ' · ' + escapeHtml(resource.date) : ''}</div>
+                </div>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>` : ''}
         <div class="skin-timeline">
           <div class="timeline-title">🕐 上线 &amp; 返场记录（共 ${records.length} 条）</div>
           <div class="timeline-list">
@@ -3221,16 +3284,21 @@ function openResDetail(groupKey) {
   const imgSrc = first.img_url ? toCdnUrl(first.img_url) : null;
   const tagImgSrc = first.tag_img_url ? toCdnUrl(first.tag_img_url) : null;
   const skin = first.skin_profile || {};
-  const tagDetailHtml = first.tag
-    ? (tagImgSrc
-      ? `<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;"><img src="${tagImgSrc}" style="height:28px;max-width:100%;object-fit:contain;" alt="${esc(first.tag)}"><span>${escapeHtml(first.tag)}</span></div>`
-      : first.tag)
-    : '无';
+  const resourceTag = String(first.tag || '').trim();
+  const tagDetailHtml = tagImgSrc
+    ? `<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;"><img src="${tagImgSrc}" style="height:28px;max-width:100%;object-fit:contain;" alt="${esc(resourceTag)}">${resourceTag ? `<span>${escapeHtml(resourceTag)}</span>` : ''}</div>`
+    : escapeHtml(resourceTag);
   const qualityHtml = first.quality ? `<span class="badge badge-${first.quality}" style="border:none;">${escapeHtml(first.quality)}</span>` : '';
   const skinHtml = skin.name
-    ? `<span style="color:var(--gold-light)">${escapeHtml(skin.hero || '—')}</span> · ${escapeHtml(skin.name)}`
+    ? (skin.hero
+      ? `<button type="button" class="resource-skin-link" onclick="goSkinDetail('${esc(skin.hero)}','${esc(skin.name)}')"><span>${escapeHtml(skin.hero)}</span> · <span>${escapeHtml(skin.name)}</span><span class="resource-skin-link-arrow">→</span></button>`
+      : `<span style="color:var(--gold-light)">${escapeHtml(skin.name)}</span>`)
     : '';
   const permanentHtml = first.permanent ? `<span class="badge badge-${first.permanent}">${escapeHtml(first.permanent)}</span>` : '';
+  const coverClass = `skin-detail-img-wrap${isRound ? ' resource-detail-round-cover' : ''}`;
+  const coverStyle = isRound
+    ? ''
+    : `width:${isMobile()?'100%':(isWide?'460px':'260px')}; aspect-ratio:${isWide?'21/10':'1/1'}; padding:10px; background:var(--bg4); display:flex; align-items:center; justify-content:center;`;
   
   wrap.innerHTML = `
     <div class="hero-detail-header">
@@ -3242,7 +3310,7 @@ function openResDetail(groupKey) {
       <div class="skin-detail-card">
         
         <div class="skin-detail-top" style="flex-direction: ${isMobile() ? 'column' : 'row'};">
-          <div class="skin-detail-img-wrap" style="width:${isMobile()?'100%':(isWide?'460px':'260px')}; aspect-ratio:${isWide?'21/10':'1/1'}; padding:10px; background:var(--bg4); display:flex; align-items:center; justify-content:center;${isRound?'border-radius:50%;overflow:hidden;':''}">
+          <div class="${coverClass}" style="${coverStyle}">
             ${imgSrc 
               ? `<img src="${imgSrc}" style="width:100%; height:100%; object-fit:contain; border-radius:${isRound?'50%':'8px'}; box-shadow:var(--shadow);">`
               : `<div style="font-size:50px; color:var(--text3);">✨</div>`}
@@ -3261,8 +3329,8 @@ function openResDetail(groupKey) {
               ${resourceAttr('首发日期', escapeHtml(first.date), { style: 'color:var(--green)', keepEmpty: true })}
               ${resourceAttr('获取方式', escapeHtml(first.obtain), { style: 'font-size:12px;color:var(--text2)', keepEmpty: true })}
               ${resourceAttr('首发价格', escapeHtml(first.price), { style: 'color:var(--gold)', keepEmpty: true })}
-              ${permanentHtml ? resourceAttr('是否常驻', permanentHtml) : ''}
-              ${first.tag || tagImgSrc ? resourceAttr('资源标签', tagDetailHtml, { style: 'font-size:12px;' }) : ''}
+              ${first.type !== '星元套装' && permanentHtml ? resourceAttr('是否常驻', permanentHtml) : ''}
+              ${resourceTag || tagImgSrc ? resourceAttr('资源标签', tagDetailHtml, { style: 'font-size:12px;' }) : ''}
               ${resourceAttr('返场次数', returns.length, { style: 'color:var(--accent2);font-size:20px;font-weight:700', keepEmpty: true })}
               ${latestReturn ? resourceAttr('最近返场', `${escapeHtml(latestReturn.date)} · ${escapeHtml(latestReturn.obtain)}${latestReturn.price ? ' · ' + escapeHtml(latestReturn.price) : ''}`, { style: 'color:var(--gold)', full: true }) : ''}
             </div>

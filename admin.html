@@ -897,7 +897,7 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
         <div style="font-size:11px;color:var(--text3);margin-top:4px">返场将继承首发资源的名称、类型、品质、标签、联动、常驻状态和图片。</div>
       </div>
       <div class="form-group" id="er-quality-group"><label>品质</label><input type="text" id="er-quality" placeholder="如：传说"></div>
-      <div class="form-group" id="er-tag-group"><label>标签</label><input type="text" id="er-tag" placeholder="如：限定"></div>
+      <div class="form-group" id="er-tag-group"><label>标签 <span style="color:var(--text3);font-weight:400">（可选）</span></label><input type="text" id="er-tag" placeholder="如：限定"></div>
       <div class="form-group" id="er-obtain-group"><label>获取方式</label><input type="text" id="er-obtain" placeholder="如：祈愿"></div>
       <div class="form-group" id="er-price-group"><label>价格</label><input type="text" id="er-price" placeholder="如：保底3000点券"></div>
       <div class="form-group" id="er-collab-group"><label>IP联动</label><input type="text" id="er-collab" placeholder="如：三丽鸥联动"></div>
@@ -992,7 +992,7 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
             <option value="">请选择品质</option><option>绿色</option><option>蓝色</option><option>紫色</option><option>金色</option>
           </select>
         </div>
-        <div class="form-group" id="sr-tag-group"><label>标签 <span style="color:var(--red)">*</span></label><input type="text" id="sr-tag" placeholder="如：限定"></div>
+        <div class="form-group" id="sr-tag-group"><label>标签 <span style="color:var(--text3);font-weight:400">（可选）</span></label><input type="text" id="sr-tag" placeholder="如：限定"></div>
         <div class="form-group" id="sr-collab-group"><label>IP联动 <span style="color:var(--text3);font-weight:400">（可选）</span></label><input type="text" id="sr-collab" placeholder="如：品牌联动"></div>
         <div class="form-group" id="sr-permanent-group">
           <label>是否常驻</label>
@@ -2474,7 +2474,6 @@ async function doSaveSpecialResource() {
     if (!name) return toast('资源名称不能为空', 'err');
     if (requiresSkin && !skinProfileId) return toast(`${SPECIAL_RESOURCE_LABELS[category]}必须关联皮肤`, 'err');
     if (category === 'yuanliu_suit' && !document.getElementById('sr-quality').value) return toast('品质不能为空', 'err');
-    if (category !== 'star_outfit' && !document.getElementById('sr-tag').value.trim()) return toast('标签不能为空', 'err');
     if (!specialResourceImgFile && !document.getElementById('sr-img-url').value) return toast('首发资源必须上传资源图片', 'err');
   }
 

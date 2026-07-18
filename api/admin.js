@@ -1163,7 +1163,6 @@ function validateFirstSpecialResource(clean, config, category) {
     if (!clean.quality) return '品质不能为空';
     if (!SPECIAL_RESOURCE_QUALITIES.has(clean.quality)) return '品质只能是绿色、蓝色、紫色或金色';
   }
-  if ((category === 'star_legend' || category === 'yuanliu_suit') && !clean.tag) return '标签不能为空';
   return '';
 }
 
