@@ -343,7 +343,7 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
 .skin-detail-img-wrap .img-ph { font-size: 48px; color: var(--text3); }
 .resource-detail-round-cover {
   width: 260px; height: 260px; min-height: 0; padding: 10px; box-sizing: border-box;
-  border-radius: 50%; border: 1px solid var(--gold-dark); margin: 0 auto;
+  border-radius: 50%; margin: 0 auto;
 }
 .resource-detail-round-cover img { width: 100%; height: 100%; border-radius: 50%; object-fit: contain; }
 .resource-skin-link {
@@ -3312,7 +3312,7 @@ function openResDetail(groupKey) {
         <div class="skin-detail-top" style="flex-direction: ${isMobile() ? 'column' : 'row'};">
           <div class="${coverClass}" style="${coverStyle}">
             ${imgSrc 
-              ? `<img src="${imgSrc}" style="width:100%; height:100%; object-fit:contain; border-radius:${isRound?'50%':'8px'}; box-shadow:var(--shadow);">`
+              ? `<img src="${imgSrc}" style="width:100%; height:100%; object-fit:contain; border-radius:${isRound?'50%':'8px'}; box-shadow:${isRound?'none':'var(--shadow)'};">`
               : `<div style="font-size:50px; color:var(--text3);">✨</div>`}
           </div>
           <div class="skin-detail-info" style="padding: 24px;">
@@ -3323,7 +3323,6 @@ function openResDetail(groupKey) {
             </div>
             
             <div class="skin-detail-attrs">
-              ${resourceAttr('资源类型', `<span class="badge">${escapeHtml(first.type)}</span>`, { keepEmpty: true })}
               ${qualityHtml ? resourceAttr('资源品质', qualityHtml) : ''}
               ${skinHtml ? resourceAttr('归属皮肤', skinHtml, { full: true }) : ''}
               ${resourceAttr('首发日期', escapeHtml(first.date), { style: 'color:var(--green)', keepEmpty: true })}
