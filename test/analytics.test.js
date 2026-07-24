@@ -4,6 +4,12 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 
 const {
+  SPECIAL_RESOURCE_TYPES: RESOURCE_TYPES,
+  normalizeSpecialResource,
+  fetchTableRows,
+} = require('../api/resources')._private;
+
+const {
   COLUMNS,
   DICTIONARY,
   normalizeQuality,
@@ -161,4 +167,34 @@ test('toCsv 生成 BOM 表头，数组用竖线拼接', () => {
   const [header, firstRow] = csv.slice(1).split('\r\n');
   assert.equal(header, COLUMNS.join(','));
   assert.ok(firstRow.includes('刺客|战士'), '数组字段应以竖线拼接');
+});
+
+test('资源接口统一使用星传说·典藏展示名', () => {
+  const config = RESOURCE_TYPES.find(item => item.category === 'star_legend');
+  assert.equal(config.label, '星传说·典藏');
+  const row = normalizeSpecialResource({ id: 7, name: '测试', skin_profile: [{ id: 3 }] }, config);
+  assert.equal(row.type, '星传说·典藏');
+  assert.equal(row.display_type, '星传说·典藏');
+  assert.equal(row.source_category, 'star_legend');
+  assert.deepEqual(row.skin_profile, { id: 3 });
+});
+
+test('资源接口分页读取超过 1000 条时不会截断', async () => {
+  const ranges = [];
+  const client = {
+    from() {
+      return {
+        select() { return this; },
+        order() { return this; },
+        async range(from, to) {
+          ranges.push([from, to]);
+          const length = from === 0 ? 1000 : 2;
+          return { data: Array.from({ length }, (_, index) => ({ id: from + index + 1 })), error: null };
+        },
+      };
+    },
+  };
+  const rows = await fetchTableRows(client, { table: 'test', select: '*', label: '测试资源' });
+  assert.equal(rows.length, 1002);
+  assert.deepEqual(ranges, [[0, 999], [1000, 1999]]);
 });

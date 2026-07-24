@@ -17,7 +17,7 @@ const COLUMNS = [
 
 // 数据字典：每个字段的中文含义，随 JSON 一起返回，方便 AI 直接理解
 const DICTIONARY = {
-  category: '资源大类标识：hero=英雄 / skin=皮肤 / star_legend=星传说 / star_outfit=星元套装 / yuanliu_suit=元流套装 / resource=普通资源',
+  category: '资源大类标识：hero=英雄 / skin=皮肤 / star_legend=星传说·典藏 / star_outfit=星元套装 / yuanliu_suit=元流套装 / resource=普通资源',
   category_label: '资源大类中文名',
   event_id: '事件唯一标识，格式为「类别-原始ID」',
   name: '名称（皮肤名 / 资源名 / 英雄名）',
@@ -40,11 +40,11 @@ const DICTIONARY = {
   source_table: '数据来源表',
 };
 
-// 特殊资源表配置（星传说 / 星元套装 / 元流套装）
+// 特殊资源表配置（星传说·典藏 / 星元套装 / 元流套装）
 const SPECIAL_RESOURCES = [
   {
     category: 'star_legend',
-    label: '星传说', // 星传说
+    label: '星传说·典藏', // 星传说·典藏
     table: 'star_legend_resources',
     select: '*, skin_profile:skin_profile_id(id,name,hero,hero_id)',
     hasHero: true,

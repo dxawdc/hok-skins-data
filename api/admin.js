@@ -31,7 +31,7 @@ const SPECIAL_RESOURCE_QUALITIES = new Set(['绿色', '蓝色', '紫色', '金�
 const SPECIAL_RESOURCE_CONFIG = {
   star_legend: {
     table: 'star_legend_resources',
-    label: '星传说',
+    label: '星传说·典藏',
     requiresSkin: true,
     fields: ['skin_profile_id','parent_resource_id','name','date','release_type','tag','obtain','price','permanent','img_url','tag_img_url','notes'],
     inheritedFields: ['skin_profile_id','name','tag','permanent','img_url','tag_img_url'],

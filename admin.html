@@ -514,7 +514,7 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
       <!-- ══ 套装资源管理页 ══ -->
       <div class="page" id="page-special-resources">
         <div class="page-header">
-          <div><div class="page-title">套装资源</div><div class="page-subtitle">管理星传说、星元套装和元流套装，共 <span id="special-res-total-label">—</span> 条</div></div>
+          <div><div class="page-title">套装资源</div><div class="page-subtitle">管理星传说·典藏、星元套装和元流套装，共 <span id="special-res-total-label">—</span> 条</div></div>
           <div style="display:flex;gap:8px">
             <button class="btn btn-outline btn-sm" onclick="loadSpecialResources()">刷新</button>
             <button class="btn btn-primary btn-sm" style="width:auto" onclick="showAddSpecialResource()">+ 新增资源</button>
@@ -523,7 +523,7 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
         <div class="page-body">
           <div class="table-toolbar">
             <div class="special-type-tabs" aria-label="套装资源类型">
-              <button class="special-type-tab active" data-special-category="star_legend" onclick="setSpecialResourceCategory('star_legend')">星传说</button>
+              <button class="special-type-tab active" data-special-category="star_legend" onclick="setSpecialResourceCategory('star_legend')">星传说·典藏</button>
               <button class="special-type-tab" data-special-category="star_outfit" onclick="setSpecialResourceCategory('star_outfit')">星元套装</button>
               <button class="special-type-tab" data-special-category="yuanliu_suit" onclick="setSpecialResourceCategory('yuanliu_suit')">元流套装</button>
             </div>
@@ -962,7 +962,7 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
       <div class="form-group" id="sr-category-group">
         <label>资源类型</label>
         <select id="sr-category" class="filter-select" style="width:100%" onchange="updateSpecialResourceFields()">
-          <option value="star_legend">星传说</option>
+          <option value="star_legend">星传说·典藏</option>
           <option value="star_outfit">星元套装</option>
           <option value="yuanliu_suit">元流套装</option>
         </select>
@@ -1078,7 +1078,9 @@ function escapeHtml(s) {
 // 双引号转为 &quot;（避免闭合 HTML 属性）。注意：与 escapeHtml 适用上下文不同，不可混用。
 function esc(s) {
   return String(s == null ? '' : s)
-    .replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    .replace(/&/g, '&amp;').replace(/\\/g, '\\\\')
+    .replace(/'/g, '\\&#39;').replace(/"/g, '&quot;')
+    .replace(/\r/g, '\\r').replace(/\n/g, '\\n');
 }
 
 // ── Auth ─────────────────────────────────────────────────────
@@ -1765,7 +1767,8 @@ async function doCreateUser() {
 async function doDeleteUser(id, username) {
   if (username === currentUser.username) return toast('不能删除自己的账号', 'err');
   if (!confirm(`确认删除用户「${username}」？`)) return;
-  await api('DELETE', `/users/${id}`);
+  const response = await api('DELETE', `/users/${id}`);
+  if (response.error) return toast(response.error, 'err');
   loadUsers(); toast('已删除', 'ok');
 }
 
@@ -2148,7 +2151,7 @@ async function doDeleteResource(id,name){
 
 // ── 套装资源管理 ─────────────────────────────────────────────
 const SPECIAL_RESOURCE_LABELS = {
-  star_legend: '星传说',
+  star_legend: '星传说·典藏',
   star_outfit: '星元套装',
   yuanliu_suit: '元流套装',
 };
@@ -2348,6 +2351,7 @@ async function applySelectedSpecialParent() {
   const parentId = document.getElementById('sr-parent-resource')?.value;
   const parent = specialReturnParents.find(resource => String(resource.id) === String(parentId));
   if (!parent) return;
+  const category = document.getElementById('sr-category')?.value || specialResourceCategory;
   document.getElementById('sr-name').value = parent.name || '';
   document.getElementById('sr-quality').value = category === 'yuanliu_suit' ? (parent.quality || '') : '';
   document.getElementById('sr-tag').value = parent.tag || '';

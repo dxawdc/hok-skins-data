@@ -10,7 +10,7 @@ function getClient() {
 const SPECIAL_RESOURCE_TYPES = [
   {
     category: 'star_legend',
-    label: '星传说',
+    label: '星传说·典藏',
     table: 'star_legend_resources',
     select: '*, skin_profile:skin_profile_id(id,name,hero,hero_id,skin_img_url)',
   },
@@ -58,21 +58,31 @@ function normalizeSpecialResource(row, config) {
   return resource;
 }
 
-async function fetchSpecialResources(client) {
-  const results = await Promise.all(SPECIAL_RESOURCE_TYPES.map(async config => {
+async function fetchTableRows(client, config) {
+  const rows = [];
+  const pageSize = 1000;
+  for (let from = 0; ; from += pageSize) {
     const { data, error } = await client
       .from(config.table)
       .select(config.select)
       .order('date', { ascending: false })
       .order('id', { ascending: false })
-      .limit(500);
+      .range(from, from + pageSize - 1);
     if (error) throw new Error(`${config.label}加载失败：${error.message}`);
-    return (data || []).map(row => normalizeSpecialResource(row, config));
+    rows.push(...(data || []));
+    if (!data || data.length < pageSize) return rows;
+  }
+}
+
+async function fetchSpecialResources(client) {
+  const results = await Promise.all(SPECIAL_RESOURCE_TYPES.map(async config => {
+    const rows = await fetchTableRows(client, config);
+    return rows.map(row => normalizeSpecialResource(row, config));
   }));
   return results.flat();
 }
 
-module.exports = async function handler(req, res) {
+async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -116,4 +126,11 @@ module.exports = async function handler(req, res) {
   res.setHeader('Cache-Control', 'public, max-age=14400, s-maxage=7200');
   res.setHeader('X-Total', String(payload.length));
   res.status(200).json(payload);
+}
+
+module.exports = handler;
+module.exports._private = {
+  SPECIAL_RESOURCE_TYPES,
+  normalizeSpecialResource,
+  fetchTableRows,
 };

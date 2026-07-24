@@ -925,13 +925,13 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
       <div class="filter-bar resource-filter-bar">
         <div class="resource-filter-title">
           <div class="resource-page-title">✨ 个性资源</div>
-          <div class="resource-page-sub">天幕、小兵、星传说、星元套装与元流套装</div>
+          <div class="resource-page-sub">天幕、小兵、星传说·典藏、星元套装与元流套装</div>
         </div>
         <div class="resource-filter-main">
           <div class="filter-chips resource-type-chips" id="resource-type-chips">
             <div class="chip active" data-res-type="天幕" onclick="setResType('天幕')">🌌 天幕</div>
             <div class="chip" data-res-type="小兵" onclick="setResType('小兵')">🛡️ 小兵</div>
-            <div class="chip" data-res-type="星传说" onclick="setResType('星传说')">✨ 星传说</div>
+            <div class="chip" data-res-type="星传说·典藏" onclick="setResType('星传说·典藏')">✨ 星传说·典藏</div>
             <div class="chip" data-res-type="星元套装" onclick="setResType('星元套装')">🎨 星元套装</div>
             <div class="chip" data-res-type="元流套装" onclick="setResType('元流套装')">🧩 元流套装</div>
           </div>
@@ -1104,7 +1104,7 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 // ── 数据拉取：走 Cloudflare CDN 缓存 ──────────────────────────
 const CACHE_KEY       = 'wzry_skin_data_v7';   // v7: 新增 valuePoints 字段（皮肤价值点券），用于「我的」页估值
 const CACHE_KEY_HERO  = 'wzry_hero_data_v1';
-const CACHE_KEY_RES   = 'wzry_res_data_v4';
+const CACHE_KEY_RES   = 'wzry_res_data_v5';
 const CACHE_TTL       = 30 * 60 * 1000;
 const HERO_CACHE_TTL  = 2  * 60 * 60 * 1000;
 const RES_CACHE_TTL   = 30 * 60 * 1000;
@@ -1119,29 +1119,33 @@ let currentResType = '天幕';
 const RESOURCE_TYPE_CONFIG = [
   { type: '天幕', icon: '🌌', gridClass: 'res-grid-tm', imageClass: 'tm' },
   { type: '小兵', icon: '🛡️', gridClass: 'res-grid-xb', imageClass: 'xb' },
-  { type: '星传说', icon: '✨', gridClass: 'res-grid-special', imageClass: 'round' },
+  { type: '星传说·典藏', icon: '✨', gridClass: 'res-grid-special', imageClass: 'round' },
   { type: '星元套装', icon: '🎨', gridClass: 'res-grid-special', imageClass: 'round' },
   { type: '元流套装', icon: '🧩', gridClass: 'res-grid-special', imageClass: 'xb' },
 ];
 
-async function fetchAllHeroes() {
+function refreshQuery(version) {
+  return version ? '&refresh=' + encodeURIComponent(String(version === true ? Date.now() : version)) : '';
+}
+
+async function fetchAllHeroes(refreshVersion = '') {
   try {
-    const cached = sessionStorage.getItem(CACHE_KEY_HERO);
+    const cached = refreshVersion ? null : sessionStorage.getItem(CACHE_KEY_HERO);
     if (cached) {
       const { data, ts } = JSON.parse(cached);
       if (Date.now() - ts < HERO_CACHE_TTL) return data;
     }
   } catch (e) {}
-  const res = await fetch(`${API_BASE}/api/heroes?v=heroes-v1`);
+  const res = await fetch(`${API_BASE}/api/heroes?v=heroes-v1${refreshQuery(refreshVersion)}`);
   if (!res.ok) throw new Error(`/api/heroes 请求失败: ${res.status}`);
   const heroes = await res.json();
   try { sessionStorage.setItem(CACHE_KEY_HERO, JSON.stringify({ data: heroes, ts: Date.now() })); } catch (e) {}
   return heroes;
 }
 
-async function fetchAllSkins() {
+async function fetchAllSkins(refreshVersion = '') {
   try {
-    const cached = sessionStorage.getItem(CACHE_KEY);
+    const cached = refreshVersion ? null : sessionStorage.getItem(CACHE_KEY);
     if (cached) {
       const { data, ts } = JSON.parse(cached);
       if (Date.now() - ts < CACHE_TTL) {
@@ -1152,7 +1156,7 @@ async function fetchAllSkins() {
   } catch (e) {}
 
   console.log('[L1缓存未命中] 请求 CDN /api/skins…');
-  const res = await fetch(`${API_BASE}/api/skins?v=profile-v4`);
+  const res = await fetch(`${API_BASE}/api/skins?v=profile-v4${refreshQuery(refreshVersion)}`);
   if (!res.ok) throw new Error(`/api/skins 请求失败: ${res.status}`);
   const all = await res.json();
 
@@ -1183,21 +1187,25 @@ async function fetchAllSkins() {
   return result;
 }
 
-async function fetchAllResources() {
+async function fetchAllResources(refreshVersion = '') {
   try {
-    const cached = sessionStorage.getItem(CACHE_KEY_RES);
+    const cached = refreshVersion ? null : sessionStorage.getItem(CACHE_KEY_RES);
     if (cached) {
       const { data, ts } = JSON.parse(cached);
       if (Date.now() - ts < RES_CACHE_TTL) return data;
     }
   } catch (e) {}
-  const res = await fetch(`${API_BASE}/api/resources?v=tag-img-v1`);
-  if (!res.ok) return [];
+  const res = await fetch(`${API_BASE}/api/resources?v=resource-v3${refreshQuery(refreshVersion)}`);
+  if (!res.ok) throw new Error(`/api/resources 请求失败: ${res.status}`);
   const data = await res.json();
-  if (!Array.isArray(data)) return [];
-  const normalized = data.map(resource => resource?.source_category === 'star_outfit'
-    ? { ...resource, quality: '' }
-    : resource);
+  if (!Array.isArray(data)) throw new Error('/api/resources 返回格式异常');
+  const normalized = data.map(resource => {
+    if (resource?.source_category === 'star_legend') {
+      return { ...resource, type: '星传说·典藏', display_type: '星传说·典藏' };
+    }
+    if (resource?.source_category === 'star_outfit') return { ...resource, quality: '' };
+    return resource;
+  });
   try { sessionStorage.setItem(CACHE_KEY_RES, JSON.stringify({ data: normalized, ts: Date.now() })); } catch (e) {}
   return normalized;
 }
@@ -1385,18 +1393,23 @@ window.onload = async () => {
 };
 
 // ── 数据刷新 ──────────────────────────────────────────────────
-async function refreshData() {
+async function refreshData(refreshVersion = '') {
   const btn = document.getElementById('refresh-btn');
   btn.disabled = true;
   btn.innerHTML = '⏳ <span class="refresh-label">刷新中…</span>';
 
   try {
     try { sessionStorage.removeItem(CACHE_KEY); sessionStorage.removeItem(CACHE_KEY_HERO); sessionStorage.removeItem(CACHE_KEY_RES); } catch (e) {}
-    [HEROES, RAW, RESOURCES] = await Promise.all([
-      fetchAllHeroes().catch(e => []),
-      fetchAllSkins(),
-      fetchAllResources().catch(e => [])
+    const results = await Promise.allSettled([
+      fetchAllHeroes(refreshVersion),
+      fetchAllSkins(refreshVersion),
+      fetchAllResources(refreshVersion)
     ]);
+    if (results[0].status === 'fulfilled') HEROES = results[0].value;
+    if (results[1].status === 'fulfilled') RAW = results[1].value;
+    if (results[2].status === 'fulfilled') RESOURCES = results[2].value;
+    const failures = results.filter(result => result.status === 'rejected');
+    if (failures.length === results.length) throw failures[0].reason;
     HERO_BY_ID = {}; HERO_BY_NAME = {};
     HEROES.forEach(h => { HERO_BY_ID[h.id] = h; HERO_BY_NAME[h.name] = h; });
 
@@ -1419,7 +1432,9 @@ async function refreshData() {
     ['hd-heroes','sb-heroes'].forEach(id => document.getElementById(id).textContent = heroes);
     ['hd-skins','sb-skins'].forEach(id => document.getElementById(id).textContent = skinSet);
 
-    btn.innerHTML = '✅ <span class="refresh-label">完成</span>';
+    btn.innerHTML = failures.length
+      ? '⚠️ <span class="refresh-label">部分失败</span>'
+      : '✅ <span class="refresh-label">完成</span>';
     setTimeout(() => {
       btn.innerHTML = '🔄 <span class="refresh-label">刷新</span>';
       btn.disabled = false;
@@ -1437,13 +1452,14 @@ async function refreshData() {
 
 window.addEventListener('storage', e => {
   if (e.key === 'skin_db_updated') {
-    refreshData();
+    refreshData(e.newValue || Date.now());
   }
 });
 
 function buildHeroSelect() {
   const heroes = [...new Set(RAW.map(r=>r.hero))].sort();
   const sel = document.getElementById('f-hero');
+  while (sel.options.length > 1) sel.remove(1);
   heroes.forEach(h => { const o = document.createElement('option'); o.textContent = h; o.value = h; sel.appendChild(o); });
 }
 
@@ -2269,7 +2285,7 @@ function backToSeriesList() {
 }
 
 function relatedStarResources(hero, skinName) {
-  const allowedTypes = new Set(['星传说', '星传说·典藏', '星元套装']);
+  const allowedTypes = new Set(['星传说·典藏', '星元套装']);
   const groups = {};
   RESOURCES.forEach(resource => {
     if (!allowedTypes.has(resource.type)) return;
@@ -2350,7 +2366,7 @@ function openSkinDetail(hero, skinName) {
         </div>
         ${(()=>{const n=first.notes||records.find(r=>r.notes)?.notes||'';return n?`<div style="padding:16px 22px;border-top:1px solid var(--border)"><div style="font-size:13px;color:var(--text3);margin-bottom:6px;font-weight:500">📝 备注</div><div style="font-size:14px;color:var(--text2);line-height:1.7">${escapeHtml(n)}</div></div>`:''})()}
         ${relatedResources.length ? `<div class="skin-related-res">
-          <div class="skin-related-title">✨ 星元（含星传说与星元套装）</div>
+          <div class="skin-related-title">✨ 星元（含星传说·典藏与星元套装）</div>
           <div class="skin-related-list">
             ${relatedResources.map(entry => {
               const resource = entry.first;
@@ -3379,7 +3395,12 @@ window.addEventListener('popstate', e => {
 
 // ── Helpers ──
 // esc：用于 onclick="fn('${esc(v)}')" 的 JS 字符串上下文（转义引号与反斜杠）。
-function esc(s) { return (s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/\\/g, '\\\\')
+    .replace(/'/g, '\\&#39;').replace(/"/g, '&quot;')
+    .replace(/\r/g, '\\r').replace(/\n/g, '\\n');
+}
 // escapeHtml：用于把数据库字段插入 HTML 文本节点或属性值的上下文，防止存储型 XSS。
 function escapeHtml(s) {
   return String(s == null ? '' : s)
