@@ -2720,7 +2720,10 @@ async function doSaveHero() {
 
   if(heroAvatarFile){
     const b64=await new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(',')[1]);r.readAsDataURL(heroAvatarFile);});
-    const up=await api('POST','/images',{img_id:`hero_${id||name}`,img_type:'hero',data:b64,mime_type:heroAvatarFile.type});
+    // 新增英雄尚无数据库 ID；Storage 对象键不能使用中文英雄名等不安全字符。
+    // 使用仅含 ASCII 的随机 ID，编辑已有英雄时仍按其 ID 覆盖原头像。
+    const imageId = id || `new_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,10)}`;
+    const up=await api('POST','/images',{img_id:`hero_${imageId}`,img_type:'hero',data:b64,mime_type:heroAvatarFile.type});
     if(up.error) return toast('头像上传失败：'+up.error,'err');
     avatarUrl=up.url;
   }
