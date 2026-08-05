@@ -399,7 +399,7 @@ async function doLogin({ username, password }) {
 
 // ── 用户管理 ─────────────────────────────────────────────────
 async function listUsers() {
-  const { data } = await getClient().from('admin_users').select('id,username,display_name,role,created_at').order('created_at');
+  const { data } = await getClient().from('admin_users').select('id,username,display_name,role,created_at').order('created_at', { ascending: false });
   return ok({ users: data || [] });
 }
 async function createUser({ username, password, display_name, role }, operator) {
@@ -427,36 +427,37 @@ async function listSkins(params) {
   const page    = Math.max(1, parseInt(params.page    || '1'));
   const perPage = Math.min(200, parseInt(params.per_page || '50'));
   const offset  = (page - 1) * perPage;
-  const client = getClient();
-  let data;
-  try {
-    data = await fetchAllSkinRows(client);
-  } catch (e) {
-    return fail(e.message);
-  }
 
-  let rows = (data || []).map(normalizeSkinRecord);
-  if (params.hero) {
-    const hero = decodeURIComponent(params.hero);
-    rows = rows.filter(r => r.hero === hero);
-  }
-  if (params.quality) {
-    const quality = decodeURIComponent(params.quality);
-    rows = rows.filter(r => normalizeQuality(r.quality) === normalizeQuality(quality));
-  }
-  if (params.type) {
-    const type = decodeURIComponent(params.type);
-    rows = rows.filter(r => r.type === type);
-  }
-  if (params.search) {
-    const search = decodeURIComponent(params.search).toLowerCase();
-    rows = rows.filter(r =>
-      String(r.name || '').toLowerCase().includes(search) ||
-      String(r.hero || '').toLowerCase().includes(search)
-    );
-  }
-  const total = rows.length;
-  return ok({ skins: rows.slice(offset, offset + perPage), total, page, per_page: perPage });
+  const hero = params.hero ? decodeURIComponent(params.hero) : '';
+  const quality = params.quality ? normalizeQuality(decodeURIComponent(params.quality)) : '';
+  const type = params.type ? decodeURIComponent(params.type) : '';
+  const search = params.search ? decodeURIComponent(params.search).trim().replace(/[%,()]/g, ' ') : '';
+
+  // 先在数据库层完成筛选、排序和分页，避免每次输入筛选时读取整张 skins 表。
+  const load = select => {
+    let query = getClient().from('skins').select(select, { count: 'exact' });
+    if (hero) query = query.eq('hero', hero);
+    if (quality) query = quality === QUALITY_OTHER
+      ? query.in('quality', [QUALITY_OTHER, OLD_COMPANION_QUALITY])
+      : query.eq('quality', quality);
+    if (type) query = query.eq('type', type);
+    if (search) query = query.or(`name.ilike.%${search}%,hero.ilike.%${search}%`);
+    return query
+      .order('date', { ascending: false, nullsFirst: false })
+      .order('id', { ascending: false })
+      .range(offset, offset + perPage - 1);
+  };
+
+  let result = await load(SKIN_SELECT);
+  if (result.error) result = await load('*, skin_profiles:skin_profile_id(*)');
+  if (result.error) return fail(result.error.message);
+
+  return ok({
+    skins: (result.data || []).map(normalizeSkinRecord),
+    total: result.count || 0,
+    page,
+    per_page: perPage,
+  });
 }
 
 async function listSkinProfiles(params) {
@@ -490,8 +491,8 @@ async function listSeries(params) {
   const { data, error } = await client
     .from('skin_series')
     .select('*')
-    .order('sort_order', { ascending: true })
-    .order('name', { ascending: true });
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false });
   if (error) return fail(error.message);
   const { data: links } = await client.from('skin_profile_series').select('series_id');
   const counts = {};
@@ -877,7 +878,7 @@ async function listHeroes(params) {
   if (params.gender) q = q.eq('gender', decodeURIComponent(params.gender));
   if (params.search) q = q.ilike('name', `%${decodeURIComponent(params.search)}%`);
 
-  q = q.order('release_date', { ascending: true }).range(offset, offset + perPage - 1);
+  q = q.order('release_date', { ascending: false, nullsFirst: false }).order('id', { ascending: false }).range(offset, offset + perPage - 1);
   const { data, count, error } = await q;
   if (error) return fail(error.message);
   return ok({ heroes: data || [], total: count || 0, page, per_page: perPage });

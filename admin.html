@@ -476,7 +476,7 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
         <div class="page-header">
           <div><div class="page-title">资源管理</div><div class="page-subtitle">管理天幕、小兵等个性资源，共 <span id="res-total-label">—</span> 条</div></div>
           <div style="display:flex;gap:8px">
-            <button class="btn btn-outline btn-sm" onclick="loadResources()">刷新</button>
+            <button class="btn btn-outline btn-sm" onclick="loadResources(true)">刷新</button>
             <button class="btn btn-primary btn-sm" onclick="showAddResource()">+ 新增资源</button>
           </div>
         </div>
@@ -516,7 +516,7 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
         <div class="page-header">
           <div><div class="page-title">套装资源</div><div class="page-subtitle">管理星传说·典藏、星元套装和元流套装，共 <span id="special-res-total-label">—</span> 条</div></div>
           <div style="display:flex;gap:8px">
-            <button class="btn btn-outline btn-sm" onclick="loadSpecialResources()">刷新</button>
+            <button class="btn btn-outline btn-sm" onclick="loadSpecialResources(true)">刷新</button>
             <button class="btn btn-primary btn-sm" style="width:auto" onclick="showAddSpecialResource()">+ 新增资源</button>
           </div>
         </div>
@@ -556,7 +556,7 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
         <div class="page-header">
           <div><div class="page-title">英雄管理</div><div class="page-subtitle">管理英雄基础信息</div></div>
           <div style="display:flex;gap:8px">
-            <button class="btn btn-outline btn-sm" onclick="loadHeroes()">刷新</button>
+          <button class="btn btn-outline btn-sm" onclick="loadHeroes(true)">刷新</button>
             <button class="btn btn-primary btn-sm" onclick="showAddHero()">+ 新增英雄</button>
           </div>
         </div>
@@ -1052,12 +1052,14 @@ let allSkinProfiles = [];
 let allSeries = [];
 let heroPage = 1; const HERO_PER_PAGE = 20;
 let allResources = [], filteredResources = [];
+let resourceSourceRows = [];
 let resPage = 1; const RES_PER_PAGE = 20;
 let resImgFile = null;
 let resTagImgFile = null;
 let specialResourceCategory = 'star_legend';
 let specialResourceReleaseType = '';
 let allSpecialResources = [];
+let specialResourceSourceRows = {};
 let specialResourcePage = 1; const SPECIAL_RESOURCE_PER_PAGE = 20;
 let specialResourceImgFile = null;
 let specialResourceTagImgFile = null;
@@ -1214,12 +1216,16 @@ function debounceSearch() { clearTimeout(searchTimer); searchTimer = setTimeout(
 // ── Series ───────────────────────────────────────────────────
 async function loadSeries(force=false) {
   const search = (document.getElementById('series-search')?.value || '').trim();
-  let url = '/series';
-  if (search) url += `?search=${encodeURIComponent(search)}`;
-  const res = await api('GET', url);
-  if (!res.series) return;
-  allSeries = res.series;
-  renderSeriesTable(allSeries);
+  if (force || !allSeries.length) {
+    const res = await api('GET', '/series');
+    if (!res.series) return;
+    allSeries = res.series;
+  }
+  const keyword = search.toLowerCase();
+  const list = keyword
+    ? allSeries.filter(series => `${series.name || ''} ${series.description || ''}`.toLowerCase().includes(keyword))
+    : allSeries;
+  renderSeriesTable(list);
   if (force) toast('套系列表已刷新');
 }
 
@@ -1858,17 +1864,22 @@ function debounceResSearch() {
   resSearchTimerInner = setTimeout(() => { resPage=1; loadResources(); }, 400);
 }
 
-async function loadResources() {
+async function loadResources(force = false) {
   const search = (document.getElementById('res-search')?.value||'').trim();
   const type   =  document.getElementById('res-type-filter')?.value||'';
   const release=  document.getElementById('res-release-filter')?.value||'';
-  let url = '/resources?per_page=200';
-  if (type)   url += `&type=${encodeURIComponent(type)}`;
-  if (search) url += `&search=${encodeURIComponent(search)}`;
-  const res = await api('GET', url);
-  if (!res.resources) return;
-  let list = res.resources;
-  if (release) list = list.filter(r => r.release_type === release);
+  if (force || !resourceSourceRows.length) {
+    const res = await api('GET', '/resources?per_page=200');
+    if (!res.resources) return;
+    resourceSourceRows = res.resources;
+  }
+  const keyword = search.toLowerCase();
+  let list = resourceSourceRows.filter(resource => {
+    if (type && resource.type !== type) return false;
+    if (release && resource.release_type !== release) return false;
+    return !keyword || `${resource.name || ''} ${resource.type || ''} ${resource.quality || ''} ${resource.tag || ''}`.toLowerCase().includes(keyword);
+  });
+  list = [...list].sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || Number(b.id || 0) - Number(a.id || 0));
   allResources = list; filteredResources = list; resPage = 1;
   const el = document.getElementById('res-total-label');
   if (el) el.textContent = list.length;
@@ -1959,8 +1970,11 @@ function setResourceImagePreview(prefix, url = '') {
 }
 
 async function populateResourceParentOptions(selectedId = '') {
-  const response = await api('GET', '/resources?per_page=200');
-  resourceReturnParents = (response.resources || []).filter(resource => resource.release_type === '首发');
+  if (!resourceSourceRows.length) {
+    const response = await api('GET', '/resources?per_page=200');
+    resourceSourceRows = response.resources || [];
+  }
+  resourceReturnParents = resourceSourceRows.filter(resource => resource.release_type === '首发');
   const select = document.getElementById('er-parent-resource');
   if (!select) return;
   select.innerHTML = '<option value="">请选择对应的首发资源</option>' + resourceReturnParents.map(resource =>
@@ -2134,7 +2148,7 @@ async function doSaveResource() {
   }
   const res=id?await api('PUT',`/resources/${id}`,body):await api('POST','/resources',body);
   if(res.error) return toast(res.error,'err');
-  closeModal(); loadResources();
+  resourceSourceRows = []; closeModal(); loadResources(true);
   toast(id?'资源已更新':'资源新增成功','ok');
   } finally {
     button.disabled = false;
@@ -2146,7 +2160,7 @@ async function doDeleteResource(id,name){
   if(!confirm(`确认删除资源「${name}」？`)) return;
   const res=await api('DELETE',`/resources/${id}`);
   if(res.error) return toast(res.error,'err');
-  loadResources(); toast('已删除','ok');
+  resourceSourceRows = []; loadResources(true); toast('已删除','ok');
 }
 
 // ── 套装资源管理 ─────────────────────────────────────────────
@@ -2185,14 +2199,23 @@ function debounceSpecialResourceSearch() {
   }, 350);
 }
 
-async function loadSpecialResources() {
+async function loadSpecialResources(force = false) {
   const search = (document.getElementById('special-res-search')?.value || '').trim();
-  let url = `/special-resources?category=${encodeURIComponent(specialResourceCategory)}`;
-  if (specialResourceReleaseType) url += `&release_type=${encodeURIComponent(specialResourceReleaseType)}`;
-  if (search) url += `&search=${encodeURIComponent(search)}`;
-  const res = await api('GET', url);
-  if (res.error) return toast(res.error, 'err');
-  allSpecialResources = res.resources || [];
+  if (force || !specialResourceSourceRows[specialResourceCategory]) {
+    const res = await api('GET', `/special-resources?category=${encodeURIComponent(specialResourceCategory)}`);
+    if (res.error) return toast(res.error, 'err');
+    specialResourceSourceRows[specialResourceCategory] = res.resources || [];
+  }
+  const keyword = search.toLowerCase();
+  allSpecialResources = specialResourceSourceRows[specialResourceCategory]
+    .filter(resource => {
+      if (specialResourceReleaseType && resource.release_type !== specialResourceReleaseType) return false;
+      if (!keyword) return true;
+      const skin = resource.skin_profile || {};
+      return [resource.name, resource.quality, resource.tag, resource.obtain, skin.name, skin.hero]
+        .some(value => String(value || '').toLowerCase().includes(keyword));
+    })
+    .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || Number(b.id || 0) - Number(a.id || 0));
   const total = document.getElementById('special-res-total-label');
   if (total) total.textContent = allSpecialResources.length;
   renderSpecialResourceTable();
@@ -2528,7 +2551,8 @@ async function doSaveSpecialResource() {
     specialResourceCategory = category;
     syncSpecialResourceTabs();
     closeModal();
-    await loadSpecialResources();
+    delete specialResourceSourceRows[category];
+    await loadSpecialResources(true);
     toast(id ? '套装资源已更新' : '套装资源新增成功', 'ok');
   } finally {
     button.disabled = false;
@@ -2540,7 +2564,8 @@ async function doDeleteSpecialResource(category, id, name) {
   if (!confirm(`确认删除${SPECIAL_RESOURCE_LABELS[category]}「${name}」？`)) return;
   const response = await api('DELETE', `/special-resources/${category}/${id}`);
   if (response.error) return toast(response.error, 'err');
-  await loadSpecialResources();
+  delete specialResourceSourceRows[category];
+  await loadSpecialResources(true);
   toast('套装资源已删除', 'ok');
 }
 
@@ -2605,10 +2630,16 @@ function getSelectedHeroName(selectId) {
   return hero?.name || '';
 }
 
-async function loadHeroes() {
-  const res = await api('GET', '/heroes?per_page=200');
-  if (!res.heroes) return;
-  allHeroes = res.heroes;
+async function loadHeroes(force = false) {
+  if (force || !allHeroes.length) {
+    const res = await api('GET', '/heroes?per_page=200');
+    if (!res.heroes) return;
+    allHeroes = res.heroes;
+  }
+  filterHeroTable();
+}
+
+function filterHeroTable() {
   const search = (document.getElementById('hero-search')?.value||'').trim();
   const role   =  document.getElementById('hero-role-filter')?.value||'';
   const lane   =  document.getElementById('hero-lane-filter')?.value||'';
@@ -2618,9 +2649,9 @@ async function loadHeroes() {
     if (lane   && !(h.lanes||[]).includes(lane)) return false;
     return true;
   });
+  filteredHeroes.sort((a, b) => String(b.release_date || '').localeCompare(String(a.release_date || '')) || Number(b.id || 0) - Number(a.id || 0));
   heroPage = 1; renderHeroTable();
 }
-function filterHeroTable() { loadHeroes(); }
 
 function renderHeroTable() {
   const total = filteredHeroes.length;
