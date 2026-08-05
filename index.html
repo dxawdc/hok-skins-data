@@ -477,6 +477,50 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
 .ranking-skin-date { font-size: 10px; color: var(--text3); }
 .ranking-empty-cell { color: var(--text3); font-size: 12px; opacity: 0.3; }
 
+/* SKIN OVERVIEW — return-history ledger */
+.skin-overview-wrap { padding: 24px 28px 40px; max-width: 1600px; margin: 0 auto; }
+.skin-overview-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; padding: 4px 0 20px; }
+.skin-overview-kicker { color: var(--gold); font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+.skin-overview-title { font-family: 'Noto Serif SC', serif; font-size: 28px; font-weight: 900; letter-spacing: .03em; margin-top: 4px; }
+.skin-overview-sub { margin-top: 7px; color: var(--text3); font-size: 13px; line-height: 1.65; }
+.skin-overview-stats { display: flex; gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; flex-shrink: 0; }
+.skin-overview-stat { min-width: 86px; padding: 10px 13px; background: var(--bg3); text-align: center; }
+.skin-overview-stat b { display: block; color: var(--gold-light); font-size: 18px; line-height: 1.1; }
+.skin-overview-stat span { display: block; margin-top: 4px; color: var(--text3); font-size: 10px; }
+.skin-overview-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 14px; background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 16px; }
+.skin-overview-controls .search-box { max-width: 340px; }
+.overview-control-note { margin-left: auto; color: var(--text3); font-size: 12px; }
+.overview-group { margin-bottom: 16px; background: var(--bg3); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: 0 10px 26px rgba(0,0,0,.06); }
+.overview-group-head { display: flex; align-items: center; gap: 11px; padding: 12px 16px; background: linear-gradient(90deg, rgba(201,168,76,.13), transparent 72%); border-bottom: 1px solid var(--border); }
+.overview-hero-avatar { width: 38px; height: 38px; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; background: var(--bg4); border: 1px solid rgba(201,168,76,.45); color: var(--gold); font-size: 18px; flex-shrink: 0; }
+.overview-hero-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.overview-hero-name { font-family: 'Noto Serif SC', serif; font-size: 18px; font-weight: 900; color: var(--gold-light); cursor: pointer; }
+.overview-hero-name:hover { color: var(--gold); text-decoration: underline; }
+.overview-hero-meta { margin-top: 2px; color: var(--text3); font-size: 11px; }
+.overview-group-count { margin-left: auto; align-self: stretch; display: flex; align-items: center; padding-left: 16px; border-left: 1px solid var(--border); color: var(--text3); font-size: 12px; white-space: nowrap; }
+.overview-group-count b { color: var(--gold); margin: 0 3px; }
+.skin-overview-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.skin-overview-table { width: 100%; min-width: 900px; border-collapse: collapse; table-layout: fixed; }
+.skin-overview-table th { height: 37px; padding: 0 12px; background: var(--bg2); border-bottom: 1px solid var(--border); color: var(--text3); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-align: left; white-space: nowrap; }
+.skin-overview-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; font-size: 12px; }
+.skin-overview-table tbody tr:last-child td { border-bottom: none; }
+.skin-overview-table tbody tr:hover td { background: var(--table-hover); }
+.overview-skin-cell { display: flex; align-items: center; gap: 9px; min-width: 0; cursor: pointer; }
+.overview-skin-cell:hover .overview-skin-name { color: var(--gold); }
+.overview-skin-thumb { width: 38px; height: 38px; flex-shrink: 0; border-radius: 8px; overflow: hidden; background: var(--bg4); display: flex; align-items: center; justify-content: center; font-size: 16px; }
+.overview-skin-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.overview-skin-name { color: var(--text); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.overview-skin-tag { margin-top: 3px; color: var(--text3); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.overview-date { color: var(--text2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.overview-return-list { display: flex; flex-wrap: wrap; gap: 6px; min-width: 300px; }
+.overview-return { display: inline-flex; align-items: stretch; border: 1px solid rgba(74,124,191,.42); border-radius: 6px; overflow: hidden; line-height: 1.15; }
+.overview-return-index { display: flex; align-items: center; padding: 4px 6px; color: #9fc6f5; background: rgba(74,124,191,.18); font-size: 10px; font-weight: 700; white-space: nowrap; }
+.overview-return-detail { display: flex; align-items: center; gap: 5px; padding: 4px 7px; color: var(--text2); font-size: 11px; white-space: nowrap; }
+.overview-return-detail time { color: var(--text); font-variant-numeric: tabular-nums; }
+.overview-return-sep { color: var(--text3); }
+.overview-no-return { color: var(--text3); font-size: 11px; }
+.overview-page-empty { padding: 72px 20px; text-align: center; color: var(--text3); }
+
 /* ── RESOURCE MODULE STYLES ── */
 .res-grid-tm { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; padding: 20px 28px; }
 .res-grid-xb { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; padding: 20px 28px; }
@@ -573,8 +617,8 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
   .theme-btn[data-t="dark"]::before { content: "🌙"; font-size: 13px; }
   .theme-btn[data-t="auto"]::before { content: "⚙️"; font-size: 13px; }
   .sidebar { display: none !important; }
-  .bottom-nav { display: flex; }
-  .bottom-nav-item { font-size: 10px; }
+  .bottom-nav { display: flex; overflow-x: auto; justify-content: flex-start; }
+  .bottom-nav-item { flex: 0 0 60px; font-size: 10px; }
   .bottom-nav-item .bn-icon { font-size: 18px; }
   .main-content { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
   .app-layout { display: block; }
@@ -652,6 +696,16 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
   
   .ranking-wrap { padding: 12px; }
   .ranking-title { font-size: 17px; }
+  .skin-overview-wrap { padding: 16px 12px 28px; }
+  .skin-overview-head { align-items: flex-start; flex-direction: column; gap: 14px; padding-bottom: 14px; }
+  .skin-overview-title { font-size: 23px; }
+  .skin-overview-stats { width: 100%; }
+  .skin-overview-stat { flex: 1; padding: 9px 8px; }
+  .skin-overview-controls { padding: 10px; align-items: stretch; }
+  .skin-overview-controls .search-box { flex-basis: 100%; max-width: none; }
+  .overview-control-note { margin-left: 0; }
+  .overview-group-head { padding: 10px 12px; }
+  .overview-group-count { padding-left: 10px; font-size: 11px; }
   .contact-wrap { padding: 20px 14px; }
   .contact-cards { grid-template-columns: 1fr; }
 
@@ -704,6 +758,7 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
     <div class="header-logo" onclick="resetToHome()">王者荣耀皮肤数据库<span>HONOR OF KINGS · SKIN DATABASE</span></div>
     <div class="nav-tabs">
       <div class="nav-tab active" id="tab-list" onclick="showView('list',this)">皮肤明细</div>
+      <div class="nav-tab" id="tab-skin-overview" onclick="showView('skin-overview',this)">皮肤总览</div>
       <div class="nav-tab" id="tab-hero-list" onclick="showView('hero-list',this)">英雄明细</div>
       <div class="nav-tab" id="tab-heroes" onclick="showView('heroes',this)">英雄皮肤</div>
       <div class="nav-tab" id="tab-series" onclick="showView('series',this)">皮肤套系</div>
@@ -739,6 +794,7 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
       <div class="sidebar-section">
         <div class="sidebar-label">导航</div>
         <div class="sidebar-nav-item active" id="snav-list" onclick="showView('list', null, 'list')">📋 皮肤明细</div>
+        <div class="sidebar-nav-item" id="snav-skin-overview" onclick="showView('skin-overview', null, 'skin-overview')">🗂️ 皮肤总览</div>
         <div class="sidebar-nav-item" id="snav-hero-list" onclick="showView('hero-list', null, 'hero-list')">👤 英雄明细</div>
         <div class="sidebar-nav-item" id="snav-heroes" onclick="showView('heroes', null, 'heroes')">🎭 英雄皮肤</div>
         <div class="sidebar-nav-item" id="snav-series" onclick="showView('series', null, 'series')">🎨 皮肤套系</div>
@@ -815,6 +871,32 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
     <div class="pagination">
       <div class="pagination-info" id="pg-info"></div>
       <div class="pagination-btns" id="pg-btns"></div>
+    </div>
+  </div>
+
+  <div id="view-skin-overview" class="view">
+    <div class="skin-overview-wrap">
+      <div class="skin-overview-head">
+        <div>
+          <div class="skin-overview-kicker">Return history ledger</div>
+          <div class="skin-overview-title">皮肤总览</div>
+          <div class="skin-overview-sub">按英雄归档每款皮肤的首发与返场记录；返场条目按时间顺序展示日期和获取方式。</div>
+        </div>
+        <div class="skin-overview-stats" id="skin-overview-stats"></div>
+      </div>
+      <div class="skin-overview-controls">
+        <div class="search-box">
+          <span class="icon">🔎</span>
+          <input type="text" id="skin-overview-search" placeholder="搜索英雄或皮肤名称…" oninput="filterSkinOverview()">
+        </div>
+        <div class="filter-chips" id="skin-overview-mode">
+          <div class="chip active" data-overview-mode="all" onclick="setSkinOverviewMode(this,'all')">全部皮肤</div>
+          <div class="chip" data-overview-mode="returned" onclick="setSkinOverviewMode(this,'returned')">仅看有返场</div>
+        </div>
+        <span class="overview-control-note" id="skin-overview-note"></span>
+      </div>
+      <div id="skin-overview-content"></div>
+      <div class="pagination" id="skin-overview-pagination"></div>
     </div>
   </div>
 
@@ -1069,6 +1151,9 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
     </div></div><nav class="bottom-nav" id="bottom-nav">
     <div class="bottom-nav-item active" id="bnav-list" onclick="showView('list',null,'list');setBottomNav('list')">
       <span class="bn-icon">📋</span>皮肤
+    </div>
+    <div class="bottom-nav-item" id="bnav-skin-overview" onclick="showView('skin-overview',null,'skin-overview');setBottomNav('skin-overview')">
+      <span class="bn-icon">🗂️</span>总览
     </div>
     <div class="bottom-nav-item" id="bnav-hero-list" onclick="showView('hero-list',null,'hero-list');setBottomNav('hero-list')">
       <span class="bn-icon">👤</span>英雄
@@ -1371,6 +1456,7 @@ window.onload = async () => {
     filterHeroList();
     renderHeroGrid();
     renderStats();
+    if (document.getElementById('view-skin-overview')?.classList.contains('active')) renderSkinOverview();
     if (document.getElementById('view-resources')?.classList.contains('active')) filterResources();
 
     const total = RAW.length.toLocaleString();
@@ -1482,6 +1568,7 @@ function showView(v, el, snavId) {
     }, 50);
   }
   if (v === 'ranking') renderRanking();
+  if (v === 'skin-overview') renderSkinOverview();
   if (v === 'resources') openResourcesView();
   if (v === 'series') { backToSeriesList(); renderSeriesGrid(); }
   if (v === 'mine') renderMine();
@@ -1951,6 +2038,143 @@ function buildHeroMap() {
     if (r.qi) m[r.hero].skins.get(key).qi = r.qi;
   });
   return m;
+}
+
+// ── View: Skin overview / return history ──────────────────────
+let skinOverviewPage = 1;
+let skinOverviewMode = 'all';
+const SKIN_OVERVIEW_HERO_PAGE_SIZE = 12;
+
+function overviewDate(value) {
+  return String(value || '').replace(/-/g, '/') || '—';
+}
+
+function buildSkinOverviewGroups() {
+  const heroMap = buildHeroMap();
+  return Object.entries(heroMap).map(([hero, heroData]) => {
+    const skins = [...heroData.skins.values()].map(skin => {
+      const records = [...skin.records].sort((a, b) => String(a.date).localeCompare(String(b.date)));
+      const first = records.find(record => record.type === '首发') || records[0] || {};
+      const returns = records.filter(record => record.type === '返场');
+      return { ...skin, first, returns };
+    }).sort((a, b) => String(b.first?.date || '').localeCompare(String(a.first?.date || '')));
+    return {
+      hero,
+      skins,
+      returnCount: skins.reduce((count, skin) => count + skin.returns.length, 0),
+      returnedSkinCount: skins.filter(skin => skin.returns.length).length,
+    };
+  }).sort((a, b) => a.hero.localeCompare(b.hero, 'zh-Hans-CN'));
+}
+
+function filterSkinOverview() {
+  skinOverviewPage = 1;
+  renderSkinOverview();
+}
+
+function setSkinOverviewMode(el, mode) {
+  skinOverviewMode = mode;
+  skinOverviewPage = 1;
+  document.querySelectorAll('[data-overview-mode]').forEach(chip => chip.classList.toggle('active', chip === el));
+  renderSkinOverview();
+}
+
+function renderSkinOverview() {
+  const content = document.getElementById('skin-overview-content');
+  if (!content) return;
+
+  const search = (document.getElementById('skin-overview-search')?.value || '').trim().toLowerCase();
+  const allGroups = buildSkinOverviewGroups();
+  const allSkinCount = allGroups.reduce((count, group) => count + group.skins.length, 0);
+  const allReturnCount = allGroups.reduce((count, group) => count + group.returnCount, 0);
+  const stats = document.getElementById('skin-overview-stats');
+  if (stats) stats.innerHTML = `
+    <div class="skin-overview-stat"><b>${allGroups.length}</b><span>位英雄</span></div>
+    <div class="skin-overview-stat"><b>${allSkinCount}</b><span>款皮肤</span></div>
+    <div class="skin-overview-stat"><b>${allReturnCount}</b><span>次返场</span></div>`;
+
+  const groups = allGroups.map(group => {
+    const skins = group.skins.filter(skin => {
+      if (skinOverviewMode === 'returned' && !skin.returns.length) return false;
+      if (!search) return true;
+      return group.hero.toLowerCase().includes(search) || skin.name.toLowerCase().includes(search) || String(skin.tag || '').toLowerCase().includes(search);
+    });
+    return { ...group, skins };
+  }).filter(group => group.skins.length);
+
+  const matchedSkins = groups.reduce((count, group) => count + group.skins.length, 0);
+  const note = document.getElementById('skin-overview-note');
+  if (note) note.textContent = `当前展示 ${groups.length} 位英雄 · ${matchedSkins} 款皮肤`;
+
+  const totalPages = Math.max(1, Math.ceil(groups.length / SKIN_OVERVIEW_HERO_PAGE_SIZE));
+  if (skinOverviewPage > totalPages) skinOverviewPage = totalPages;
+  const start = (skinOverviewPage - 1) * SKIN_OVERVIEW_HERO_PAGE_SIZE;
+  const pageGroups = groups.slice(start, start + SKIN_OVERVIEW_HERO_PAGE_SIZE);
+
+  if (!pageGroups.length) {
+    content.innerHTML = `<div class="overview-page-empty">暂无匹配的皮肤返场记录</div>`;
+  } else {
+    content.innerHTML = pageGroups.map(group => {
+      const heroInfo = getHeroInfo(group.hero) || {};
+      const roles = [...(heroInfo.roles || []), ...(heroInfo.lanes || [])].join(' · ');
+      const avatar = heroAvatarUrl(group.hero);
+      const avatarHtml = avatar
+        ? `<img src="${thumbUrl(avatar, 80)}" loading="lazy" alt="${escapeHtml(group.hero)}">`
+        : '🎭';
+      const returnedSkins = group.skins.filter(skin => skin.returns.length).length;
+      const rows = group.skins.map(skin => {
+        const thumb = thumbUrl(skin.si, 80);
+        const returnHtml = skin.returns.length
+          ? skin.returns.map((record, index) => `<span class="overview-return">
+              <span class="overview-return-index">第 ${index + 1} 次</span>
+              <span class="overview-return-detail"><time>${overviewDate(record.date)}</time><span class="overview-return-sep">·</span>${escapeHtml(record.obtain || '方式待补充')}</span>
+            </span>`).join('')
+          : '<span class="overview-no-return">暂未收录返场记录</span>';
+        return `<tr>
+          <td>
+            <div class="overview-skin-cell" onclick="goSkinDetail('${esc(group.hero)}','${esc(skin.name)}')">
+              <div class="overview-skin-thumb">${thumb ? `<img src="${thumb}" loading="lazy" alt="">` : qualityEmoji(skin.quality)}</div>
+              <div style="min-width:0"><div class="overview-skin-name" title="${escapeHtml(skin.name)}">${escapeHtml(skin.name)}</div><div class="overview-skin-tag">${escapeHtml(skin.tag || skin.quality || '—')}</div></div>
+            </div>
+          </td>
+          <td><span class="badge badge-${escapeHtml(skin.quality)}">${escapeHtml(skin.quality || '其他')}</span></td>
+          <td class="overview-date">${overviewDate(skin.first.date)}</td>
+          <td style="color:var(--text3);font-size:11px">${escapeHtml(skin.first.obtain || '—')}</td>
+          <td><div class="overview-return-list">${returnHtml}</div></td>
+        </tr>`;
+      }).join('');
+      return `<section class="overview-group">
+        <div class="overview-group-head">
+          <div class="overview-hero-avatar">${avatarHtml}</div>
+          <div><div class="overview-hero-name" onclick="openHeroDetailFromAnywhere('${esc(group.hero)}')">${escapeHtml(group.hero)}</div><div class="overview-hero-meta">${escapeHtml(roles || '英雄皮肤档案')}</div></div>
+          <div class="overview-group-count"><b>${group.skins.length}</b> 款皮肤 · <b>${returnedSkins}</b> 款有返场</div>
+        </div>
+        <div class="skin-overview-table-wrap"><table class="skin-overview-table">
+          <colgroup><col style="width:210px"><col style="width:92px"><col style="width:104px"><col style="width:150px"><col></colgroup>
+          <thead><tr><th>皮肤</th><th>品质</th><th>首发时间</th><th>首发方式</th><th>返场时间 · 获取方式</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table></div>
+      </section>`;
+    }).join('');
+  }
+
+  const pagination = document.getElementById('skin-overview-pagination');
+  if (!pagination) return;
+  if (groups.length <= SKIN_OVERVIEW_HERO_PAGE_SIZE) {
+    pagination.innerHTML = '';
+    return;
+  }
+  const buttons = Array.from({ length: totalPages }, (_, index) => {
+    const current = index + 1;
+    return `<button class="pg-btn${current === skinOverviewPage ? ' active' : ''}" onclick="goSkinOverviewPage(${current})">${current}</button>`;
+  }).join('');
+  pagination.innerHTML = `<div class="pagination-info">共 ${groups.length} 位英雄 · 第 ${skinOverviewPage}/${totalPages} 页</div><div class="pagination-btns">${buttons}</div>`;
+}
+
+function goSkinOverviewPage(nextPage) {
+  skinOverviewPage = nextPage;
+  renderSkinOverview();
+  document.getElementById('skin-overview-content')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function renderHeroGrid() {
