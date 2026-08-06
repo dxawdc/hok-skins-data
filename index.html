@@ -2473,10 +2473,11 @@ function seriesClassBadgeHtml(series) {
 }
 
 // 收集某套系下的皮肤（按英雄+名称聚合，按首发日期倒序）
-function collectSeriesSkins(seriesId) {
+function collectSeriesSkins(seriesId, subTag = '') {
   const skinMap = new Map();
   RAW.forEach(r => {
-    if (!skinSeriesList(r).some(s => String(s.id) === String(seriesId))) return;
+    const link = skinSeriesList(r).find(s => String(s.id) === String(seriesId));
+    if (!link || (subTag && link.sub_tag !== subTag)) return;
     const key = r.hero + '|' + r.name;
     if (!skinMap.has(key)) skinMap.set(key, []);
     skinMap.get(key).push(r);
@@ -2484,7 +2485,14 @@ function collectSeriesSkins(seriesId) {
   return [...skinMap.values()].map(records => {
     records.sort((a,b)=>a.date>b.date?1:-1);
     const first = firstReleaseRecord(records);
-    return { ...first, records, returnCount: records.filter(r=>r.type==='返场').length };
+    const link = skinSeriesList(first).find(s => String(s.id) === String(seriesId)) || {};
+    return {
+      ...first,
+      records,
+      returnCount: records.filter(r=>r.type==='返场').length,
+      seriesSubTag: link.sub_tag || '',
+      seriesSubTagSort: Number(link.sub_tag_sort) || 0,
+    };
   }).sort((a,b)=>(b.date || '').localeCompare(a.date || ''));
 }
 
@@ -2521,7 +2529,7 @@ function seriesSkinsGridHtml(skins) {
 // 皮肤详情里点击套系 chip：在「英雄皮肤」页内展示套系详情
 function openSeriesDetail(seriesId, seriesName, seriesType = 'other', subTag = '') {
   document.getElementById('heroes-list-wrap').style.display='none';
-  const skins = collectSeriesSkins(seriesId);
+  const skins = collectSeriesSkins(seriesId, subTag);
   const wrap = document.getElementById('hero-detail-wrap');
   wrap.style.display='block';
   wrap.innerHTML = `
@@ -2543,6 +2551,24 @@ let seriesSubTagFilter = '';
 const SERIES_PAGE_SIZE = 20;
 
 // 聚合所有套系：每个套系含皮肤列表（按首发时间由早到晚），按皮肤数倒序
+function withSeriesRowMetrics(base, skins) {
+  const dates = skins.map(s => s.date).filter(Boolean).sort();
+  const returnDates = skins
+    .flatMap(s => (s.records || []).filter(r => r.type === '返场').map(r => r.date).filter(Boolean))
+    .sort();
+  const heroes = new Set(skins.map(s => s.hero).filter(Boolean));
+  return {
+    ...base,
+    count: skins.length,
+    heroCount: heroes.size,
+    firstDate: dates[0] || '',
+    lastDate: dates[dates.length - 1] || '',
+    latestReturnDate: returnDates[returnDates.length - 1] || '',
+    skins,
+    searchText: `${base.name} ${[...heroes].join(' ')} ${skins.map(s => s.name).join(' ')}`.toLowerCase(),
+  };
+}
+
 function buildSeriesRows() {
   const map = new Map();
   RAW.forEach(r => {
@@ -2556,44 +2582,33 @@ function buildSeriesRows() {
           name: s.name || '',
           description: '',
           seriesType: s.series_type || 'other',
-          subTag: s.sub_tag || '',
-          subTagSort: Number(s.sub_tag_sort) || 0,
           skinMap: new Map(),
-          heroes: new Set(),
         };
         map.set(s.id, entry);
       }
       if (!entry.description && s.description) entry.description = s.description;
       if (!entry.skinMap.has(key)) entry.skinMap.set(key, []);
       entry.skinMap.get(key).push(r);
-      if (r.hero) entry.heroes.add(r.hero);
     });
   });
   return [...map.values()].map(e => {
     const skins = [...e.skinMap.values()].map(records => {
       records.sort((a, b) => a.date > b.date ? 1 : -1);
       const first = firstReleaseRecord(records);
-      return { ...first, records };
+      const link = skinSeriesList(first).find(s => String(s.id) === String(e.id)) || {};
+      return {
+        ...first,
+        records,
+        seriesSubTag: link.sub_tag || '',
+        seriesSubTagSort: Number(link.sub_tag_sort) || 0,
+      };
     }).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
-    const dates = skins.map(s => s.date).filter(Boolean);
-    const returnDates = skins
-      .flatMap(s => (s.records || []).filter(r => r.type === '返场').map(r => r.date).filter(Boolean))
-      .sort();
-    return {
+    return withSeriesRowMetrics({
       id: e.id,
       name: e.name,
       description: e.description || '',
       seriesType: e.seriesType,
-      subTag: e.subTag,
-      subTagSort: e.subTagSort,
-      count: skins.length,
-      heroCount: e.heroes.size,
-      firstDate: dates[0] || '',
-      lastDate: dates[dates.length - 1] || '',
-      latestReturnDate: returnDates[returnDates.length - 1] || '',
-      skins,
-      searchText: `${e.name} ${[...e.heroes].join(' ')} ${skins.map(s => s.name).join(' ')}`.toLowerCase(),
-    };
+    }, skins);
   }).sort((a, b) => b.count - a.count || String(a.name).localeCompare(String(b.name), 'zh-Hans-CN'));
 }
 
@@ -2601,10 +2616,15 @@ function renderSeriesGrid() {
   const allRows = buildSeriesRows();
   renderSeriesSubTagFilters(allRows);
   let list = allRows;
+  if (seriesTypeFilter) list = list.filter(e => e.seriesType === seriesTypeFilter);
+  if (seriesSubTagFilter) {
+    list = list
+      .map(row => withSeriesRowMetrics(row, row.skins.filter(s => s.seriesSubTag === seriesSubTagFilter)))
+      .filter(row => row.count);
+  }
   const kw = seriesSearch.trim().toLowerCase();
   if (kw) list = list.filter(e => e.searchText.includes(kw));
-  if (seriesTypeFilter) list = list.filter(e => e.seriesType === seriesTypeFilter);
-  if (seriesSubTagFilter) list = list.filter(e => e.subTag === seriesSubTagFilter);
+  list.sort((a, b) => b.count - a.count || String(a.name).localeCompare(String(b.name), 'zh-Hans-CN'));
   seriesRows = list;
   const label = document.getElementById('series-count-label');
   if (label) label.textContent = `共 ${list.length} 个套系`;
@@ -2625,8 +2645,9 @@ function renderSeriesSubTagFilters(rows) {
     return;
   }
   const tags = [...new Map(rows
-    .filter(row => row.seriesType === seriesTypeFilter && row.subTag)
-    .map(row => [row.subTag, row.subTagSort]))
+    .filter(row => row.seriesType === seriesTypeFilter)
+    .flatMap(row => row.skins.map(s => [s.seriesSubTag, s.seriesSubTagSort]))
+    .filter(([tag]) => tag))
     .entries()]
     .sort((a, b) => b[1] - a[1] || String(b[0]).localeCompare(String(a[0]), 'zh-Hans-CN'));
   if (!tags.some(([tag]) => tag === seriesSubTagFilter)) seriesSubTagFilter = '';
@@ -2673,8 +2694,8 @@ function renderSeriesPage() {
     <tr>
       <td class="ranking-rank-td">${rankNumHtml(start + i)}</td>
       <td class="ranking-hero-td">
-        <span class="ranking-hero-name" onclick="openSeriesView(${row.id},'${esc(row.name)}','${esc(row.seriesType)}','${esc(row.subTag)}')">🎨 ${escapeHtml(row.name)}</span>
-        ${row.seriesType !== 'other' ? seriesClassBadgeHtml({ series_type: row.seriesType, sub_tag: row.subTag }) : ''}
+        <span class="ranking-hero-name" onclick="openSeriesView(${row.id},'${esc(row.name)}','${esc(row.seriesType)}','${esc(seriesSubTagFilter)}')">🎨 ${escapeHtml(row.name)}</span>
+        ${row.seriesType !== 'other' ? seriesClassBadgeHtml({ series_type: row.seriesType, sub_tag: seriesSubTagFilter }) : ''}
       </td>
       <td class="ranking-count-td">${row.count}</td>
       <td style="white-space:nowrap;color:var(--text2);font-size:13px">${escapeHtml(row.firstDate) || '—'}</td>
@@ -2722,7 +2743,7 @@ function filterSeries() {
 function openSeriesView(seriesId, seriesName, seriesType = 'other', subTag = '') {
   document.getElementById('series-list-wrap').style.display = 'none';
   const detail = document.getElementById('series-detail-view');
-  const skins = collectSeriesSkins(seriesId);
+  const skins = collectSeriesSkins(seriesId, subTag);
   detail.style.display = 'block';
   detail.innerHTML = `
     <div class="hero-detail-header">

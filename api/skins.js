@@ -5,7 +5,7 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_AN
 const OLD_COMPANION_QUALITY = '\u4f34\u751f';
 const QUALITY_OTHER = '\u5176\u4ed6';
 const PERMANENT_NO = '\u5426';
-const SKIN_SELECT = '*, skin_profiles:skin_profile_id(*, skin_profile_series(series:series_id(*)))';
+const SKIN_SELECT = '*, skin_profiles:skin_profile_id(*, skin_profile_series(sub_tag,sub_tag_sort,series:series_id(*)))';
 
 function getClient() {
   return createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -68,17 +68,20 @@ function normalizeQuality(q) {
 
 function profileSeries(profile) {
   return (profile?.skin_profile_series || [])
-    .map(item => item.series || item.skin_series || null)
-    .filter(Boolean)
-    .map(s => ({
+    .map(item => {
+      const s = item.series || item.skin_series || null;
+      if (!s) return null;
+      return {
       id: s.id,
       name: s.name,
       description: s.description || '',
       sort_order: s.sort_order || 0,
       series_type: s.series_type || 'other',
-      sub_tag: s.sub_tag || '',
-      sub_tag_sort: s.sub_tag_sort || 0,
-    }))
+      sub_tag: item.sub_tag || '',
+      sub_tag_sort: item.sub_tag_sort || 0,
+      };
+    })
+    .filter(Boolean)
     .sort((a, b) => (a.sort_order - b.sort_order) || String(a.name).localeCompare(String(b.name), 'zh-Hans-CN'));
 }
 
