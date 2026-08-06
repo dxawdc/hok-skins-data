@@ -75,6 +75,9 @@ function profileSeries(profile) {
       name: s.name,
       description: s.description || '',
       sort_order: s.sort_order || 0,
+      series_type: s.series_type || 'other',
+      sub_tag: s.sub_tag || '',
+      sub_tag_sort: s.sub_tag_sort || 0,
     }))
     .sort((a, b) => (a.sort_order - b.sort_order) || String(a.name).localeCompare(String(b.name), 'zh-Hans-CN'));
 }

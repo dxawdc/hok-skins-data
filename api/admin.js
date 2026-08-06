@@ -26,6 +26,8 @@ const QUALITY_OTHER = '\u5176\u4ed6';
 const TYPE_FIRST = '\u9996\u53d1';
 const TYPE_RETURN = '\u8fd4\u573a';
 const PERMANENT_NO = '\u5426';
+const SERIES_TYPES = new Set(['other', 'battle_pass', 'season_limited', 'zodiac_limited']);
+const SERIES_TYPES_WITH_SUB_TAG = new Set(['battle_pass', 'season_limited', 'zodiac_limited']);
 const SKIN_SELECT = '*, skin_profiles:skin_profile_id(*, skin_profile_series(series:series_id(*)))';
 const SPECIAL_RESOURCE_QUALITIES = new Set(['绿色', '蓝色', '紫色', '金色']);
 const SPECIAL_RESOURCE_CONFIG = {
@@ -69,6 +71,9 @@ function profileSeries(profile) {
       name: s.name,
       description: s.description || '',
       sort_order: s.sort_order || 0,
+      series_type: s.series_type || 'other',
+      sub_tag: s.sub_tag || '',
+      sub_tag_sort: s.sub_tag_sort || 0,
     }))
     .sort((a, b) => (a.sort_order - b.sort_order) || String(a.name).localeCompare(String(b.name), 'zh-Hans-CN'));
 }
@@ -501,15 +506,29 @@ async function listSeries(params) {
   if (search) {
     series = series.filter(s =>
       String(s.name || '').toLowerCase().includes(search) ||
-      String(s.description || '').toLowerCase().includes(search)
+      String(s.description || '').toLowerCase().includes(search) ||
+      String(s.sub_tag || '').toLowerCase().includes(search)
     );
   }
   return ok({ series, total: series.length });
 }
 
 async function upsertSeries(data, user) {
+  const seriesType = String(data?.series_type || 'other').trim();
+  if (!SERIES_TYPES.has(seriesType)) return fail('套系类型不合法');
+  const needsSubTag = SERIES_TYPES_WITH_SUB_TAG.has(seriesType);
+  const subTag = needsSubTag ? String(data?.sub_tag || '').trim() : '';
+  if (needsSubTag && !subTag) return fail('该套系类型必须填写细分标签');
+  const rawSubTagSort = data?.sub_tag_sort;
+  const subTagSort = rawSubTagSort === '' || rawSubTagSort === undefined || rawSubTagSort === null
+    ? 0
+    : Number(rawSubTagSort);
+  if (!Number.isInteger(subTagSort)) return fail('细分排序值必须是整数');
   const clean = {
     name: String(data?.name || '').trim(),
+    series_type: seriesType,
+    sub_tag: needsSubTag ? subTag : null,
+    sub_tag_sort: needsSubTag ? subTagSort : 0,
   };
   if (!clean.name) return fail('套系名称不能为空');
   const client = getClient();

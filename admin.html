@@ -464,7 +464,7 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
           </div>
           <div class="data-table-wrap">
             <table>
-              <thead><tr><th>套系名称</th><th>皮肤数</th><th>操作</th></tr></thead>
+              <thead><tr><th>套系名称</th><th>类型 / 细分</th><th>皮肤数</th><th>操作</th></tr></thead>
               <tbody id="series-tbody"></tbody>
             </table>
           </div>
@@ -679,6 +679,24 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
     <div class="form-group">
       <label>套系名称 <span style="color:var(--red)">*</span></label>
       <input type="text" id="series-name" placeholder="如：五五朋友节">
+    </div>
+    <div class="form-group">
+      <label>套系类型</label>
+      <select id="series-type" onchange="updateSeriesSubTagFields()">
+        <option value="other">其他套系（无细分）</option>
+        <option value="battle_pass">战令限定</option>
+        <option value="season_limited">赛季限定</option>
+        <option value="zodiac_limited">生肖限定</option>
+      </select>
+    </div>
+    <div class="form-group" id="series-sub-tag-wrap" style="display:none">
+      <label id="series-sub-tag-label">细分标签 <span style="color:var(--red)">*</span></label>
+      <input type="text" id="series-sub-tag" placeholder="如：S42">
+      <div id="series-sub-tag-help" style="font-size:12px;color:var(--text3);margin-top:5px"></div>
+    </div>
+    <div class="form-group" id="series-sub-tag-sort-wrap" style="display:none">
+      <label>细分排序值 <span style="color:var(--text3);font-weight:400">（数值越大越靠前）</span></label>
+      <input type="number" id="series-sub-tag-sort" placeholder="如：42">
     </div>
     <input type="hidden" id="series-id">
     <div class="modal-footer">
@@ -1175,6 +1193,11 @@ async function loadSkins() {
   renderSkins(res.skins);
   renderPagination(res.total, res.page, res.per_page);
 }
+function seriesAdminDisplayLabel(series) {
+  const type = series?.series_type || 'other';
+  const labels = { battle_pass: '战令限定', season_limited: '赛季限定', zodiac_limited: '生肖限定' };
+  return labels[type] && series?.sub_tag ? `${series.name} · ${labels[type]} · ${series.sub_tag}` : (series?.name || '');
+}
 function renderSkins(skins) {
   document.getElementById('skin-tbody').innerHTML = skins.map(raw => {
     const s = { ...raw, quality: normalizeQuality(raw.quality) };
@@ -1185,7 +1208,7 @@ function renderSkins(skins) {
       <td style="font-weight:600">${escapeHtml(s.name)}</td>
       <td><span class="badge badge-${escapeHtml(s.quality)}">${escapeHtml(s.quality)}</span></td>
       <td style="color:#3264c8">${escapeHtml(s.hero)}</td>
-      <td style="font-size:12px;color:var(--text3)">${escapeHtml((s.series || []).map(x => x.name).join('、')) || '-'}</td>
+      <td style="font-size:12px;color:var(--text3)">${escapeHtml((s.series || []).map(seriesAdminDisplayLabel).join('、')) || '-'}</td>
       <td style="font-size:12px">${escapeHtml(s.price)||'-'}</td>
       <td style="font-size:12px;color:var(--text3)">${escapeHtml(s.obtain)}</td>
       <td><span class="badge badge-${escapeHtml(s.type)}">${escapeHtml(s.type)}</span></td>
@@ -1223,7 +1246,7 @@ async function loadSeries(force=false) {
   }
   const keyword = search.toLowerCase();
   const list = keyword
-    ? allSeries.filter(series => `${series.name || ''} ${series.description || ''}`.toLowerCase().includes(keyword))
+    ? allSeries.filter(series => `${series.name || ''} ${series.description || ''} ${series.sub_tag || ''}`.toLowerCase().includes(keyword))
     : allSeries;
   renderSeriesTable(list);
   if (force) toast('套系列表已刷新');
@@ -1244,13 +1267,43 @@ function renderSeriesTable(list) {
   tbody.innerHTML = list.map(s => `
     <tr>
       <td style="font-weight:600">${escapeHtml(s.name)}</td>
+      <td>${seriesAdminMetaHtml(s)}</td>
       <td><span style="font-weight:600;color:var(--gold)">${s.skin_count || 0}</span></td>
       <td>
         <button class="btn btn-outline btn-sm" onclick="openSeriesSkins(${s.id},'${esc(s.name)}')">管理皮肤</button>
         <button class="btn btn-outline btn-sm" onclick="editSeries(${escapeHtml(JSON.stringify(JSON.stringify(s)))})">编辑</button>
         <button class="btn btn-danger btn-sm" onclick="doDeleteSeries(${s.id},'${esc(s.name)}')">删除</button>
       </td>
-    </tr>`).join('') || '<tr><td colspan="3" style="text-align:center;padding:30px;color:var(--text3)">暂无套系</td></tr>';
+    </tr>`).join('') || '<tr><td colspan="4" style="text-align:center;padding:30px;color:var(--text3)">暂无套系</td></tr>';
+}
+
+const SERIES_TYPE_ADMIN_META = {
+  other: { label: '其他套系', color: 'var(--text3)' },
+  battle_pass: { label: '战令限定', color: 'var(--accent2)' },
+  season_limited: { label: '赛季限定', color: 'var(--gold)' },
+  zodiac_limited: { label: '生肖限定', color: '#b892e7' },
+};
+
+function seriesAdminMetaHtml(series) {
+  const meta = SERIES_TYPE_ADMIN_META[series.series_type] || SERIES_TYPE_ADMIN_META.other;
+  const subTag = series.sub_tag ? ` <span style="color:var(--text);font-weight:600">· ${escapeHtml(series.sub_tag)}</span>` : '';
+  return `<span style="font-size:12px;color:${meta.color}">${meta.label}${subTag}</span>`;
+}
+
+function updateSeriesSubTagFields() {
+  const type = document.getElementById('series-type').value;
+  const required = ['battle_pass', 'season_limited', 'zodiac_limited'].includes(type);
+  const tagWrap = document.getElementById('series-sub-tag-wrap');
+  const sortWrap = document.getElementById('series-sub-tag-sort-wrap');
+  const label = document.getElementById('series-sub-tag-label');
+  const help = document.getElementById('series-sub-tag-help');
+  tagWrap.style.display = required ? '' : 'none';
+  sortWrap.style.display = required ? '' : 'none';
+  if (!required) return;
+  const zodiac = type === 'zodiac_limited';
+  label.innerHTML = `${zodiac ? '生肖年份' : '赛季编号'} <span style="color:var(--red)">*</span>`;
+  document.getElementById('series-sub-tag').placeholder = zodiac ? '如：2026马年' : '如：S42';
+  help.textContent = zodiac ? '示例：2026马年；排序值填写 2026。' : '示例：S42；排序值填写 42。';
 }
 
 function debounceSeriesSearch() {
@@ -1262,6 +1315,10 @@ function showAddSeries() {
   document.getElementById('modal-series-title').textContent = '新增套系';
   document.getElementById('series-id').value = '';
   document.getElementById('series-name').value = '';
+  document.getElementById('series-type').value = 'other';
+  document.getElementById('series-sub-tag').value = '';
+  document.getElementById('series-sub-tag-sort').value = '';
+  updateSeriesSubTagFields();
   document.getElementById('modal-series').classList.add('show');
 }
 
@@ -1270,6 +1327,10 @@ function editSeries(jsonStr) {
   document.getElementById('modal-series-title').textContent = '编辑套系';
   document.getElementById('series-id').value = s.id || '';
   document.getElementById('series-name').value = s.name || '';
+  document.getElementById('series-type').value = s.series_type || 'other';
+  document.getElementById('series-sub-tag').value = s.sub_tag || '';
+  document.getElementById('series-sub-tag-sort').value = s.sub_tag_sort || '';
+  updateSeriesSubTagFields();
   document.getElementById('modal-series').classList.add('show');
 }
 
@@ -1277,6 +1338,9 @@ async function doSaveSeries() {
   const id = document.getElementById('series-id').value;
   const data = {
     name: document.getElementById('series-name').value.trim(),
+    series_type: document.getElementById('series-type').value,
+    sub_tag: document.getElementById('series-sub-tag').value.trim(),
+    sub_tag_sort: document.getElementById('series-sub-tag-sort').value,
   };
   if (!data.name) return toast('套系名称不能为空', 'err');
   const btn = document.getElementById('series-save-btn');
@@ -1386,7 +1450,7 @@ function renderSkinSeriesOptions(selected=[]) {
   if (!sel) return;
   const selectedSet = new Set((selected || []).map(v => String(typeof v === 'object' ? v.id : v)));
   sel.innerHTML = allSeries.map(s =>
-    `<option value="${s.id}" ${selectedSet.has(String(s.id)) ? 'selected' : ''}>${escapeHtml(s.name)}</option>`
+    `<option value="${s.id}" ${selectedSet.has(String(s.id)) ? 'selected' : ''}>${escapeHtml(seriesAdminDisplayLabel(s))}</option>`
   ).join('');
 }
 
