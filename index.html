@@ -1038,6 +1038,7 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
           <span class="icon">🔍</span>
           <input type="text" id="search-series" placeholder="搜索套系 / 皮肤 / 英雄..." oninput="filterSeries()">
         </div>
+        <span style="color:var(--text3);font-size:13px;white-space:nowrap" id="series-count-label"></span>
       </div>
       <div class="ranking-sub">按套系皮肤总数排名 · 点击套系名查看套系内全部皮肤</div>
       <div class="ranking-table-wrap" id="series-table-wrap"></div>
@@ -2463,17 +2464,6 @@ function skinSeriesList(record) {
   return Array.isArray(record?.series) ? record.series : [];
 }
 
-const SERIES_TYPE_META = {
-  other: { label: '其他套系', filterLabel: '其他' },
-  battle_pass: { label: '战令限定', filterLabel: '战令限定', kind: 'season' },
-  season_limited: { label: '赛季限定', filterLabel: '赛季限定', kind: 'season' },
-  zodiac_limited: { label: '生肖限定', filterLabel: '生肖限定', kind: 'zodiac' },
-};
-
-function getSeriesTypeMeta(type) {
-  return SERIES_TYPE_META[type] || SERIES_TYPE_META.other;
-}
-
 // 收集某套系下的皮肤（按英雄+名称聚合，按首发日期倒序）
 function collectSeriesSkins(seriesId, subTag = '') {
   const skinMap = new Map();
@@ -2493,7 +2483,7 @@ function collectSeriesSkins(seriesId, subTag = '') {
       records,
       returnCount: records.filter(r=>r.type==='返场').length,
       seriesSubTag: link.sub_tag || '',
-      seriesSubTagSort: Number(link.sub_tag_sort) || 0,
+      seriesSubTagLabel: link.sub_tag_label || '',
     };
   }).sort((a,b)=>(b.date || '').localeCompare(a.date || ''));
 }
@@ -2524,11 +2514,13 @@ function seriesSkinsGridHtml(skins) {
 }
 
 function seriesDetailSubTagState(allSkins, requestedSubTag = '') {
-  const tags = [...new Map(allSkins
-    .filter(skin => skin.seriesSubTag)
-    .map(skin => [skin.seriesSubTag, skin.seriesSubTagSort]))
-    .entries()]
-    .sort((a, b) => b[1] - a[1] || String(b[0]).localeCompare(String(a[0]), 'zh-Hans-CN'));
+  const tagDates = new Map();
+  allSkins.filter(skin => skin.seriesSubTag).forEach(skin => {
+    const previousDate = tagDates.get(skin.seriesSubTag) || '';
+    tagDates.set(skin.seriesSubTag, String(skin.date || '') > previousDate ? String(skin.date || '') : previousDate);
+  });
+  const tags = [...tagDates.entries()]
+    .sort((a, b) => String(b[1]).localeCompare(String(a[1])) || String(a[0]).localeCompare(String(b[0]), 'zh-Hans-CN'));
   const selectedSubTag = tags.some(([tag]) => tag === requestedSubTag) ? requestedSubTag : '';
   return {
     tags,
@@ -2537,14 +2529,13 @@ function seriesDetailSubTagState(allSkins, requestedSubTag = '') {
   };
 }
 
-function seriesDetailSubTagSelector(seriesId, seriesName, seriesType, tags, selectedSubTag, actionName) {
-  const meta = getSeriesTypeMeta(seriesType);
-  if (!meta.kind || !tags.length) return '';
-  const label = meta.kind === 'zodiac' ? '生肖年份' : '赛季编号';
-  const allLabel = meta.kind === 'zodiac' ? '全部生肖年份' : '全部赛季';
+function seriesDetailSubTagSelector(seriesId, seriesName, subTagLabel, tags, selectedSubTag, actionName) {
+  if (!subTagLabel || !tags.length) return '';
+  const label = subTagLabel;
+  const allLabel = `全部${label}`;
   return `<div class="series-detail-sub-tag">
     <label for="series-detail-sub-tag">${label}</label>
-    <select id="series-detail-sub-tag" class="filter-select" onchange="${actionName}(${Number(seriesId)},'${esc(seriesName)}','${esc(seriesType)}',this.value)">
+    <select id="series-detail-sub-tag" class="filter-select" onchange="${actionName}(${Number(seriesId)},'${esc(seriesName)}','${esc(subTagLabel)}',this.value)">
       <option value="">${allLabel}</option>
       ${tags.map(([tag]) => `<option value="${escapeHtml(tag)}"${tag === selectedSubTag ? ' selected' : ''}>${escapeHtml(tag)}</option>`).join('')}
     </select>
@@ -2552,7 +2543,7 @@ function seriesDetailSubTagSelector(seriesId, seriesName, seriesType, tags, sele
 }
 
 // 皮肤详情里点击套系 chip：在「英雄皮肤」页内展示套系详情
-function openSeriesDetail(seriesId, seriesName, seriesType = 'other', subTag = '') {
+function openSeriesDetail(seriesId, seriesName, subTagLabel = '', subTag = '') {
   document.getElementById('heroes-list-wrap').style.display='none';
   const allSkins = collectSeriesSkins(seriesId);
   const state = seriesDetailSubTagState(allSkins, subTag);
@@ -2564,7 +2555,7 @@ function openSeriesDetail(seriesId, seriesName, seriesType = 'other', subTag = '
       <div class="breadcrumb"><a onclick="backToHeroes()">← 返回英雄皮肤</a> / 套系</div>
       <div class="series-detail-title-row">
         <div class="hero-detail-title">${escapeHtml(seriesName)}</div>
-        ${seriesDetailSubTagSelector(seriesId, seriesName, seriesType, state.tags, state.selectedSubTag, 'openSeriesDetail')}
+        ${seriesDetailSubTagSelector(seriesId, seriesName, subTagLabel, state.tags, state.selectedSubTag, 'openSeriesDetail')}
       </div>
       <div class="hero-detail-meta"><span>共 ${skins.length}${state.selectedSubTag ? ` / ${allSkins.length}` : ''} 款皮肤</span><span>按首发日期倒序</span></div>
     </div>
@@ -2608,7 +2599,7 @@ function buildSeriesRows() {
           id: s.id,
           name: s.name || '',
           description: '',
-          seriesType: s.series_type || 'other',
+          subTagLabel: s.sub_tag_label || '',
           skinMap: new Map(),
         };
         map.set(s.id, entry);
@@ -2627,14 +2618,14 @@ function buildSeriesRows() {
         ...first,
         records,
         seriesSubTag: link.sub_tag || '',
-        seriesSubTagSort: Number(link.sub_tag_sort) || 0,
+        seriesSubTagLabel: link.sub_tag_label || '',
       };
     }).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
     return withSeriesRowMetrics({
       id: e.id,
       name: e.name,
       description: e.description || '',
-      seriesType: e.seriesType,
+      subTagLabel: e.subTagLabel,
     }, skins);
   }).sort((a, b) => b.count - a.count || String(a.name).localeCompare(String(b.name), 'zh-Hans-CN'));
 }
@@ -2646,6 +2637,8 @@ function renderSeriesGrid() {
   if (kw) list = list.filter(e => e.searchText.includes(kw));
   list.sort((a, b) => b.count - a.count || String(a.name).localeCompare(String(b.name), 'zh-Hans-CN'));
   seriesRows = list;
+  const label = document.getElementById('series-count-label');
+  if (label) label.textContent = `共 ${list.length} 个套系`;
   seriesPage = 1;
   renderSeriesPage();
 }
@@ -2674,7 +2667,7 @@ function renderSeriesPage() {
     <tr>
       <td class="ranking-rank-td">${rankNumHtml(start + i)}</td>
       <td class="ranking-hero-td">
-        <span class="ranking-hero-name" onclick="openSeriesView(${row.id},'${esc(row.name)}','${esc(row.seriesType)}')">🎨 ${escapeHtml(row.name)}</span>
+        <span class="ranking-hero-name" onclick="openSeriesView(${row.id},'${esc(row.name)}','${esc(row.subTagLabel || '')}')">🎨 ${escapeHtml(row.name)}</span>
       </td>
       <td class="ranking-count-td">${row.count}</td>
       <td style="white-space:nowrap;color:var(--text2);font-size:13px">${escapeHtml(row.firstDate) || '—'}</td>
@@ -2719,7 +2712,7 @@ function filterSeries() {
   renderSeriesGrid();
 }
 
-function openSeriesView(seriesId, seriesName, seriesType = 'other', subTag = '') {
+function openSeriesView(seriesId, seriesName, subTagLabel = '', subTag = '') {
   document.getElementById('series-list-wrap').style.display = 'none';
   const detail = document.getElementById('series-detail-view');
   const allSkins = collectSeriesSkins(seriesId);
@@ -2731,7 +2724,7 @@ function openSeriesView(seriesId, seriesName, seriesType = 'other', subTag = '')
       <div class="breadcrumb"><a onclick="backToSeriesList()">← 返回套系列表</a> / ${escapeHtml(seriesName)}</div>
       <div class="series-detail-title-row">
         <div class="hero-detail-title">${escapeHtml(seriesName)}</div>
-        ${seriesDetailSubTagSelector(seriesId, seriesName, seriesType, state.tags, state.selectedSubTag, 'openSeriesView')}
+        ${seriesDetailSubTagSelector(seriesId, seriesName, subTagLabel, state.tags, state.selectedSubTag, 'openSeriesView')}
       </div>
       <div class="hero-detail-meta"><span>共 ${skins.length}${state.selectedSubTag ? ` / ${allSkins.length}` : ''} 款皮肤</span><span>按首发日期倒序</span></div>
     </div>
@@ -2819,7 +2812,7 @@ function openSkinDetail(hero, skinName) {
               <div class="attr-item"><label>获取方式</label><div class="val" style="font-size:12px;color:var(--text2)">${escapeHtml(first.obtain)}</div></div>
               <div class="attr-item"><label>是否常驻</label><div class="val"><span class="badge badge-${first.permanent}">${escapeHtml(first.permanent)}</span></div></div>
               ${series.length ? `<div class="attr-item" style="grid-column:1/-1"><label>皮肤套系</label><div class="val series-chips">
-                ${series.map(s => `<span class="series-chip" onclick="openSeriesDetail(${s.id}, '${esc(s.name)}', '${esc(s.series_type || 'other')}', '${esc(s.sub_tag || '')}')">${escapeHtml(s.name)} →</span>`).join('')}
+                ${series.map(s => `<span class="series-chip" onclick="openSeriesDetail(${s.id}, '${esc(s.name)}', '${esc(s.sub_tag_label || '')}', '${esc(s.sub_tag || '')}')">${escapeHtml(s.name)} →</span>`).join('')}
               </div></div>` : ''}
               <div class="attr-item"><label>返场次数</label><div class="val" style="color:var(--accent2);font-size:20px;font-weight:700">${returns.length}</div></div>
               ${latestReturn?`<div class="attr-item" style="grid-column:1/-1"><label>最近返场</label><div class="val" style="color:var(--gold)">${escapeHtml(latestReturn.date)} · ${escapeHtml(latestReturn.obtain)}</div></div>`:''}

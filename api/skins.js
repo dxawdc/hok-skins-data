@@ -5,7 +5,7 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_AN
 const OLD_COMPANION_QUALITY = '\u4f34\u751f';
 const QUALITY_OTHER = '\u5176\u4ed6';
 const PERMANENT_NO = '\u5426';
-const SKIN_SELECT = '*, skin_profiles:skin_profile_id(*, skin_profile_series(sub_tag,sub_tag_sort,series:series_id(*)))';
+const SKIN_SELECT = '*, skin_profiles:skin_profile_id(*, skin_profile_series(sub_tag,series:series_id(*)))';
 
 function getClient() {
   return createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -76,9 +76,8 @@ function profileSeries(profile) {
       name: s.name,
       description: s.description || '',
       sort_order: s.sort_order || 0,
-      series_type: s.series_type || 'other',
+      sub_tag_label: s.sub_tag_label || '',
       sub_tag: item.sub_tag || '',
-      sub_tag_sort: item.sub_tag_sort || 0,
       };
     })
     .filter(Boolean)

@@ -26,9 +26,7 @@ const QUALITY_OTHER = '\u5176\u4ed6';
 const TYPE_FIRST = '\u9996\u53d1';
 const TYPE_RETURN = '\u8fd4\u573a';
 const PERMANENT_NO = '\u5426';
-const SERIES_TYPES = new Set(['other', 'battle_pass', 'season_limited', 'zodiac_limited']);
-const SERIES_TYPES_WITH_SUB_TAG = new Set(['battle_pass', 'season_limited', 'zodiac_limited']);
-const SKIN_SELECT = '*, skin_profiles:skin_profile_id(*, skin_profile_series(sub_tag,sub_tag_sort,series:series_id(*)))';
+const SKIN_SELECT = '*, skin_profiles:skin_profile_id(*, skin_profile_series(sub_tag,series:series_id(*)))';
 const SPECIAL_RESOURCE_QUALITIES = new Set(['绿色', '蓝色', '紫色', '金色']);
 const SPECIAL_RESOURCE_CONFIG = {
   star_legend: {
@@ -72,9 +70,8 @@ function profileSeries(profile) {
       name: s.name,
       description: s.description || '',
       sort_order: s.sort_order || 0,
-      series_type: s.series_type || 'other',
+      sub_tag_label: s.sub_tag_label || '',
       sub_tag: item.sub_tag || '',
-      sub_tag_sort: item.sub_tag_sort || 0,
       };
     })
     .filter(Boolean)
@@ -130,7 +127,7 @@ async function getSkinProfile(client, id) {
   if (!id) return null;
   let { data, error } = await client
     .from('skin_profiles')
-    .select('*, skin_profile_series(sub_tag,sub_tag_sort,series:series_id(*))')
+    .select('*, skin_profile_series(sub_tag,series:series_id(*))')
     .eq('id', parseInt(id))
     .maybeSingle();
   if (error) {
@@ -149,7 +146,7 @@ async function findSkinProfile(client, data) {
   if (!data.hero_id || !data.name) return null;
   let { data: profile, error } = await client
     .from('skin_profiles')
-    .select('*, skin_profile_series(sub_tag,sub_tag_sort,series:series_id(*))')
+    .select('*, skin_profile_series(sub_tag,series:series_id(*))')
     .eq('hero_id', parseInt(data.hero_id))
     .eq('name', data.name)
     .maybeSingle();
@@ -222,18 +219,16 @@ function normalizeSeriesLinks(value) {
     const seriesId = parseInt(item.series_id ?? item.id, 10);
     if (!Number.isFinite(seriesId)) return;
     const hasSubTag = Object.prototype.hasOwnProperty.call(item, 'sub_tag');
-    const hasSubTagSort = Object.prototype.hasOwnProperty.call(item, 'sub_tag_sort');
     links.set(seriesId, {
       series_id: seriesId,
       sub_tag: hasSubTag ? String(item.sub_tag || '').trim() : undefined,
-      sub_tag_sort: hasSubTagSort ? Number(item.sub_tag_sort) : undefined,
     });
   });
   return [...links.values()];
 }
 
-function seriesNeedsSubTag(seriesType) {
-  return SERIES_TYPES_WITH_SUB_TAG.has(seriesType);
+function seriesNeedsSubTag(series) {
+  return Boolean(String(series?.sub_tag_label || '').trim());
 }
 
 async function syncProfileSeries(client, profileId, seriesLinks) {
@@ -241,7 +236,7 @@ async function syncProfileSeries(client, profileId, seriesLinks) {
   const id = parseInt(profileId, 10);
   const { data: existing, error: existingError } = await client
     .from('skin_profile_series')
-    .select('series_id, sub_tag, sub_tag_sort')
+    .select('series_id, sub_tag')
     .eq('skin_profile_id', id);
   if (existingError) throw existingError;
   if (!seriesLinks.length) {
@@ -253,7 +248,7 @@ async function syncProfileSeries(client, profileId, seriesLinks) {
   const seriesIds = seriesLinks.map(link => link.series_id);
   const { data: seriesRows, error: seriesError } = await client
     .from('skin_series')
-    .select('id, series_type')
+    .select('id, sub_tag_label')
     .in('id', seriesIds);
   if (seriesError) throw seriesError;
   const seriesById = new Map((seriesRows || []).map(series => [series.id, series]));
@@ -263,16 +258,11 @@ async function syncProfileSeries(client, profileId, seriesLinks) {
     const series = seriesById.get(link.series_id);
     const previous = existingBySeriesId.get(link.series_id);
     const subTag = link.sub_tag === undefined ? (previous?.sub_tag || '') : link.sub_tag;
-    const subTagSort = link.sub_tag_sort === undefined
-      ? Number(previous?.sub_tag_sort || 0)
-      : link.sub_tag_sort;
-    if (!Number.isInteger(subTagSort)) throw new Error('细分排序值必须是整数');
-    if (seriesNeedsSubTag(series.series_type) && !subTag) throw new Error('战令限定、赛季限定和生肖限定必须填写对应细分');
+    if (seriesNeedsSubTag(series) && !subTag) throw new Error(`请填写${series.sub_tag_label}`);
     return {
       skin_profile_id: id,
       series_id: link.series_id,
-      sub_tag: seriesNeedsSubTag(series.series_type) ? subTag : null,
-      sub_tag_sort: seriesNeedsSubTag(series.series_type) ? subTagSort : 0,
+      sub_tag: seriesNeedsSubTag(series) ? subTag : null,
     };
   });
   const { error: upsertError } = await client
@@ -537,7 +527,7 @@ async function listSkinProfiles(params) {
     .select(select)
     .order('first_release_date', { ascending: false, nullsFirst: false })
     .limit(perPage);
-  let { data, error } = await load('*, skin_profile_series(sub_tag,sub_tag_sort,series:series_id(*))');
+  let { data, error } = await load('*, skin_profile_series(sub_tag,series:series_id(*))');
   if (error) {
     const fallback = await load('*');
     data = fallback.data;
@@ -571,18 +561,18 @@ async function listSeries(params) {
     series = series.filter(s =>
       String(s.name || '').toLowerCase().includes(search) ||
       String(s.description || '').toLowerCase().includes(search) ||
-      String(s.sub_tag || '').toLowerCase().includes(search)
+      String(s.sub_tag_label || '').toLowerCase().includes(search)
     );
   }
   return ok({ series, total: series.length });
 }
 
 async function upsertSeries(data, user) {
-  const seriesType = String(data?.series_type || 'other').trim();
-  if (!SERIES_TYPES.has(seriesType)) return fail('套系类型不合法');
+  const subTagLabel = String(data?.sub_tag_label || '').trim();
+  if (subTagLabel.length > 24) return fail('子分类名称不能超过 24 个字符');
   const clean = {
     name: String(data?.name || '').trim(),
-    series_type: seriesType,
+    sub_tag_label: subTagLabel || null,
   };
   if (!clean.name) return fail('套系名称不能为空');
   const client = getClient();
@@ -623,7 +613,7 @@ async function listSeriesSkins(seriesId) {
   const sid = parseInt(seriesId, 10);
   const { data, error } = await getClient()
     .from('skin_profile_series')
-    .select('sub_tag, sub_tag_sort, skin_profiles:skin_profile_id(*)')
+    .select('sub_tag, skin_profiles:skin_profile_id(*)')
     .eq('series_id', sid);
   if (error) return fail(error.message);
   const profiles = (data || [])
@@ -631,10 +621,10 @@ async function listSeriesSkins(seriesId) {
       ...r.skin_profiles,
       quality: normalizeQuality(r.skin_profiles.quality),
       sub_tag: r.sub_tag || '',
-      sub_tag_sort: r.sub_tag_sort || 0,
     }) : null)
     .filter(Boolean)
     .sort((a, b) =>
+      String(b.first_release_date || '').localeCompare(String(a.first_release_date || '')) ||
       String(a.hero || '').localeCompare(String(b.hero || ''), 'zh-Hans-CN') ||
       String(a.name || '').localeCompare(String(b.name || ''), 'zh-Hans-CN'));
   return ok({ profiles, total: profiles.length });
@@ -645,22 +635,18 @@ async function buildSeriesSkinLink(client, seriesId, profileId, body) {
   const pid = parseInt(profileId, 10);
   const { data: series, error } = await client
     .from('skin_series')
-    .select('id, series_type')
+    .select('id, sub_tag_label')
     .eq('id', sid)
     .maybeSingle();
   if (error) throw error;
   if (!series) throw new Error('套系不存在');
-  const needsSubTag = seriesNeedsSubTag(series.series_type);
+  const needsSubTag = seriesNeedsSubTag(series);
   const subTag = needsSubTag ? String(body?.sub_tag || '').trim() : '';
-  if (needsSubTag && !subTag) throw new Error('请填写该皮肤在此套系下的细分');
-  const rawSort = body?.sub_tag_sort;
-  const subTagSort = rawSort === '' || rawSort === undefined || rawSort === null ? 0 : Number(rawSort);
-  if (!Number.isInteger(subTagSort)) throw new Error('细分排序值必须是整数');
+  if (needsSubTag && !subTag) throw new Error(`请填写${series.sub_tag_label}`);
   return {
     skin_profile_id: pid,
     series_id: sid,
     sub_tag: needsSubTag ? subTag : null,
-    sub_tag_sort: needsSubTag ? subTagSort : 0,
   };
 }
 
@@ -693,7 +679,7 @@ async function updateSeriesSkinMeta(seriesId, profileId, body, user) {
   }
   const { data, error } = await client
     .from('skin_profile_series')
-    .update({ sub_tag: link.sub_tag, sub_tag_sort: link.sub_tag_sort })
+    .update({ sub_tag: link.sub_tag })
     .eq('series_id', link.series_id)
     .eq('skin_profile_id', link.skin_profile_id)
     .select()

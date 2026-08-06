@@ -464,7 +464,7 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
           </div>
           <div class="data-table-wrap">
             <table>
-              <thead><tr><th>套系名称</th><th>套系类型</th><th>皮肤数</th><th>操作</th></tr></thead>
+              <thead><tr><th>套系名称</th><th>子分类</th><th>皮肤数</th><th>操作</th></tr></thead>
               <tbody id="series-tbody"></tbody>
             </table>
           </div>
@@ -681,17 +681,10 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
       <input type="text" id="series-name" placeholder="如：五五朋友节">
     </div>
     <div class="form-group">
-      <label>套系类型</label>
-      <select id="series-type" onchange="updateSeriesSubTagFields()">
-        <option value="other">其他套系（无细分）</option>
-        <option value="battle_pass">战令限定</option>
-        <option value="season_limited">赛季限定</option>
-        <option value="zodiac_limited">生肖限定</option>
-      </select>
-    </div>
-    <div class="form-group" id="series-sub-tag-info" style="display:none">
-      <div style="padding:10px 12px;border:1px solid rgba(201,168,76,.25);border-radius:8px;background:rgba(201,168,76,.07);font-size:12px;color:var(--text2)">
-        细分信息按皮肤单独维护：保存套系后，点击“管理皮肤”逐款填写或批量填写。
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="series-sub-tag-enabled" onchange="updateSeriesSubTagFields()" style="width:auto"> 启用子分类</label>
+      <div id="series-sub-tag-fields" style="display:none;margin-top:9px">
+        <input type="text" id="series-sub-tag-label" maxlength="24" placeholder="子分类名称，如：赛季、年限、周年">
+        <div style="margin-top:6px;font-size:12px;color:var(--text3)">具体子分类值在“管理皮肤”中按皮肤填写或批量填写。</div>
       </div>
     </div>
     <input type="hidden" id="series-id">
@@ -712,11 +705,8 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
     </div>
 
     <div class="form-group" id="series-bulk-meta-wrap" style="display:none">
-      <label id="series-bulk-meta-label">批量细分 <span style="color:var(--red)">*</span></label>
-      <div style="display:grid;grid-template-columns:1fr 150px;gap:8px">
-        <input type="text" id="series-bulk-sub-tag" placeholder="如：S42">
-        <input type="number" id="series-bulk-sub-tag-sort" placeholder="排序，如：42">
-      </div>
+      <label id="series-bulk-meta-label">批量子分类 <span style="color:var(--red)">*</span></label>
+      <input type="text" id="series-bulk-sub-tag" placeholder="如：S42、2026马年">
       <div id="series-bulk-meta-help" style="font-size:12px;color:var(--text3);margin-top:5px"></div>
     </div>
 
@@ -765,7 +755,7 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
       <div class="form-group" id="es-series-wrap" style="grid-column:1/-1">
         <label>皮肤套系 <span style="color:var(--text3);font-weight:400">（可多选）</span></label>
         <select id="es-series" class="filter-select" style="width:100%;min-height:88px" multiple></select>
-        <div style="font-size:12px;color:var(--text3);margin-top:5px">按住 Ctrl / Command 可多选；战令、赛季、生肖限定的细分请在“套系管理 → 管理皮肤”中维护。</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:5px">按住 Ctrl / Command 可多选；启用子分类的套系请在“套系管理 → 管理皮肤”中维护具体值。</div>
       </div>
       <div class="form-group" id="es-price-wrap"><label>价格</label><input type="text" id="es-price" placeholder="如：888"></div>
       <div class="form-group" id="es-obtain-wrap"><label>获取方式</label><input type="text" id="es-obtain" placeholder="如：直售"></div>
@@ -1199,9 +1189,7 @@ async function loadSkins() {
   renderPagination(res.total, res.page, res.per_page);
 }
 function seriesAdminDisplayLabel(series) {
-  const type = series?.series_type || 'other';
-  const labels = { battle_pass: '战令限定', season_limited: '赛季限定', zodiac_limited: '生肖限定' };
-  return labels[type] && series?.sub_tag ? `${series.name} · ${labels[type]} · ${series.sub_tag}` : (series?.name || '');
+  return series?.name || '';
 }
 function renderSkins(skins) {
   document.getElementById('skin-tbody').innerHTML = skins.map(raw => {
@@ -1251,7 +1239,7 @@ async function loadSeries(force=false) {
   }
   const keyword = search.toLowerCase();
   const list = keyword
-    ? allSeries.filter(series => `${series.name || ''} ${series.description || ''} ${series.sub_tag || ''}`.toLowerCase().includes(keyword))
+    ? allSeries.filter(series => `${series.name || ''} ${series.description || ''} ${series.sub_tag_label || ''}`.toLowerCase().includes(keyword))
     : allSeries;
   renderSeriesTable(list);
   if (force) toast('套系列表已刷新');
@@ -1282,22 +1270,19 @@ function renderSeriesTable(list) {
     </tr>`).join('') || '<tr><td colspan="4" style="text-align:center;padding:30px;color:var(--text3)">暂无套系</td></tr>';
 }
 
-const SERIES_TYPE_ADMIN_META = {
-  other: { label: '其他套系', color: 'var(--text3)' },
-  battle_pass: { label: '战令限定', color: 'var(--accent2)' },
-  season_limited: { label: '赛季限定', color: 'var(--gold)' },
-  zodiac_limited: { label: '生肖限定', color: '#b892e7' },
-};
-
 function seriesAdminMetaHtml(series) {
-  const meta = SERIES_TYPE_ADMIN_META[series.series_type] || SERIES_TYPE_ADMIN_META.other;
-  return `<span style="font-size:12px;color:${meta.color}">${meta.label}</span>`;
+  return series?.sub_tag_label
+    ? `<span style="font-size:12px;color:var(--gold)">${escapeHtml(series.sub_tag_label)}</span>`
+    : '<span style="font-size:12px;color:var(--text3)">未启用</span>';
 }
 
 function updateSeriesSubTagFields() {
-  const type = document.getElementById('series-type').value;
-  const required = ['battle_pass', 'season_limited', 'zodiac_limited'].includes(type);
-  document.getElementById('series-sub-tag-info').style.display = required ? '' : 'none';
+  const enabled = document.getElementById('series-sub-tag-enabled').checked;
+  const fields = document.getElementById('series-sub-tag-fields');
+  const label = document.getElementById('series-sub-tag-label');
+  fields.style.display = enabled ? '' : 'none';
+  label.disabled = !enabled;
+  if (!enabled) label.value = '';
 }
 
 function debounceSeriesSearch() {
@@ -1309,7 +1294,8 @@ function showAddSeries() {
   document.getElementById('modal-series-title').textContent = '新增套系';
   document.getElementById('series-id').value = '';
   document.getElementById('series-name').value = '';
-  document.getElementById('series-type').value = 'other';
+  document.getElementById('series-sub-tag-enabled').checked = false;
+  document.getElementById('series-sub-tag-label').value = '';
   updateSeriesSubTagFields();
   document.getElementById('modal-series').classList.add('show');
 }
@@ -1319,7 +1305,8 @@ function editSeries(jsonStr) {
   document.getElementById('modal-series-title').textContent = '编辑套系';
   document.getElementById('series-id').value = s.id || '';
   document.getElementById('series-name').value = s.name || '';
-  document.getElementById('series-type').value = s.series_type || 'other';
+  document.getElementById('series-sub-tag-enabled').checked = Boolean(s.sub_tag_label);
+  document.getElementById('series-sub-tag-label').value = s.sub_tag_label || '';
   updateSeriesSubTagFields();
   document.getElementById('modal-series').classList.add('show');
 }
@@ -1328,9 +1315,12 @@ async function doSaveSeries() {
   const id = document.getElementById('series-id').value;
   const data = {
     name: document.getElementById('series-name').value.trim(),
-    series_type: document.getElementById('series-type').value,
+    sub_tag_label: document.getElementById('series-sub-tag-enabled').checked
+      ? document.getElementById('series-sub-tag-label').value.trim()
+      : '',
   };
   if (!data.name) return toast('套系名称不能为空', 'err');
+  if (document.getElementById('series-sub-tag-enabled').checked && !data.sub_tag_label) return toast('请填写子分类名称', 'err');
   const btn = document.getElementById('series-save-btn');
   btn.disabled = true; btn.textContent = '保存中…';
   try {
@@ -1362,7 +1352,7 @@ let currentSeriesName = '';
 let currentSeries = null;
 
 function currentSeriesNeedsSubTag() {
-  return ['battle_pass', 'season_limited', 'zodiac_limited'].includes(currentSeries?.series_type);
+  return Boolean(currentSeries?.sub_tag_label);
 }
 
 function setupSeriesSkinMetaControls() {
@@ -1370,16 +1360,12 @@ function setupSeriesSkinMetaControls() {
   const label = document.getElementById('series-bulk-meta-label');
   const help = document.getElementById('series-bulk-meta-help');
   const tagInput = document.getElementById('series-bulk-sub-tag');
-  const sortInput = document.getElementById('series-bulk-sub-tag-sort');
   const required = currentSeriesNeedsSubTag();
   wrap.style.display = required ? '' : 'none';
   tagInput.value = '';
-  sortInput.value = '';
   if (!required) return;
-  const zodiac = currentSeries.series_type === 'zodiac_limited';
-  label.textContent = zodiac ? '批量生肖年份 *' : '批量赛季编号 *';
-  tagInput.placeholder = zodiac ? '如：2026马年' : '如：S42';
-  sortInput.placeholder = zodiac ? '排序，如：2026' : '排序，如：42';
+  label.textContent = `批量${currentSeries.sub_tag_label} *`;
+  tagInput.placeholder = '如：S42、2026马年';
   help.textContent = '添加选中的皮肤时统一填写；已绑定皮肤可在上方逐款修改。';
 }
 
@@ -1387,7 +1373,7 @@ async function openSeriesSkins(id, name) {
   currentSeriesId = id;
   currentSeriesName = name;
   await ensureSeries();
-  currentSeries = allSeries.find(series => Number(series.id) === Number(id)) || { id, name, series_type: 'other' };
+  currentSeries = allSeries.find(series => Number(series.id) === Number(id)) || { id, name, sub_tag_label: '' };
   document.getElementById('series-skins-title').textContent = name;
   document.getElementById('series-add-search').value = '';
   setupSeriesSkinMetaControls();
@@ -1412,19 +1398,18 @@ function renderSeriesBoundSkins(list) {
     return;
   }
   const required = currentSeriesNeedsSubTag();
-  const zodiac = currentSeries?.series_type === 'zodiac_limited';
   box.innerHTML = list.map(p => {
     const tagImage = p.tag_img_url
       ? '<img src="' + escapeHtml(p.tag_img_url) + '" alt="' + escapeHtml(p.tag || '皮肤标签') + '" title="' + escapeHtml(p.tag || '皮肤标签') + '" loading="lazy" style="width:34px;height:28px;object-fit:contain;flex:0 0 auto;border-radius:5px;background:var(--bg);padding:2px" onerror="this.style.display=\'none\'">'
       : '';
+    const tagText = p.tag ? '<span style="color:var(--gold-light);font-size:12px">' + escapeHtml(p.tag) + '</span>' : '';
     const metaEditor = required
-      ? '<div style="display:flex;gap:6px;align-items:center;flex:1;min-width:260px">' +
-        '<input id="series-link-tag-' + p.id + '" value="' + escapeHtml(p.sub_tag || '') + '" placeholder="' + (zodiac ? '2026马年' : 'S42') + '" style="min-width:0;flex:1">' +
-        '<input id="series-link-sort-' + p.id + '" type="number" value="' + (p.sub_tag_sort || '') + '" placeholder="排序" style="width:76px">' +
+      ? '<div style="display:flex;gap:6px;align-items:center;flex:1;min-width:220px">' +
+        '<input id="series-link-tag-' + p.id + '" value="' + escapeHtml(p.sub_tag || '') + '" placeholder="填写' + escapeHtml(currentSeries.sub_tag_label) + '" style="min-width:0;flex:1">' +
         '<button class="btn btn-outline btn-sm" onclick="doUpdateSeriesSkinMeta(' + p.id + ')">保存</button></div>'
       : '';
     return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 8px;border-bottom:1px solid var(--border);flex-wrap:wrap">' +
-      '<span style="font-size:13px;min-width:180px;flex:1;display:flex;align-items:center;gap:7px;min-width:0">' + tagImage + '<span style="min-width:0">' + escapeHtml(p.hero) + ' · ' + escapeHtml(p.name) + '<span style="color:var(--text3)">（' + escapeHtml(normalizeQuality(p.quality || '')) + '）</span></span></span>' +
+      '<span style="font-size:13px;min-width:180px;flex:1;display:flex;align-items:center;gap:7px;min-width:0">' + tagImage + '<span style="min-width:0">' + escapeHtml(p.hero) + ' · ' + escapeHtml(p.name) + '<span style="color:var(--text3)">（' + escapeHtml(normalizeQuality(p.quality || '')) + '）</span> ' + tagText + '</span></span>' +
       metaEditor + '<button class="btn btn-danger btn-sm" onclick="doRemoveSeriesSkin(' + p.id + ')">×</button></div>';
   }).join('');
 }
@@ -1451,7 +1436,6 @@ async function doAddSeriesSkins() {
     const payload = { skin_profile_ids: ids };
     if (currentSeriesNeedsSubTag()) {
       payload.sub_tag = document.getElementById('series-bulk-sub-tag').value.trim();
-      payload.sub_tag_sort = document.getElementById('series-bulk-sub-tag-sort').value;
       if (!payload.sub_tag) return toast('请填写批量细分', 'err');
     }
     const res = await api('POST', `/series/${currentSeriesId}/skins`, payload);
@@ -1470,7 +1454,6 @@ async function doAddSeriesSkins() {
 async function doUpdateSeriesSkinMeta(profileId) {
   const payload = {
     sub_tag: document.getElementById(`series-link-tag-${profileId}`).value.trim(),
-    sub_tag_sort: document.getElementById(`series-link-sort-${profileId}`).value,
   };
   if (!payload.sub_tag) return toast('请填写细分', 'err');
   const res = await api('PUT', `/series/${currentSeriesId}/skins/${profileId}`, payload);
