@@ -489,6 +489,11 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
 .skin-overview-stat span { display: block; margin-top: 4px; color: var(--text3); font-size: 10px; }
 .skin-overview-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 14px; background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 16px; }
 .skin-overview-controls .search-box { max-width: 340px; }
+.overview-filter-set { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.overview-filter-label { color: var(--text3); font-size: 11px; font-weight: 700; white-space: nowrap; }
+.skin-overview-controls .filter-chips { flex-wrap: nowrap; }
+.overview-sort-select { min-width: 194px; height: 32px; padding: 0 28px 0 10px; color: var(--text2); background: var(--bg3); border: 1px solid var(--border); border-radius: 7px; outline: none; font: inherit; font-size: 12px; cursor: pointer; }
+.overview-sort-select:focus { border-color: var(--gold); }
 .overview-control-note { margin-left: auto; color: var(--text3); font-size: 12px; }
 .overview-group { margin-bottom: 16px; background: var(--bg3); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: 0 10px 26px rgba(0,0,0,.06); }
 .overview-group-head { display: flex; align-items: center; gap: 11px; padding: 12px 16px; background: linear-gradient(90deg, rgba(201,168,76,.13), transparent 72%); border-bottom: 1px solid var(--border); }
@@ -497,6 +502,10 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
 .overview-hero-name { font-family: 'Noto Serif SC', serif; font-size: 18px; font-weight: 900; color: var(--gold-light); cursor: pointer; }
 .overview-hero-name:hover { color: var(--gold); text-decoration: underline; }
 .overview-hero-meta { margin-top: 2px; color: var(--text3); font-size: 11px; }
+.overview-hero-info { min-width: 0; }
+.overview-hero-facts { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.overview-hero-fact { padding: 3px 6px; color: var(--text3); background: rgba(255,255,255,.035); border: 1px solid var(--border); border-radius: 4px; font-size: 10px; line-height: 1.2; white-space: nowrap; }
+.overview-hero-fact.stale { color: var(--gold-light); border-color: rgba(201,168,76,.3); background: rgba(201,168,76,.08); }
 .overview-group-count { margin-left: auto; align-self: stretch; display: flex; align-items: center; padding-left: 16px; border-left: 1px solid var(--border); color: var(--text3); font-size: 12px; white-space: nowrap; }
 .overview-group-count b { color: var(--gold); margin: 0 3px; }
 .skin-overview-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -703,8 +712,13 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
   .skin-overview-stat { flex: 1; padding: 9px 8px; }
   .skin-overview-controls { padding: 10px; align-items: stretch; }
   .skin-overview-controls .search-box { flex-basis: 100%; max-width: none; }
+  .overview-filter-set { width: 100%; overflow-x: auto; padding-bottom: 2px; }
+  .overview-filter-set .filter-chips { flex-shrink: 0; }
+  .overview-sort-select { flex: 1; min-width: 180px; }
   .overview-control-note { margin-left: 0; }
   .overview-group-head { padding: 10px 12px; }
+  .overview-hero-facts { margin-top: 4px; }
+  .overview-hero-fact:first-child { display: none; }
   .overview-group-count { padding-left: 10px; font-size: 11px; }
   .contact-wrap { padding: 20px 14px; }
   .contact-cards { grid-template-columns: 1fr; }
@@ -892,6 +906,39 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
         <div class="filter-chips" id="skin-overview-mode">
           <div class="chip active" data-overview-mode="all" onclick="setSkinOverviewMode(this,'all')">全部皮肤</div>
           <div class="chip" data-overview-mode="returned" onclick="setSkinOverviewMode(this,'returned')">仅看有返场</div>
+        </div>
+        <div class="overview-filter-set">
+          <span class="overview-filter-label">职业</span>
+          <div class="filter-chips" id="skin-overview-role">
+            <div class="chip active" data-overview-role="" onclick="setSkinOverviewRole(this,'')">全部</div>
+            <div class="chip" data-overview-role="坦克" onclick="setSkinOverviewRole(this,'坦克')">坦克</div>
+            <div class="chip" data-overview-role="战士" onclick="setSkinOverviewRole(this,'战士')">战士</div>
+            <div class="chip" data-overview-role="刺客" onclick="setSkinOverviewRole(this,'刺客')">刺客</div>
+            <div class="chip" data-overview-role="法师" onclick="setSkinOverviewRole(this,'法师')">法师</div>
+            <div class="chip" data-overview-role="射手" onclick="setSkinOverviewRole(this,'射手')">射手</div>
+            <div class="chip" data-overview-role="辅助" onclick="setSkinOverviewRole(this,'辅助')">辅助</div>
+          </div>
+        </div>
+        <div class="overview-filter-set">
+          <span class="overview-filter-label">分路</span>
+          <div class="filter-chips" id="skin-overview-lane">
+            <div class="chip active" data-overview-lane="" onclick="setSkinOverviewLane(this,'')">全部</div>
+            <div class="chip" data-overview-lane="对抗路" onclick="setSkinOverviewLane(this,'对抗路')">对抗路</div>
+            <div class="chip" data-overview-lane="中路" onclick="setSkinOverviewLane(this,'中路')">中路</div>
+            <div class="chip" data-overview-lane="发育路" onclick="setSkinOverviewLane(this,'发育路')">发育路</div>
+            <div class="chip" data-overview-lane="打野" onclick="setSkinOverviewLane(this,'打野')">打野</div>
+            <div class="chip" data-overview-lane="游走" onclick="setSkinOverviewLane(this,'游走')">游走</div>
+          </div>
+        </div>
+        <div class="overview-filter-set">
+          <span class="overview-filter-label">排序</span>
+          <select id="skin-overview-sort" class="overview-sort-select" onchange="setSkinOverviewSort(this.value)" aria-label="皮肤总览排序">
+            <option value="name">英雄名称</option>
+            <option value="release-days-desc">上线天数：久 → 新</option>
+            <option value="release-days-asc">上线天数：新 → 久</option>
+            <option value="stale-days-desc">未新皮天数：久 → 新</option>
+            <option value="stale-days-asc">未新皮天数：新 → 久</option>
+          </select>
         </div>
         <span class="overview-control-note" id="skin-overview-note"></span>
       </div>
@@ -2043,10 +2090,43 @@ function buildHeroMap() {
 // ── View: Skin overview / return history ──────────────────────
 let skinOverviewPage = 1;
 let skinOverviewMode = 'all';
+let skinOverviewRole = '';
+let skinOverviewLane = '';
+let skinOverviewSort = 'name';
 const SKIN_OVERVIEW_HERO_PAGE_SIZE = 12;
 
 function overviewDate(value) {
   return String(value || '').replace(/-/g, '/') || '—';
+}
+
+function overviewDaysSince(value) {
+  const date = String(value || '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  const timestamp = new Date(`${date}T00:00:00`).getTime();
+  if (!Number.isFinite(timestamp)) return null;
+  return Math.max(0, Math.floor((Date.now() - timestamp) / 86400000));
+}
+
+function overviewMetricLabel(days, suffix) {
+  return days === null ? `${suffix}待补充` : `${days.toLocaleString()} 天${suffix}`;
+}
+
+function compareOverviewGroups(a, b) {
+  const sortMap = {
+    'release-days-desc': ['releaseDays', -1],
+    'release-days-asc': ['releaseDays', 1],
+    'stale-days-desc': ['staleDays', -1],
+    'stale-days-asc': ['staleDays', 1],
+  };
+  const config = sortMap[skinOverviewSort];
+  if (!config) return a.hero.localeCompare(b.hero, 'zh-Hans-CN');
+  const [field, direction] = config;
+  const aValue = a[field];
+  const bValue = b[field];
+  if (aValue === null && bValue === null) return a.hero.localeCompare(b.hero, 'zh-Hans-CN');
+  if (aValue === null) return 1;
+  if (bValue === null) return -1;
+  return direction * (aValue - bValue) || a.hero.localeCompare(b.hero, 'zh-Hans-CN');
 }
 
 function buildSkinOverviewGroups() {
@@ -2058,9 +2138,20 @@ function buildSkinOverviewGroups() {
       const returns = records.filter(record => record.type === '返场');
       return { ...skin, first, returns };
     }).sort((a, b) => String(b.first?.date || '').localeCompare(String(a.first?.date || '')));
+    const heroInfo = getHeroInfo(hero) || {};
+    const releaseDate = heroInfo.release_date || '';
+    const latestSkinDate = skins.reduce((latest, skin) => {
+      const date = String(skin.first?.date || '');
+      return date > latest ? date : latest;
+    }, '');
     return {
       hero,
       skins,
+      heroInfo,
+      releaseDate,
+      releaseDays: overviewDaysSince(releaseDate),
+      latestSkinDate,
+      staleDays: overviewDaysSince(latestSkinDate),
       returnCount: skins.reduce((count, skin) => count + skin.returns.length, 0),
       returnedSkinCount: skins.filter(skin => skin.returns.length).length,
     };
@@ -2079,6 +2170,26 @@ function setSkinOverviewMode(el, mode) {
   renderSkinOverview();
 }
 
+function setSkinOverviewRole(el, role) {
+  skinOverviewRole = role;
+  skinOverviewPage = 1;
+  document.querySelectorAll('[data-overview-role]').forEach(chip => chip.classList.toggle('active', chip === el));
+  renderSkinOverview();
+}
+
+function setSkinOverviewLane(el, lane) {
+  skinOverviewLane = lane;
+  skinOverviewPage = 1;
+  document.querySelectorAll('[data-overview-lane]').forEach(chip => chip.classList.toggle('active', chip === el));
+  renderSkinOverview();
+}
+
+function setSkinOverviewSort(sort) {
+  skinOverviewSort = sort;
+  skinOverviewPage = 1;
+  renderSkinOverview();
+}
+
 function renderSkinOverview() {
   const content = document.getElementById('skin-overview-content');
   if (!content) return;
@@ -2093,14 +2204,18 @@ function renderSkinOverview() {
     <div class="skin-overview-stat"><b>${allSkinCount}</b><span>款皮肤</span></div>
     <div class="skin-overview-stat"><b>${allReturnCount}</b><span>次返场</span></div>`;
 
-  const groups = allGroups.map(group => {
+  const groups = allGroups.filter(group => {
+    if (skinOverviewRole && !(group.heroInfo.roles || []).includes(skinOverviewRole)) return false;
+    if (skinOverviewLane && !(group.heroInfo.lanes || []).includes(skinOverviewLane)) return false;
+    return true;
+  }).map(group => {
     const skins = group.skins.filter(skin => {
       if (skinOverviewMode === 'returned' && !skin.returns.length) return false;
       if (!search) return true;
       return group.hero.toLowerCase().includes(search) || skin.name.toLowerCase().includes(search) || String(skin.tag || '').toLowerCase().includes(search);
     });
     return { ...group, skins };
-  }).filter(group => group.skins.length);
+  }).filter(group => group.skins.length).sort(compareOverviewGroups);
 
   const matchedSkins = groups.reduce((count, group) => count + group.skins.length, 0);
   const note = document.getElementById('skin-overview-note');
@@ -2115,7 +2230,7 @@ function renderSkinOverview() {
     content.innerHTML = `<div class="overview-page-empty">暂无匹配的皮肤返场记录</div>`;
   } else {
     content.innerHTML = pageGroups.map(group => {
-      const heroInfo = getHeroInfo(group.hero) || {};
+      const heroInfo = group.heroInfo;
       const roles = [...(heroInfo.roles || []), ...(heroInfo.lanes || [])].join(' · ');
       const avatar = heroAvatarUrl(group.hero);
       const avatarHtml = avatar
@@ -2146,7 +2261,14 @@ function renderSkinOverview() {
       return `<section class="overview-group">
         <div class="overview-group-head">
           <div class="overview-hero-avatar">${avatarHtml}</div>
-          <div><div class="overview-hero-name" onclick="openHeroDetailFromAnywhere('${esc(group.hero)}')">${escapeHtml(group.hero)}</div><div class="overview-hero-meta">${escapeHtml(roles || '英雄皮肤档案')}</div></div>
+          <div class="overview-hero-info">
+            <div class="overview-hero-name" onclick="openHeroDetailFromAnywhere('${esc(group.hero)}')">${escapeHtml(group.hero)}</div>
+            <div class="overview-hero-meta">${escapeHtml(roles || '英雄皮肤档案')} · 上线 ${overviewDate(group.releaseDate)}${group.releaseDays === null ? '' : ` · 已上线 ${group.releaseDays.toLocaleString()} 天`}</div>
+            <div class="overview-hero-facts">
+              <span class="overview-hero-fact">最近新皮 ${overviewDate(group.latestSkinDate)}</span>
+              <span class="overview-hero-fact stale">${overviewMetricLabel(group.staleDays, '未新皮')}</span>
+            </div>
+          </div>
           <div class="overview-group-count"><b>${group.skins.length}</b> 款皮肤 · <b>${returnedSkins}</b> 款有返场</div>
         </div>
         <div class="skin-overview-table-wrap"><table class="skin-overview-table">
