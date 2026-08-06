@@ -464,7 +464,7 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
           </div>
           <div class="data-table-wrap">
             <table>
-              <thead><tr><th>套系名称</th><th>类型 / 细分</th><th>皮肤数</th><th>操作</th></tr></thead>
+              <thead><tr><th>套系名称</th><th>套系类型</th><th>皮肤数</th><th>操作</th></tr></thead>
               <tbody id="series-tbody"></tbody>
             </table>
           </div>
@@ -1414,6 +1414,9 @@ function renderSeriesBoundSkins(list) {
   const required = currentSeriesNeedsSubTag();
   const zodiac = currentSeries?.series_type === 'zodiac_limited';
   box.innerHTML = list.map(p => {
+    const tagImage = p.tag_img_url
+      ? '<img src="' + escapeHtml(p.tag_img_url) + '" alt="' + escapeHtml(p.tag || '皮肤标签') + '" title="' + escapeHtml(p.tag || '皮肤标签') + '" loading="lazy" style="width:34px;height:28px;object-fit:contain;flex:0 0 auto;border-radius:5px;background:var(--bg);padding:2px" onerror="this.style.display=\'none\'">'
+      : '';
     const metaEditor = required
       ? '<div style="display:flex;gap:6px;align-items:center;flex:1;min-width:260px">' +
         '<input id="series-link-tag-' + p.id + '" value="' + escapeHtml(p.sub_tag || '') + '" placeholder="' + (zodiac ? '2026马年' : 'S42') + '" style="min-width:0;flex:1">' +
@@ -1421,7 +1424,7 @@ function renderSeriesBoundSkins(list) {
         '<button class="btn btn-outline btn-sm" onclick="doUpdateSeriesSkinMeta(' + p.id + ')">保存</button></div>'
       : '';
     return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 8px;border-bottom:1px solid var(--border);flex-wrap:wrap">' +
-      '<span style="font-size:13px;min-width:180px;flex:1">' + escapeHtml(p.hero) + ' · ' + escapeHtml(p.name) + '<span style="color:var(--text3)">（' + escapeHtml(normalizeQuality(p.quality || '')) + '）</span></span>' +
+      '<span style="font-size:13px;min-width:180px;flex:1;display:flex;align-items:center;gap:7px;min-width:0">' + tagImage + '<span style="min-width:0">' + escapeHtml(p.hero) + ' · ' + escapeHtml(p.name) + '<span style="color:var(--text3)">（' + escapeHtml(normalizeQuality(p.quality || '')) + '）</span></span></span>' +
       metaEditor + '<button class="btn btn-danger btn-sm" onclick="doRemoveSeriesSkin(' + p.id + ')">×</button></div>';
   }).join('');
 }
