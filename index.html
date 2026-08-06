@@ -853,6 +853,7 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
         <option>其他</option><option>无双</option><option>荣耀典藏</option>
         <option>珍品传说</option><option>珍品无双</option>
       </select>
+      <select class="filter-select" id="f-year" onchange="filterList()"><option value="">全部年份</option></select>
       <div class="filter-chips">
         <div class="chip active" data-ftype="" onclick="setTypeFilter(this,'')">全部</div>
         <div class="chip" data-ftype="首发" onclick="setTypeFilter(this,'首发')">首发</div>
@@ -1416,7 +1417,7 @@ function setTheme(t, el) {
 // ── State ──
 let filtered = [...RAW], sortField = 'date', sortDir = -1;
 let page = 1; const PAGE_SIZE = 50;
-let fHero = '', fQuality = '', fType = '', fPerm = '', fSearch = '';
+let fHero = '', fQuality = '', fYear = '', fType = '', fPerm = '', fSearch = '';
 let heroRoleFilter = '', heroLaneFilter = '', heroSearch = '';
 
 // ════════════════════════════════════════════════════════════════
@@ -1523,6 +1524,7 @@ window.onload = async () => {
     setLoadingText('渲染页面…');
     reconcileMarks([...new Set(RAW.map(markKey))]);   // 清理改名/下架皮肤的孤儿标记
     buildHeroSelect();
+    buildYearSelect();
     filterList();
     filterHeroList();
     renderHeroGrid();
@@ -1576,6 +1578,7 @@ async function refreshData(refreshVersion = '') {
     filtered = [...RAW];
 
     buildHeroSelect();
+    buildYearSelect();
     filterList();
     filterHeroList();
     renderHeroGrid();
@@ -1618,6 +1621,32 @@ function buildHeroSelect() {
   const sel = document.getElementById('f-hero');
   while (sel.options.length > 1) sel.remove(1);
   heroes.forEach(h => { const o = document.createElement('option'); o.textContent = h; o.value = h; sel.appendChild(o); });
+}
+
+function skinRecordYear(record) {
+  const matched = String(record?.date || '').match(/^(?:19|20)\d{2}/);
+  return matched ? matched[0] : '';
+}
+
+function buildYearSelect() {
+  const sel = document.getElementById('f-year');
+  if (!sel) return;
+  const current = fYear || sel.value;
+  const years = [...new Set(RAW.map(skinRecordYear).filter(Boolean))]
+    .sort((a, b) => Number(b) - Number(a));
+  while (sel.options.length > 1) sel.remove(1);
+  years.forEach(year => {
+    const option = document.createElement('option');
+    option.value = year;
+    option.textContent = `${year} 年`;
+    sel.appendChild(option);
+  });
+  if (years.includes(current)) {
+    fYear = current;
+    sel.value = current;
+  } else {
+    fYear = '';
+  }
 }
 
 function showView(v, el, snavId) {
@@ -1680,9 +1709,10 @@ function setPermFilter(el, val) {
   el.classList.add('active'); fPerm = val; page = 1; filterList();
 }
 function clearFilters() {
-  fHero=''; fQuality=''; fType=''; fPerm=''; fSearch='';
+  fHero=''; fQuality=''; fYear=''; fType=''; fPerm=''; fSearch='';
   document.getElementById('f-hero').value='';
   document.getElementById('f-quality').value='';
+  document.getElementById('f-year').value='';
   document.getElementById('search-list').value='';
   document.querySelectorAll('.chip[data-ftype]').forEach((c,i)=>c.classList.toggle('active',i===0));
   document.querySelectorAll('.chip[data-fperm]').forEach((c,i)=>c.classList.toggle('active',i===0));
@@ -1691,10 +1721,12 @@ function clearFilters() {
 function filterList() {
   fHero = document.getElementById('f-hero').value;
   fQuality = document.getElementById('f-quality').value;
+  fYear = document.getElementById('f-year').value;
   fSearch = document.getElementById('search-list').value.trim().toLowerCase();
   filtered = RAW.filter(r => {
     if (fHero && r.hero !== fHero) return false;
     if (fQuality && r.quality !== fQuality) return false;
+    if (fYear && skinRecordYear(r) !== fYear) return false;
     if (fType && r.type !== fType) return false;
     if (fPerm && (r.permanent || '否') !== fPerm) return false;
     if (fSearch && !r.name.toLowerCase().includes(fSearch) && !r.hero.toLowerCase().includes(fSearch)) return false;
