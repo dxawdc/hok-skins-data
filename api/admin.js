@@ -56,6 +56,12 @@ function normalizeQuality(q) {
   return q === OLD_COMPANION_QUALITY ? QUALITY_OTHER : q;
 }
 
+function normalizeTrackReturns(value, permanent = PERMANENT_NO) {
+  if (value === true || value === 1 || value === 'true' || value === '是') return true;
+  if (value === false || value === 0 || value === 'false' || value === '否') return false;
+  return permanent === PERMANENT_NO;
+}
+
 function normalizeSkinRecord(row) {
   return flattenSkinRow(row);
 }
@@ -91,6 +97,7 @@ function flattenSkinRow(row) {
     quality: normalizeQuality(profile.quality || row.quality),
     tag: profile.tag ?? row.tag ?? '',
     permanent: profile.permanent || row.permanent || PERMANENT_NO,
+    track_returns: profile.track_returns === true,
     skin_img_url: profile.skin_img_url || row.skin_img_url || '',
     tag_img_url: profile.tag_img_url || row.tag_img_url || '',
     profile_notes: profile.notes || '',
@@ -172,6 +179,7 @@ async function upsertSkinProfile(client, data, existingId = null) {
     quality: normalizeQuality(data.quality) || QUALITY_OTHER,
     tag: data.tag || '',
     permanent: data.permanent || PERMANENT_NO,
+    track_returns: normalizeTrackReturns(data.track_returns, data.permanent || PERMANENT_NO),
     skin_img_url: data.skin_img_url || null,
     tag_img_url: data.tag_img_url || null,
     notes: data.notes || null,
@@ -705,7 +713,7 @@ async function unbindSeriesSkin(seriesId, profileId, user) {
 }
 
 async function updateSkin(id, updates, user) {
-  const ALLOWED = new Set(['date','name','quality','tag','hero','price','obtain','type','permanent','skin_img_url','tag_img_url','hero_id','notes','skin_profile_id','series_ids','series_links','skin_value_points']);
+  const ALLOWED = new Set(['date','name','quality','tag','hero','price','obtain','type','permanent','track_returns','skin_img_url','tag_img_url','hero_id','notes','skin_profile_id','series_ids','series_links','skin_value_points']);
   const clean = Object.fromEntries(Object.entries(updates).filter(([k]) => ALLOWED.has(k)));
   if (clean.quality) clean.quality = normalizeQuality(clean.quality);
   const seriesLinks = normalizeSeriesLinks(clean.series_links ?? clean.series_ids);
@@ -809,7 +817,7 @@ async function batchUpdate({ ids, updates }, user) {
 
 // ── 新增皮肤 ─────────────────────────────────────────────────
 async function insertSkin(data, user) {
-  const ALLOWED = new Set(['date','name','quality','tag','hero','price','obtain','type','permanent','skin_img_url','tag_img_url','hero_id','notes','skin_profile_id','series_ids','series_links','skin_value_points']);
+  const ALLOWED = new Set(['date','name','quality','tag','hero','price','obtain','type','permanent','track_returns','skin_img_url','tag_img_url','hero_id','notes','skin_profile_id','series_ids','series_links','skin_value_points']);
   const clean = Object.fromEntries(Object.entries(data||{}).filter(([k]) => ALLOWED.has(k)));
   if (clean.quality) clean.quality = normalizeQuality(clean.quality);
   const seriesLinks = normalizeSeriesLinks(clean.series_links ?? clean.series_ids);

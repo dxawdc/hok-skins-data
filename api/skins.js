@@ -99,6 +99,7 @@ function flattenSkin(row) {
     obtain: row.obtain || '',
     type: row.type,
     permanent: profile?.permanent || row.permanent || PERMANENT_NO,
+    track_returns: profile?.track_returns === true,
     skin_img_url: profile?.skin_img_url || row.skin_img_url || '',
     tag_img_url: profile?.tag_img_url || row.tag_img_url || '',
     notes: row.notes || profile?.notes || null,

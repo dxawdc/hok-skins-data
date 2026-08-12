@@ -772,6 +772,13 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
           <option>否</option><option>是</option>
         </select>
       </div>
+      <div class="form-group" id="es-track-returns-wrap">
+        <label>是否统计返场</label>
+        <select id="es-track-returns" class="filter-select" style="width:100%">
+          <option>是</option><option>否</option>
+        </select>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">仅首发皮肤维护；返场大观只统计标记为“是”的皮肤。</div>
+      </div>
       <div class="form-group" id="es-value-points-wrap">
         <label>皮肤价值点数 <span style="color:var(--text3);font-weight:400">（用于计算皮肤价值）</span></label>
         <input type="number" id="es-value-points" placeholder="如：100" step="any" min="0">
@@ -1532,6 +1539,7 @@ function applySelectedSkinProfile() {
   document.getElementById('es-quality').value = normalizeQuality(p.quality || '');
   document.getElementById('es-tag').value = p.tag || '';
   document.getElementById('es-permanent').value = p.permanent || '否';
+  document.getElementById('es-track-returns').value = p.track_returns === false ? '否' : '是';
   document.getElementById('es-skin-img-url').value = p.skin_img_url || '';
   document.getElementById('es-tag-img-url').value = p.tag_img_url || '';
   document.getElementById('es-value-points').value = (p.skin_value_points ?? '');
@@ -1566,7 +1574,7 @@ async function updateSkinTypeMode() {
     const el = document.getElementById(id);
     if (el) el.classList.toggle('return-edit-highlight', isReturn);
   });
-  ['es-name','es-quality','es-tag','es-hero-id-search','es-hero-id','es-permanent','es-series','es-value-points'].forEach(id => {
+  ['es-name','es-quality','es-tag','es-hero-id-search','es-hero-id','es-permanent','es-track-returns','es-series','es-value-points'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.disabled = isReturn;
   });
@@ -1577,6 +1585,7 @@ async function updateSkinTypeMode() {
       el.style.opacity = isReturn ? '0.65' : '';
     }
   });
+  document.getElementById('es-track-returns-wrap').style.display = isReturn ? 'none' : '';
   if (isReturn) {
     await ensureSkinProfiles();
     renderSkinProfileOptions(allSkinProfiles, document.getElementById('es-current-profile-id').value);
@@ -1603,6 +1612,7 @@ function resetSkinModal() {
   document.getElementById('es-value-points').value = '';
   document.getElementById('es-type').value = '首发';
   document.getElementById('es-permanent').value = '否';
+  document.getElementById('es-track-returns').value = '是';
   renderSkinSeriesOptions([]);
   // 重置图片预览
   ['skin','tag'].forEach(t => {
@@ -1657,6 +1667,7 @@ async function openEditSkin(s) {
   document.getElementById('es-obtain').value    = s.obtain || '';
   document.getElementById('es-type').value      = s.type;
   document.getElementById('es-permanent').value = s.permanent;
+  document.getElementById('es-track-returns').value = s.track_returns === false ? '否' : '是';
   document.getElementById('es-value-points').value = (s.skin_value_points ?? '');
   document.getElementById('es-notes').value     = s.notes || '';
   renderSkinSeriesOptions(s.series || []);
@@ -1742,6 +1753,7 @@ async function doSaveSkin() {
       notes:        document.getElementById('es-notes').value.trim() || null,
       type,
       permanent:    document.getElementById('es-permanent').value,
+      track_returns: document.getElementById('es-track-returns').value === '是',
       skin_value_points: valuePointsRaw === '' ? null : Number(valuePointsRaw),
       skin_img_url: skinImgUrl,
       tag_img_url:  tagImgUrl,
@@ -1761,6 +1773,7 @@ async function doSaveSkin() {
       data.quality = p.quality;
       data.tag = p.tag || '';
       data.permanent = p.permanent || '否';
+      data.track_returns = p.track_returns === true;
       data.skin_img_url = p.skin_img_url || '';
       data.tag_img_url = p.tag_img_url || '';
       data.skin_value_points = (p.skin_value_points ?? null);

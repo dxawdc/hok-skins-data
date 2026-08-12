@@ -535,6 +535,34 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
 .overview-no-return { color: var(--text3); font-size: 11px; }
 .overview-page-empty { padding: 72px 20px; text-align: center; color: var(--text3); }
 
+/* RETURN GALLERY — profile-level return tracking */
+.return-gallery-wrap { max-width: 1600px; margin: 0 auto; padding: 24px 28px 40px; }
+.return-gallery-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; padding: 4px 0 20px; }
+.return-gallery-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 12px 14px; background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; }
+.return-gallery-search { flex: 1 1 270px; max-width: 380px; }
+.return-gallery-result { padding: 12px 3px; color: var(--text3); font-size: 12px; }
+.return-gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 13px; }
+.return-gallery-card { position: relative; display: flex; gap: 13px; min-width: 0; padding: 14px; overflow: hidden; cursor: pointer; background: var(--bg3); border: 1px solid var(--border); border-radius: 12px; transition: border-color .18s, transform .18s, box-shadow .18s; }
+.return-gallery-card:hover { transform: translateY(-2px); border-color: rgba(201,168,76,.55); box-shadow: 0 10px 24px rgba(0,0,0,.09); }
+.return-gallery-thumb { width: 78px; height: 78px; flex: 0 0 auto; overflow: hidden; display: flex; align-items: center; justify-content: center; color: var(--gold); background: var(--bg4); border: 1px solid var(--border); border-radius: 50%; font-size: 26px; }
+.return-gallery-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.return-gallery-body { min-width: 0; flex: 1; padding-right: 56px; }
+.return-gallery-name-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.return-gallery-name { min-width: 0; overflow: hidden; color: var(--text); font-family: 'Noto Serif SC', serif; font-size: 16px; font-weight: 900; text-overflow: ellipsis; white-space: nowrap; }
+.return-gallery-owned { flex: 0 0 auto; padding: 2px 4px; color: var(--text3); background: none; border: 0; cursor: pointer; font-size: 18px; line-height: 1; }
+.return-gallery-owned.on { color: var(--gold); }
+.return-gallery-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; margin-top: 5px; }
+.return-gallery-hero { color: var(--gold-light); font-size: 12px; }
+.return-gallery-date { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; margin-top: 10px; font-size: 11px; }
+.return-gallery-date-label { color: var(--text3); }
+.return-gallery-date time { color: var(--green); font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.return-gallery-distance { padding: 3px 7px; color: var(--gold-light); background: rgba(201,168,76,.08); border: 1px solid rgba(201,168,76,.27); border-radius: 99px; font-size: 10px; }
+.return-gallery-obtain { margin-top: 6px; overflow: hidden; color: var(--text3); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.return-gallery-count { position: absolute; top: 50%; right: 13px; width: 51px; height: 51px; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--green); background: rgba(80,192,144,.08); border: 1px solid rgba(80,192,144,.28); border-radius: 12px; }
+.return-gallery-count b { font-size: 18px; line-height: 1; }
+.return-gallery-count span { margin-top: 5px; color: var(--text3); font-size: 9px; }
+.return-gallery-count.never { color: var(--gold-light); background: rgba(201,168,76,.08); border-color: rgba(201,168,76,.28); font-size: 11px; font-weight: 700; line-height: 1.35; text-align: center; }
+
 /* ── RESOURCE MODULE STYLES ── */
 .res-grid-tm { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; padding: 20px 28px; }
 .res-grid-xb { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; padding: 20px 28px; }
@@ -726,6 +754,14 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
   .overview-hero-facts { margin-top: 4px; }
   .overview-hero-fact:first-child { display: none; }
   .overview-group-count { padding-left: 10px; font-size: 11px; }
+  .return-gallery-wrap { padding: 16px 12px 28px; }
+  .return-gallery-head { align-items: flex-start; flex-direction: column; gap: 14px; padding-bottom: 14px; }
+  .return-gallery-head .skin-overview-stats { width: 100%; }
+  .return-gallery-controls { align-items: stretch; padding: 10px; }
+  .return-gallery-search { flex-basis: 100%; max-width: none; }
+  .return-gallery-controls .overview-sort-select { min-width: 0; flex: 1 1 calc(50% - 5px); }
+  .return-gallery-grid { grid-template-columns: 1fr; gap: 10px; }
+  .return-gallery-card { padding: 12px; }
   .contact-wrap { padding: 20px 14px; }
   .contact-cards { grid-template-columns: 1fr; }
 
@@ -779,6 +815,7 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
     <div class="nav-tabs">
       <div class="nav-tab active" id="tab-list" onclick="showView('list',this)">皮肤明细</div>
       <div class="nav-tab" id="tab-skin-overview" onclick="showView('skin-overview',this)">皮肤总览</div>
+      <div class="nav-tab" id="tab-return-overview" onclick="showView('return-overview',this)">返场大观</div>
       <div class="nav-tab" id="tab-hero-list" onclick="showView('hero-list',this)">英雄明细</div>
       <div class="nav-tab" id="tab-heroes" onclick="showView('heroes',this)">英雄皮肤</div>
       <div class="nav-tab" id="tab-series" onclick="showView('series',this)">皮肤套系</div>
@@ -815,6 +852,7 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
         <div class="sidebar-label">导航</div>
         <div class="sidebar-nav-item active" id="snav-list" onclick="showView('list', null, 'list')">📋 皮肤明细</div>
         <div class="sidebar-nav-item" id="snav-skin-overview" onclick="showView('skin-overview', null, 'skin-overview')">🗂️ 皮肤总览</div>
+        <div class="sidebar-nav-item" id="snav-return-overview" onclick="showView('return-overview', null, 'return-overview')">🔄 返场大观</div>
         <div class="sidebar-nav-item" id="snav-hero-list" onclick="showView('hero-list', null, 'hero-list')">👤 英雄明细</div>
         <div class="sidebar-nav-item" id="snav-heroes" onclick="showView('heroes', null, 'heroes')">🎭 英雄皮肤</div>
         <div class="sidebar-nav-item" id="snav-series" onclick="showView('series', null, 'series')">🎨 皮肤套系</div>
@@ -951,6 +989,44 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
       </div>
       <div id="skin-overview-content"></div>
       <div class="pagination" id="skin-overview-pagination"></div>
+    </div>
+  </div>
+
+  <div id="view-return-overview" class="view">
+    <div class="return-gallery-wrap">
+      <div class="return-gallery-head">
+        <div>
+          <div class="skin-overview-kicker">Return panorama</div>
+          <div class="skin-overview-title">返场大观</div>
+          <div class="skin-overview-sub">聚合需要关注返场的皮肤，查看最近返场与从未返场情况。</div>
+        </div>
+        <div class="skin-overview-stats" id="return-gallery-stats"></div>
+      </div>
+      <div class="return-gallery-controls">
+        <div class="search-box return-gallery-search">
+          <span class="icon">🔎</span>
+          <input type="text" id="return-gallery-search" placeholder="搜索英雄或皮肤名称…" oninput="filterReturnGallery()">
+        </div>
+        <select id="return-gallery-status" class="overview-sort-select" onchange="setReturnGalleryStatus(this.value)">
+          <option value="returned">返场状态：返场过</option>
+          <option value="never">返场状态：从未返场</option>
+        </select>
+        <select id="return-gallery-sort" class="overview-sort-select" onchange="setReturnGallerySort(this.value)"></select>
+        <select id="return-gallery-owned" class="overview-sort-select" onchange="filterReturnGallery()">
+          <option value="">全部拥有状态</option>
+          <option value="unowned">未拥有</option>
+          <option value="owned">已拥有</option>
+        </select>
+        <select id="return-gallery-quality" class="overview-sort-select" onchange="filterReturnGallery()">
+          <option value="">全部品质</option>
+          <option>荣耀典藏</option><option>珍品无双</option><option>无双</option><option>珍品传说</option>
+          <option>传说</option><option>史诗</option><option>勇者</option><option>其他</option>
+        </select>
+        <span class="filter-clear" onclick="clearReturnGalleryFilters()">✕ 清除</span>
+      </div>
+      <div class="return-gallery-result" id="return-gallery-result"></div>
+      <div class="return-gallery-grid" id="return-gallery-grid"></div>
+      <div class="pagination" id="return-gallery-pagination"></div>
     </div>
   </div>
 
@@ -1209,6 +1285,9 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
     <div class="bottom-nav-item" id="bnav-skin-overview" onclick="showView('skin-overview',null,'skin-overview');setBottomNav('skin-overview')">
       <span class="bn-icon">🗂️</span>总览
     </div>
+    <div class="bottom-nav-item" id="bnav-return-overview" onclick="showView('return-overview',null,'return-overview');setBottomNav('return-overview')">
+      <span class="bn-icon">🔄</span>返场
+    </div>
     <div class="bottom-nav-item" id="bnav-hero-list" onclick="showView('hero-list',null,'hero-list');setBottomNav('hero-list')">
       <span class="bn-icon">👤</span>英雄
     </div>
@@ -1241,7 +1320,7 @@ const SUPABASE_URL = 'https://erphrsydujqrcvtpdtnf.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVycGhyc3lkdWpxcmN2dHBkdG5mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3MDU2ODQsImV4cCI6MjA4OTI4MTY4NH0.O6h3Eeq9gNfGAMYkZ5_1GY5lFBiJrF8fJat0Pxz868U';
 
 // ── 数据拉取：走 Cloudflare CDN 缓存 ──────────────────────────
-const CACHE_KEY       = 'wzry_skin_data_v7';   // v7: 新增 valuePoints 字段（皮肤价值点券），用于「我的」页估值
+const CACHE_KEY       = 'wzry_skin_data_v8';   // v8: 新增返场大观统计标记
 const CACHE_KEY_HERO  = 'wzry_hero_data_v1';
 const CACHE_KEY_RES   = 'wzry_res_data_v5';
 const CACHE_TTL       = 30 * 60 * 1000;
@@ -1295,7 +1374,7 @@ async function fetchAllSkins(refreshVersion = '') {
   } catch (e) {}
 
   console.log('[L1缓存未命中] 请求 CDN /api/skins…');
-  const res = await fetch(`${API_BASE}/api/skins?v=profile-v4${refreshQuery(refreshVersion)}`);
+  const res = await fetch(`${API_BASE}/api/skins?v=profile-v6${refreshQuery(refreshVersion)}`);
   if (!res.ok) throw new Error(`/api/skins 请求失败: ${res.status}`);
   const all = await res.json();
 
@@ -1311,6 +1390,7 @@ async function fetchAllSkins(refreshVersion = '') {
     obtain:    r.obtain   || '',
     type:      r.type,
     permanent: r.permanent || '否',
+    trackReturns: r.track_returns === true,
     si:        r.skin_img_url || '',
     qi:        r.tag_img_url  || '',
     valuePoints: numOr0(r.skin_value_points),
@@ -1512,6 +1592,7 @@ window.onload = async () => {
     renderHeroGrid();
     renderStats();
     if (document.getElementById('view-skin-overview')?.classList.contains('active')) renderSkinOverview();
+    if (document.getElementById('view-return-overview')?.classList.contains('active')) renderReturnGallery();
     if (document.getElementById('view-resources')?.classList.contains('active')) filterResources();
 
     const total = RAW.length.toLocaleString();
@@ -1565,6 +1646,7 @@ async function refreshData(refreshVersion = '') {
     filterHeroList();
     renderHeroGrid();
     renderStats();
+    if (document.getElementById('view-return-overview')?.classList.contains('active')) renderReturnGallery();
     if (document.getElementById('view-resources')?.classList.contains('active')) filterResources();
 
     const total = RAW.length.toLocaleString();
@@ -1651,6 +1733,7 @@ function showView(v, el, snavId) {
   }
   if (v === 'ranking') renderRanking();
   if (v === 'skin-overview') renderSkinOverview();
+  if (v === 'return-overview') renderReturnGallery();
   if (v === 'resources') openResourcesView();
   if (v === 'series') { backToSeriesList(); renderSeriesGrid(); }
   if (v === 'mine') renderMine();
@@ -2335,6 +2418,192 @@ function goSkinOverviewPage(nextPage) {
   skinOverviewPage = nextPage;
   renderSkinOverview();
   document.getElementById('skin-overview-content')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── View: Return gallery ──────────────────────────────────────
+const RETURN_GALLERY_PAGE_SIZE = 24;
+const RETURN_GALLERY_SORTS = {
+  returned: [
+    ['latest-desc', '最近返场：新到旧'],
+    ['latest-asc', '最近返场：旧到新'],
+    ['count-desc', '返场次数：多到少'],
+    ['count-asc', '返场次数：少到多'],
+  ],
+  never: [
+    ['first-days-desc', '首发天数：多到少'],
+    ['first-days-asc', '首发天数：少到多'],
+  ],
+};
+let returnGalleryStatus = 'returned';
+let returnGallerySort = RETURN_GALLERY_SORTS.returned[0][0];
+let returnGalleryPage = 1;
+
+function returnGalleryDayDistance(value) {
+  const date = String(value || '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  const parts = date.split('-').map(Number);
+  const target = new Date(parts[0], parts[1] - 1, parts[2]);
+  if (target.getFullYear() !== parts[0] || target.getMonth() !== parts[1] - 1 || target.getDate() !== parts[2]) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.floor((today.getTime() - target.getTime()) / 86400000);
+}
+
+function returnGalleryDistance(value, type) {
+  const days = returnGalleryDayDistance(value);
+  if (days === null) return '';
+  if (type === 'return') return days >= 0 ? `距上次返场 ${days.toLocaleString()} 天` : `距下次返场 ${Math.abs(days).toLocaleString()} 天`;
+  return days >= 0 ? `距首发上线 ${days.toLocaleString()} 天` : `距首发上线还有 ${Math.abs(days).toLocaleString()} 天`;
+}
+
+function buildReturnGalleryRows() {
+  const grouped = new Map();
+  RAW.forEach(record => {
+    const key = markKey(record);
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key).push(record);
+  });
+  return [...grouped.entries()].map(([key, records]) => {
+    const chronological = [...records].sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
+    const first = chronological.find(record => record.type === '首发') || chronological[0];
+    if (!first || !records.some(record => record.trackReturns === true)) return null;
+    const returns = chronological.filter(record => record.type === '返场');
+    const latest = returns[returns.length - 1] || first;
+    const display = records.find(record => record.si) || first;
+    return {
+      key,
+      hero: first.hero,
+      name: first.name,
+      quality: first.quality || latest.quality || '其他',
+      tag: first.tag || '',
+      si: display.si || '',
+      qi: display.qi || '',
+      firstDate: first.date || '',
+      firstDays: returnGalleryDayDistance(first.date),
+      hasReturned: returns.length > 0,
+      returnCount: returns.length,
+      latestDate: returns.length ? (latest.date || '') : '',
+      displayDate: returns.length ? (latest.date || '') : (first.date || ''),
+      displayObtain: returns.length ? (latest.obtain || '') : (first.obtain || ''),
+      distanceText: returns.length ? returnGalleryDistance(latest.date, 'return') : returnGalleryDistance(first.date, 'first'),
+      searchText: `${first.hero || ''} ${first.name || ''}`.toLowerCase(),
+    };
+  }).filter(Boolean);
+}
+
+function setReturnGallerySortOptions() {
+  const select = document.getElementById('return-gallery-sort');
+  if (!select) return;
+  const options = RETURN_GALLERY_SORTS[returnGalleryStatus];
+  if (!options.some(([value]) => value === returnGallerySort)) returnGallerySort = options[0][0];
+  select.innerHTML = options.map(([value, label]) => `<option value="${value}"${value === returnGallerySort ? ' selected' : ''}>${label}</option>`).join('');
+}
+
+function setReturnGalleryStatus(value) {
+  returnGalleryStatus = value === 'never' ? 'never' : 'returned';
+  returnGallerySort = RETURN_GALLERY_SORTS[returnGalleryStatus][0][0];
+  returnGalleryPage = 1;
+  setReturnGallerySortOptions();
+  renderReturnGallery();
+}
+
+function setReturnGallerySort(value) {
+  returnGallerySort = value;
+  returnGalleryPage = 1;
+  renderReturnGallery();
+}
+
+function filterReturnGallery() {
+  returnGalleryPage = 1;
+  renderReturnGallery();
+}
+
+function clearReturnGalleryFilters() {
+  returnGalleryStatus = 'returned';
+  returnGallerySort = RETURN_GALLERY_SORTS.returned[0][0];
+  returnGalleryPage = 1;
+  document.getElementById('return-gallery-search').value = '';
+  document.getElementById('return-gallery-status').value = 'returned';
+  document.getElementById('return-gallery-owned').value = '';
+  document.getElementById('return-gallery-quality').value = '';
+  setReturnGallerySortOptions();
+  renderReturnGallery();
+}
+
+function toggleReturnGalleryOwned(event, hero, name) {
+  event.stopPropagation();
+  toggleMark(`${hero}|${name}`, 'owned');
+  renderReturnGallery();
+}
+
+function renderReturnGallery() {
+  const grid = document.getElementById('return-gallery-grid');
+  if (!grid) return;
+  setReturnGallerySortOptions();
+  const allRows = buildReturnGalleryRows();
+  const search = (document.getElementById('return-gallery-search')?.value || '').trim().toLowerCase();
+  const ownedFilter = document.getElementById('return-gallery-owned')?.value || '';
+  const quality = document.getElementById('return-gallery-quality')?.value || '';
+  let rows = allRows.filter(row => returnGalleryStatus === 'returned' ? row.hasReturned : !row.hasReturned);
+  if (search) rows = rows.filter(row => row.searchText.includes(search));
+  if (quality) rows = rows.filter(row => row.quality === quality);
+  if (ownedFilter) rows = rows.filter(row => ownedFilter === 'owned' ? getMark(row.key).owned : !getMark(row.key).owned);
+  rows.sort((a, b) => {
+    if (returnGallerySort === 'latest-asc') return a.latestDate.localeCompare(b.latestDate) || b.returnCount - a.returnCount;
+    if (returnGallerySort === 'count-desc') return b.returnCount - a.returnCount || b.latestDate.localeCompare(a.latestDate);
+    if (returnGallerySort === 'count-asc') return a.returnCount - b.returnCount || b.latestDate.localeCompare(a.latestDate);
+    if (returnGallerySort === 'first-days-desc' || returnGallerySort === 'first-days-asc') {
+      if (a.firstDays === null) return 1;
+      if (b.firstDays === null) return -1;
+      return returnGallerySort === 'first-days-desc' ? b.firstDays - a.firstDays : a.firstDays - b.firstDays;
+    }
+    return b.latestDate.localeCompare(a.latestDate) || b.returnCount - a.returnCount;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(rows.length / RETURN_GALLERY_PAGE_SIZE));
+  returnGalleryPage = Math.min(returnGalleryPage, totalPages);
+  const start = (returnGalleryPage - 1) * RETURN_GALLERY_PAGE_SIZE;
+  const pageRows = rows.slice(start, start + RETURN_GALLERY_PAGE_SIZE);
+  const stats = document.getElementById('return-gallery-stats');
+  if (stats) stats.innerHTML = `
+    <div class="skin-overview-stat"><b>${allRows.length}</b><span>款纳入统计</span></div>
+    <div class="skin-overview-stat"><b>${allRows.filter(row => row.hasReturned).length}</b><span>款返场过</span></div>
+    <div class="skin-overview-stat"><b>${allRows.filter(row => !row.hasReturned).length}</b><span>款从未返场</span></div>`;
+  document.getElementById('return-gallery-result').textContent = `当前展示 ${rows.length} 款 · ${returnGalleryStatus === 'returned' ? '返场过' : '从未返场'}${rows.length ? ` · ${start + 1}–${Math.min(start + RETURN_GALLERY_PAGE_SIZE, rows.length)}` : ''}`;
+
+  grid.innerHTML = pageRows.length ? pageRows.map(row => {
+    const owned = getMark(row.key).owned;
+    const thumb = thumbUrl(row.si, 120);
+    return `<article class="return-gallery-card" onclick="goSkinDetail('${esc(row.hero)}','${esc(row.name)}')">
+      <div class="return-gallery-thumb">${thumb ? `<img src="${thumb}" loading="lazy" alt="">` : qualityEmoji(row.quality)}</div>
+      <div class="return-gallery-body">
+        <div class="return-gallery-name-row">
+          <div class="return-gallery-name">${escapeHtml(row.name)}</div>
+          <button class="return-gallery-owned${owned ? ' on' : ''}" title="${owned ? '已拥有' : '标记拥有'}" onclick="toggleReturnGalleryOwned(event,'${esc(row.hero)}','${esc(row.name)}')">${owned ? '★' : '☆'}</button>
+        </div>
+        <div class="return-gallery-meta"><span class="return-gallery-hero">${escapeHtml(row.hero)}</span><span class="badge badge-${escapeHtml(row.quality)}">${escapeHtml(row.quality)}</span></div>
+        <div class="return-gallery-date"><span class="return-gallery-date-label">${row.hasReturned ? '最近返场' : '首发上线'}</span><time>${escapeHtml(row.displayDate) || '—'}</time>${row.distanceText ? `<span class="return-gallery-distance">${escapeHtml(row.distanceText)}</span>` : ''}</div>
+        ${row.displayObtain ? `<div class="return-gallery-obtain">${escapeHtml(row.displayObtain)}</div>` : ''}
+      </div>
+      ${row.hasReturned ? `<div class="return-gallery-count"><b>${row.returnCount}</b><span>次返场</span></div>` : '<div class="return-gallery-count never">从未<br>返场</div>'}
+    </article>`;
+  }).join('') : '<div class="overview-page-empty" style="grid-column:1/-1">暂无匹配的返场统计皮肤</div>';
+
+  const pagination = document.getElementById('return-gallery-pagination');
+  if (!pagination) return;
+  if (rows.length <= RETURN_GALLERY_PAGE_SIZE) { pagination.innerHTML = ''; return; }
+  const startPage = Math.max(1, returnGalleryPage - 2);
+  const endPage = Math.min(totalPages, returnGalleryPage + 2);
+  let buttons = `<button class="pg-btn" onclick="goReturnGalleryPage(${returnGalleryPage - 1})" ${returnGalleryPage <= 1 ? 'disabled' : ''}>‹</button>`;
+  for (let current = startPage; current <= endPage; current += 1) buttons += `<button class="pg-btn${current === returnGalleryPage ? ' active' : ''}" onclick="goReturnGalleryPage(${current})">${current}</button>`;
+  buttons += `<button class="pg-btn" onclick="goReturnGalleryPage(${returnGalleryPage + 1})" ${returnGalleryPage >= totalPages ? 'disabled' : ''}>›</button>`;
+  pagination.innerHTML = `<div class="pagination-info">共 ${rows.length} 款 · 第 ${returnGalleryPage}/${totalPages} 页</div><div class="pagination-btns">${buttons}</div>`;
+}
+
+function goReturnGalleryPage(nextPage) {
+  returnGalleryPage = Math.max(1, Number(nextPage) || 1);
+  renderReturnGallery();
+  document.getElementById('return-gallery-result')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function renderHeroGrid() {
