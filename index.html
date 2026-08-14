@@ -3032,7 +3032,11 @@ function openSkinDetail(hero, skinName) {
   const records = RAW.filter(r=>r.hero===hero && r.name===skinName).sort((a,b)=>a.date>b.date?1:-1);
   if (!records.length) return;
   const first = records.find(r=>r.type==='首发') || records[0];
-  const returns = records.filter(r=>r.type==='返场').sort((a,b)=>a.date>b.date?1:-1);
+  const showReturnInfo = records.some(r => r.trackReturns === true);
+  const returns = showReturnInfo
+    ? records.filter(r=>r.type==='返场').sort((a,b)=>a.date>b.date?1:-1)
+    : [];
+  const detailRecords = showReturnInfo ? records : [first];
   const latestReturn = returns.length ? returns[returns.length-1] : null;
   const skinImgSrc = fullUrl(first.si || records.find(r=>r.si)?.si || null);
   const qImgSrc = first.qi || records.find(r=>r.qi)?.qi || null;
@@ -3083,8 +3087,8 @@ function openSkinDetail(hero, skinName) {
               ${series.length ? `<div class="attr-item" style="grid-column:1/-1"><label>皮肤套系</label><div class="val series-chips">
                 ${series.map(s => `<span class="series-chip" onclick="openSeriesDetail(${s.id}, '${esc(s.name)}', '${esc(s.sub_tag_label || '')}', '${esc(s.sub_tag || '')}')">${escapeHtml(s.name)} →</span>`).join('')}
               </div></div>` : ''}
-              <div class="attr-item"><label>返场次数</label><div class="val" style="color:var(--accent2);font-size:20px;font-weight:700">${returns.length}</div></div>
-              ${latestReturn?`<div class="attr-item" style="grid-column:1/-1"><label>最近返场</label><div class="val" style="color:var(--gold)">${escapeHtml(latestReturn.date)} · ${escapeHtml(latestReturn.obtain)}</div></div>`:''}
+              ${showReturnInfo ? `<div class="attr-item"><label>返场次数</label><div class="val" style="color:var(--accent2);font-size:20px;font-weight:700">${returns.length}</div></div>` : ''}
+              ${showReturnInfo && latestReturn?`<div class="attr-item" style="grid-column:1/-1"><label>最近返场</label><div class="val" style="color:var(--gold)">${escapeHtml(latestReturn.date)} · ${escapeHtml(latestReturn.obtain)}</div></div>`:''}
             </div>
           </div>
         </div>
@@ -3106,9 +3110,9 @@ function openSkinDetail(hero, skinName) {
           </div>
         </div>` : ''}
         <div class="skin-timeline">
-          <div class="timeline-title">🕐 上线 &amp; 返场记录（共 ${records.length} 条）</div>
+          <div class="timeline-title">${showReturnInfo ? '🕐 上线 &amp; 返场记录' : '🕐 上线记录'}（共 ${detailRecords.length} 条）</div>
           <div class="timeline-list">
-            ${records.map(r => {
+            ${detailRecords.map(r => {
               const isLatest = latestReturn && r===latestReturn;
               const retIdx = r.type==='返场' ? returns.indexOf(r)+1 : 0;
               return `<div class="timeline-item ${r.type==='首发'?'first':'return'}${isLatest?' latest':''}">
