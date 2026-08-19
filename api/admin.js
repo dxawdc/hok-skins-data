@@ -26,7 +26,7 @@ const QUALITY_OTHER = '\u5176\u4ed6';
 const TYPE_FIRST = '\u9996\u53d1';
 const TYPE_RETURN = '\u8fd4\u573a';
 const PERMANENT_NO = '\u5426';
-const FIRST_OBTAIN_TYPES = new Set(['付费', '免费', '赛季/赛年', '战令']);
+const FIRST_OBTAIN_TYPES = new Set(['付费', '免费', '赛季/赛年', '战令-免费', '战令-付费']);
 const SKIN_SELECT = '*, skin_profiles:skin_profile_id(*, skin_profile_series(sub_tag,series:series_id(*)))';
 const SPECIAL_RESOURCE_QUALITIES = new Set(['绿色', '蓝色', '紫色', '金色']);
 const SPECIAL_RESOURCE_CONFIG = {
@@ -63,17 +63,21 @@ function normalizeTrackReturns(value, permanent = PERMANENT_NO) {
   return permanent === PERMANENT_NO;
 }
 
-function deriveFirstObtainType(obtain) {
+function deriveFirstObtainType(obtain, skinValuePoints) {
   const value = String(obtain || '');
-  if (value.includes('碎片') || value.includes('限时点券') || value.includes('活动') || value.includes('蔷薇之心')) return '免费';
+  const hasZeroValuePoints = skinValuePoints !== null
+    && skinValuePoints !== undefined
+    && skinValuePoints !== ''
+    && Number(skinValuePoints) === 0;
+  if (value.includes('战令')) return hasZeroValuePoints ? '战令-免费' : '战令-付费';
+  if (value.includes('碎片') || value.includes('限时点券') || value.includes('活动') || value.includes('蔷薇之心') || value.includes('钻石夺宝')) return '免费';
   if (value.includes('赛季') || value.includes('赛年')) return '赛季/赛年';
-  if (value.includes('战令')) return '战令';
   return '付费';
 }
 
-function normalizeFirstObtainType(value, obtain) {
+function normalizeFirstObtainType(value, obtain, skinValuePoints) {
   const type = String(value || '').trim();
-  return FIRST_OBTAIN_TYPES.has(type) ? type : deriveFirstObtainType(obtain);
+  return FIRST_OBTAIN_TYPES.has(type) ? type : deriveFirstObtainType(obtain, skinValuePoints);
 }
 
 function normalizeSkinRecord(row) {
@@ -195,7 +199,7 @@ async function upsertSkinProfile(client, data, existingId = null) {
     tag: data.tag || '',
     permanent: data.permanent || PERMANENT_NO,
     track_returns: normalizeTrackReturns(data.track_returns, data.permanent || PERMANENT_NO),
-    first_obtain_type: normalizeFirstObtainType(data.first_obtain_type, data.obtain),
+    first_obtain_type: normalizeFirstObtainType(data.first_obtain_type, data.obtain, data.skin_value_points),
     skin_img_url: data.skin_img_url || null,
     tag_img_url: data.tag_img_url || null,
     notes: data.notes || null,
@@ -1466,3 +1470,8 @@ async function deleteSpecialResource(category, id, user) {
   await log(client, user.username, 'special_resource_delete', parseInt(id, 10), { category, deleted: before });
   return ok({ ok: true });
 }
+
+module.exports._private = {
+  deriveFirstObtainType,
+  normalizeFirstObtainType,
+};
