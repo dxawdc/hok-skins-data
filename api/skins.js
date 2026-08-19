@@ -96,6 +96,7 @@ function flattenSkin(row) {
     hero_id: profile?.hero_id || row.hero_id || null,
     price: row.price || '',
     skin_value_points: profile?.skin_value_points ?? null,
+    first_obtain_type: profile?.first_obtain_type || null,
     obtain: row.obtain || '',
     type: row.type,
     permanent: profile?.permanent || row.permanent || PERMANENT_NO,

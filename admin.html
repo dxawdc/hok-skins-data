@@ -759,6 +759,14 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
       </div>
       <div class="form-group" id="es-price-wrap"><label>价格</label><input type="text" id="es-price" placeholder="如：888"></div>
       <div class="form-group" id="es-obtain-wrap"><label>获取方式</label><input type="text" id="es-obtain" placeholder="如：直售"></div>
+      <div class="form-group" id="es-first-obtain-type-wrap">
+        <label>首发获取方式类型</label>
+        <select id="es-first-obtain-type" class="filter-select" style="width:100%">
+          <option value="">自动按获取方式初始化</option>
+          <option>付费</option><option>免费</option><option>赛季/赛年</option><option>战令</option>
+        </select>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">仅首发皮肤维护；可按实际情况手动修正。</div>
+      </div>
       <div class="form-group">
         <label>归属英雄 <span style="color:var(--red)">*</span></label>
         <input type="text" id="es-hero-id-search" class="search-input" placeholder="搜索英雄名称 / 职业 / 分路..." style="width:100%;margin-bottom:6px" oninput="filterHeroSelect('es-hero-id', this.value)">
@@ -1586,6 +1594,7 @@ async function updateSkinTypeMode() {
     }
   });
   document.getElementById('es-track-returns-wrap').style.display = isReturn ? 'none' : '';
+  document.getElementById('es-first-obtain-type-wrap').style.display = isReturn ? 'none' : '';
   if (isReturn) {
     await ensureSkinProfiles();
     renderSkinProfileOptions(allSkinProfiles, document.getElementById('es-current-profile-id').value);
@@ -1613,6 +1622,7 @@ function resetSkinModal() {
   document.getElementById('es-type').value = '首发';
   document.getElementById('es-permanent').value = '否';
   document.getElementById('es-track-returns').value = '是';
+  document.getElementById('es-first-obtain-type').value = '';
   renderSkinSeriesOptions([]);
   // 重置图片预览
   ['skin','tag'].forEach(t => {
@@ -1668,6 +1678,7 @@ async function openEditSkin(s) {
   document.getElementById('es-type').value      = s.type;
   document.getElementById('es-permanent').value = s.permanent;
   document.getElementById('es-track-returns').value = s.track_returns === false ? '否' : '是';
+  document.getElementById('es-first-obtain-type').value = s.first_obtain_type || '';
   document.getElementById('es-value-points').value = (s.skin_value_points ?? '');
   document.getElementById('es-notes').value     = s.notes || '';
   renderSkinSeriesOptions(s.series || []);
@@ -1754,6 +1765,7 @@ async function doSaveSkin() {
       type,
       permanent:    document.getElementById('es-permanent').value,
       track_returns: document.getElementById('es-track-returns').value === '是',
+      first_obtain_type: isReturn ? undefined : document.getElementById('es-first-obtain-type').value,
       skin_value_points: valuePointsRaw === '' ? null : Number(valuePointsRaw),
       skin_img_url: skinImgUrl,
       tag_img_url:  tagImgUrl,

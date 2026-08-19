@@ -26,6 +26,7 @@ const QUALITY_OTHER = '\u5176\u4ed6';
 const TYPE_FIRST = '\u9996\u53d1';
 const TYPE_RETURN = '\u8fd4\u573a';
 const PERMANENT_NO = '\u5426';
+const FIRST_OBTAIN_TYPES = new Set(['付费', '免费', '赛季/赛年', '战令']);
 const SKIN_SELECT = '*, skin_profiles:skin_profile_id(*, skin_profile_series(sub_tag,series:series_id(*)))';
 const SPECIAL_RESOURCE_QUALITIES = new Set(['绿色', '蓝色', '紫色', '金色']);
 const SPECIAL_RESOURCE_CONFIG = {
@@ -60,6 +61,19 @@ function normalizeTrackReturns(value, permanent = PERMANENT_NO) {
   if (value === true || value === 1 || value === 'true' || value === '是') return true;
   if (value === false || value === 0 || value === 'false' || value === '否') return false;
   return permanent === PERMANENT_NO;
+}
+
+function deriveFirstObtainType(obtain) {
+  const value = String(obtain || '');
+  if (value.includes('碎片') || value.includes('限时点券') || value.includes('活动')) return '免费';
+  if (value.includes('赛季') || value.includes('赛年')) return '赛季/赛年';
+  if (value.includes('战令')) return '战令';
+  return '付费';
+}
+
+function normalizeFirstObtainType(value, obtain) {
+  const type = String(value || '').trim();
+  return FIRST_OBTAIN_TYPES.has(type) ? type : deriveFirstObtainType(obtain);
 }
 
 function normalizeSkinRecord(row) {
@@ -98,6 +112,7 @@ function flattenSkinRow(row) {
     tag: profile.tag ?? row.tag ?? '',
     permanent: profile.permanent || row.permanent || PERMANENT_NO,
     track_returns: profile.track_returns === true,
+    first_obtain_type: profile.first_obtain_type || null,
     skin_img_url: profile.skin_img_url || row.skin_img_url || '',
     tag_img_url: profile.tag_img_url || row.tag_img_url || '',
     profile_notes: profile.notes || '',
@@ -180,6 +195,7 @@ async function upsertSkinProfile(client, data, existingId = null) {
     tag: data.tag || '',
     permanent: data.permanent || PERMANENT_NO,
     track_returns: normalizeTrackReturns(data.track_returns, data.permanent || PERMANENT_NO),
+    first_obtain_type: normalizeFirstObtainType(data.first_obtain_type, data.obtain),
     skin_img_url: data.skin_img_url || null,
     tag_img_url: data.tag_img_url || null,
     notes: data.notes || null,
@@ -713,7 +729,7 @@ async function unbindSeriesSkin(seriesId, profileId, user) {
 }
 
 async function updateSkin(id, updates, user) {
-  const ALLOWED = new Set(['date','name','quality','tag','hero','price','obtain','type','permanent','track_returns','skin_img_url','tag_img_url','hero_id','notes','skin_profile_id','series_ids','series_links','skin_value_points']);
+  const ALLOWED = new Set(['date','name','quality','tag','hero','price','obtain','type','permanent','track_returns','first_obtain_type','skin_img_url','tag_img_url','hero_id','notes','skin_profile_id','series_ids','series_links','skin_value_points']);
   const clean = Object.fromEntries(Object.entries(updates).filter(([k]) => ALLOWED.has(k)));
   if (clean.quality) clean.quality = normalizeQuality(clean.quality);
   const seriesLinks = normalizeSeriesLinks(clean.series_links ?? clean.series_ids);
@@ -817,7 +833,7 @@ async function batchUpdate({ ids, updates }, user) {
 
 // ── 新增皮肤 ─────────────────────────────────────────────────
 async function insertSkin(data, user) {
-  const ALLOWED = new Set(['date','name','quality','tag','hero','price','obtain','type','permanent','track_returns','skin_img_url','tag_img_url','hero_id','notes','skin_profile_id','series_ids','series_links','skin_value_points']);
+  const ALLOWED = new Set(['date','name','quality','tag','hero','price','obtain','type','permanent','track_returns','first_obtain_type','skin_img_url','tag_img_url','hero_id','notes','skin_profile_id','series_ids','series_links','skin_value_points']);
   const clean = Object.fromEntries(Object.entries(data||{}).filter(([k]) => ALLOWED.has(k)));
   if (clean.quality) clean.quality = normalizeQuality(clean.quality);
   const seriesLinks = normalizeSeriesLinks(clean.series_links ?? clean.series_ids);
