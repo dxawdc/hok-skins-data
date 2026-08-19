@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>王者荣耀皮肤数据库 · 后台管理</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -433,6 +434,7 @@ input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color:
                   <th>套系</th>
                   <th>价格</th>
                   <th>获取方式</th>
+                  <th>首发获取类型</th>
                   <th>类型</th>
                   <th>常驻</th>
                   <th>价值点数</th>
@@ -1219,6 +1221,7 @@ function renderSkins(skins) {
       <td style="font-size:12px;color:var(--text3)">${escapeHtml((s.series || []).map(seriesAdminDisplayLabel).join('、')) || '-'}</td>
       <td style="font-size:12px">${escapeHtml(s.price)||'-'}</td>
       <td style="font-size:12px;color:var(--text3)">${escapeHtml(s.obtain)}</td>
+      <td style="font-size:12px;font-weight:600;color:var(--text2)">${s.type === '首发' ? escapeHtml(s.first_obtain_type || '-') : '—'}</td>
       <td><span class="badge badge-${escapeHtml(s.type)}">${escapeHtml(s.type)}</span></td>
       <td><span class="badge badge-${escapeHtml(s.permanent)}">${escapeHtml(s.permanent)}</span></td>
       <td style="font-size:12px;font-weight:600;color:var(--text2)">${s.skin_value_points == null ? '-' : escapeHtml(s.skin_value_points)}</td>
@@ -1227,7 +1230,7 @@ function renderSkins(skins) {
         <button class="btn btn-danger btn-sm" onclick="doDeleteSkin(${s.id},'${esc(s.name)}')">删除</button>
       </td>
     </tr>`;
-  }).join('') || '<tr><td colspan="12" style="text-align:center;padding:30px;color:var(--text3)">暂无数据</td></tr>';
+  }).join('') || '<tr><td colspan="13" style="text-align:center;padding:30px;color:var(--text3)">暂无数据</td></tr>';
 }
 function renderPagination(total, page, perPage) {
   document.getElementById('skin-total-label').textContent = `共 ${total} 条`;
