@@ -19,6 +19,6 @@
     { "src": "/api/analytics",  "dest": "/api/analytics.js" },
     { "src": "/admin",         "dest": "/admin.html" },
     { "src": "/",              "dest": "/index.html" },
-    { "src": "/(.*)",          "dest": "/index.html" }
+    { "src": "/(?!favicon\\.svg$)(.*)", "dest": "/index.html" }
   ]
 }
