@@ -65,7 +65,7 @@ function normalizeTrackReturns(value, permanent = PERMANENT_NO) {
 
 function deriveFirstObtainType(obtain) {
   const value = String(obtain || '');
-  if (value.includes('碎片') || value.includes('限时点券') || value.includes('活动')) return '免费';
+  if (value.includes('碎片') || value.includes('限时点券') || value.includes('活动') || value.includes('蔷薇之心')) return '免费';
   if (value.includes('赛季') || value.includes('赛年')) return '赛季/赛年';
   if (value.includes('战令')) return '战令';
   return '付费';
