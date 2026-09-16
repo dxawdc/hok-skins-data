@@ -1321,7 +1321,7 @@ const SUPABASE_URL = 'https://erphrsydujqrcvtpdtnf.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVycGhyc3lkdWpxcmN2dHBkdG5mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3MDU2ODQsImV4cCI6MjA4OTI4MTY4NH0.O6h3Eeq9gNfGAMYkZ5_1GY5lFBiJrF8fJat0Pxz868U';
 
 // ── 数据拉取：走 Cloudflare CDN 缓存 ──────────────────────────
-const CACHE_KEY       = 'wzry_skin_data_v8';   // v8: 新增返场大观统计标记
+const CACHE_KEY       = 'wzry_skin_data_v9';   // v9: 稳定分页，丢弃旧版重复或缺失的记录缓存
 const CACHE_KEY_HERO  = 'wzry_hero_data_v1';
 const CACHE_KEY_RES   = 'wzry_res_data_v5';
 const CACHE_TTL       = 30 * 60 * 1000;
@@ -1375,7 +1375,7 @@ async function fetchAllSkins(refreshVersion = '') {
   } catch (e) {}
 
   console.log('[L1缓存未命中] 请求 CDN /api/skins…');
-  const res = await fetch(`${API_BASE}/api/skins?v=profile-v6${refreshQuery(refreshVersion)}`);
+  const res = await fetch(`${API_BASE}/api/skins?v=profile-v7${refreshQuery(refreshVersion)}`);
   if (!res.ok) throw new Error(`/api/skins 请求失败: ${res.status}`);
   const all = await res.json();
 

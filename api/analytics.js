@@ -298,7 +298,8 @@ async function fetchAll(client, { table, select, order = 'date', filterAvailable
     let builder = client.from(table).select(select);
     if (filterAvailable) builder = builder.eq('is_available', true);
     const { data, error } = await builder
-      .order(order, { ascending: false })
+      .order(order, { ascending: false, nullsFirst: false })
+      .order('id', { ascending: false })
       .range(from, from + pageSize - 1);
     if (error) throw error;
     rows.push(...(data || []));
@@ -394,6 +395,7 @@ async function handler(req, res) {
 
 module.exports = handler;
 module.exports._private = {
+  fetchAll,
   COLUMNS,
   DICTIONARY,
   SPECIAL_RESOURCES,

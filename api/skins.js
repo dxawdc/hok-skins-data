@@ -34,7 +34,8 @@ async function fetchAllSkinRows(client, options = {}) {
       const { data, error } = await client
         .from('skins')
         .select(select)
-        .order('date', { ascending: false })
+        .order('date', { ascending: false, nullsFirst: false })
+        .order('id', { ascending: false })
         .range(pageOffset, pageOffset + pageLimit - 1);
       if (error) throw error;
       return data || [];
@@ -46,7 +47,9 @@ async function fetchAllSkinRows(client, options = {}) {
       const { data, error } = await client
         .from('skins')
         .select(select)
-        .order('date', { ascending: false })
+        // 同日记录用唯一 ID 固定顺序，避免跨页重复或遗漏。
+        .order('date', { ascending: false, nullsFirst: false })
+        .order('id', { ascending: false })
         .range(from, from + pageSize - 1);
       if (error) throw error;
       rows.push(...(data || []));
@@ -146,3 +149,5 @@ module.exports = async function handler(req, res) {
   }
   res.status(200).json(rows);
 };
+
+module.exports._private = { fetchAllSkinRows };

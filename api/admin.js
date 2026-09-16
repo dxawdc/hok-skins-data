@@ -331,7 +331,8 @@ async function fetchAllSkinRows(client, select = SKIN_SELECT) {
       const { data, error } = await client
         .from('skins')
         .select(selectExpr)
-        .order('date', { ascending: false })
+        .order('date', { ascending: false, nullsFirst: false })
+        .order('id', { ascending: false })
         .range(from, from + pageSize - 1);
       if (error) throw error;
       out.push(...(data || []));
@@ -1472,6 +1473,7 @@ async function deleteSpecialResource(category, id, user) {
 }
 
 module.exports._private = {
+  fetchAllSkinRows,
   deriveFirstObtainType,
   normalizeFirstObtainType,
 };
