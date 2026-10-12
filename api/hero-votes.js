@@ -2,7 +2,6 @@
 
 const { collectBilibili } = require('../lib/hero-votes-bilibili');
 const { collectKuaishou } = require('../lib/hero-votes-kuaishou');
-const { collectWeibo } = require('../lib/hero-votes-weibo');
 
 const VOTE_ID = '7694268422240177551';
 const SOURCE_URL = 'https://ditto.xiaohongshu.net/ditto/vincent/8c87296afbbb4b19bd8d9798c4f1d3e0/dynpath96403b2c?fullscreen=true&resource_instance_id=330367&naviHidden=yes&source=share&countryCode=CN&lang=zh_cn&instance_id=8c87296afbbb4b19bd8d9798c4f1d3e0&page_instance=2683';
@@ -13,8 +12,7 @@ const STALE_TTL = 24 * 60 * 60 * 1000;
 
 // 缓存按实例复用；CDN 共享完整响应，不创建数据库表或定时任务。
 function createHandler({ fetchImpl = (...args) => fetch(...args), now = Date.now, timeoutMs = 9000 } = {}) {
-  const states = new Map(['xhs', 'bilibili', 'kuaishou', 'weibo'].map(platform => [platform, { snapshot: null, pending: null, retryAfter: 0 }]));
-  const sourceExpired = snapshot => snapshot.sourceUpdatedAt && now() - Date.parse(snapshot.sourceUpdatedAt) >= STALE_TTL;
+  const states = new Map(['xhs', 'bilibili', 'kuaishou'].map(platform => [platform, { snapshot: null, pending: null, retryAfter: 0 }]));
 
   async function collect() {
     const controller = new AbortController();
@@ -109,13 +107,12 @@ function createHandler({ fetchImpl = (...args) => fetch(...args), now = Date.now
     }
     const state = states.get(platform);
     try {
-      if (!state.snapshot || sourceExpired(state.snapshot) || now() - Date.parse(state.snapshot.fetchedAt) >= TTL) {
+      if (!state.snapshot || now() - Date.parse(state.snapshot.fetchedAt) >= TTL) {
         if (now() < state.retryAfter) throw new Error('活动接口稍后重试');
         if (!state.pending) {
           const collectors = { xhs: collect,
             bilibili: () => collectBilibili({ fetchImpl, now, timeoutMs, ttl: TTL }),
-            kuaishou: () => collectKuaishou({ fetchImpl, now, timeoutMs, ttl: TTL }),
-            weibo: () => collectWeibo({ fetchImpl, now, timeoutMs, ttl: TTL }) };
+            kuaishou: () => collectKuaishou({ fetchImpl, now, timeoutMs, ttl: TTL }) };
           const collectPlatform = collectors[platform];
           state.pending = collectPlatform().then(data => { state.snapshot = data; state.retryAfter = 0; })
             .catch(error => { state.retryAfter = now() + 30 * 1000; throw error; })
@@ -125,13 +122,12 @@ function createHandler({ fetchImpl = (...args) => fetch(...args), now = Date.now
       }
       const snapshot = state.snapshot;
       // 使用剩余有效期，避免内存缓存再次进入 CDN 时把五分钟延长。
-      const sourceRemaining = snapshot.sourceUpdatedAt ? STALE_TTL - (now() - Date.parse(snapshot.sourceUpdatedAt)) : TTL;
-      const remaining = Math.max(0, Math.floor(Math.min(TTL - (now() - Date.parse(snapshot.fetchedAt)), sourceRemaining) / 1000));
+      const remaining = Math.max(0, Math.floor((TTL - (now() - Date.parse(snapshot.fetchedAt))) / 1000));
       res.setHeader('Cache-Control', `public, max-age=0, s-maxage=${remaining}, must-revalidate`);
       res.status(200).json({ ...snapshot, stale: false });
     } catch (error) {
       const snapshot = state.snapshot;
-      if (snapshot && !sourceExpired(snapshot) && now() - Date.parse(snapshot.fetchedAt) < STALE_TTL) {
+      if (snapshot && now() - Date.parse(snapshot.fetchedAt) < STALE_TTL) {
         res.status(200).json({ ...snapshot, stale: true, warning: '最新票数暂时获取失败，正在展示上次成功数据' });
       } else {
         res.status(502).json({ error: '英雄热度暂时无法更新，请稍后重试' });
