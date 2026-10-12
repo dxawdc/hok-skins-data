@@ -1,6 +1,7 @@
 'use strict';
 
 const { collectBilibili } = require('../lib/hero-votes-bilibili');
+const { collectKuaishou } = require('../lib/hero-votes-kuaishou');
 
 const VOTE_ID = '7694268422240177551';
 const SOURCE_URL = 'https://ditto.xiaohongshu.net/ditto/vincent/8c87296afbbb4b19bd8d9798c4f1d3e0/dynpath96403b2c?fullscreen=true&resource_instance_id=330367&naviHidden=yes&source=share&countryCode=CN&lang=zh_cn&instance_id=8c87296afbbb4b19bd8d9798c4f1d3e0&page_instance=2683';
@@ -11,7 +12,7 @@ const STALE_TTL = 24 * 60 * 60 * 1000;
 
 // 缓存按实例复用；CDN 共享完整响应，不创建数据库表或定时任务。
 function createHandler({ fetchImpl = (...args) => fetch(...args), now = Date.now, timeoutMs = 9000 } = {}) {
-  const states = new Map(['xhs', 'bilibili'].map(platform => [platform, { snapshot: null, pending: null, retryAfter: 0 }]));
+  const states = new Map(['xhs', 'bilibili', 'kuaishou'].map(platform => [platform, { snapshot: null, pending: null, retryAfter: 0 }]));
 
   async function collect() {
     const controller = new AbortController();
@@ -109,7 +110,10 @@ function createHandler({ fetchImpl = (...args) => fetch(...args), now = Date.now
       if (!state.snapshot || now() - Date.parse(state.snapshot.fetchedAt) >= TTL) {
         if (now() < state.retryAfter) throw new Error('活动接口稍后重试');
         if (!state.pending) {
-          const collectPlatform = platform === 'xhs' ? collect : () => collectBilibili({ fetchImpl, now, timeoutMs, ttl: TTL });
+          const collectors = { xhs: collect,
+            bilibili: () => collectBilibili({ fetchImpl, now, timeoutMs, ttl: TTL }),
+            kuaishou: () => collectKuaishou({ fetchImpl, now, timeoutMs, ttl: TTL }) };
+          const collectPlatform = collectors[platform];
           state.pending = collectPlatform().then(data => { state.snapshot = data; state.retryAfter = 0; })
             .catch(error => { state.retryAfter = now() + 30 * 1000; throw error; })
             .finally(() => { state.pending = null; });

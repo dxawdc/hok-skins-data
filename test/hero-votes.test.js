@@ -160,8 +160,52 @@ test('平台缓存、并发和失败退避独立，未知平台不触达源站',
   const refreshed = await invoke(handler);
   assert.equal(refreshed.body.stale, false); assert.notEqual(refreshed.body.fetchedAt, a.body.fetchedAt);
   const calls = xhs.state.calls.length + bili.state.calls.length;
-  for (const value of ['weibo', 'kuaishou', 'toString', ['xhs', 'bilibili']]) {
+  for (const value of ['weibo', 'unknown', 'toString', ['xhs', 'bilibili']]) {
     assert.equal((await invoke(handler, 'GET', value)).status, 400);
   }
   assert.equal(xhs.state.calls.length + bili.state.calls.length, calls);
+});
+
+function kwaiFixture(flag) {
+  const calls = [];
+  const fetchImpl = async (url, options) => {
+    const request = JSON.parse(options.body); calls.push({ url, options, request });
+    const page = request.page;
+    const items = Array.from({ length: page === 1 ? 100 : 27 }, (_, i) => {
+      const id = 127 - (page - 1) * 100 - i;
+      return { id, title: '英雄' + id, voteCount: id - 1 };
+    });
+    if (flag === 'missing') items.pop();
+    if (flag === 'duplicate' && page === 2) items[0].id = 127;
+    if (flag === 'name' && page === 2) items[0].title = '英雄127';
+    if (flag === 'votes') items[0].voteCount = '7.2万';
+    if (flag === 'order') items.reverse();
+    return { ok: true, json: async () => ({ result: flag === 'login' ? 109 : 1,
+      data: { token: flag === 'token' ? '其它活动' : 'v_HZQHiKhZ',
+        totalCount: flag === 'total' && page === 2 ? 128 : 127, items } }) };
+  };
+  return { calls, fetchImpl };
+}
+
+test('快手分页读取全部精确票数，缓存和并发请求复用完整快照', async () => {
+  const { calls, fetchImpl } = kwaiFixture();
+  const handler = createHandler({ fetchImpl });
+  const [a, b] = await Promise.all([invoke(handler, 'GET', 'kuaishou'), invoke(handler, 'GET', 'kuaishou')]);
+  assert.equal(a.status, 200); assert.equal(a.body.platform, 'kuaishou');
+  assert.equal(a.body.total, 127); assert.equal(a.body.rows.at(-1).votes, 0);
+  assert.equal(a.body.rows[0].votes, 126); assert.equal(a.body.fetchedAt, b.body.fetchedAt);
+  assert.equal(a.body.roleSource, 'site');
+  await invoke(handler, 'GET', 'kuaishou');
+  assert.equal(calls.length, 2);
+  assert.deepEqual(calls.map(call => call.request.page), [1, 2]);
+  assert.ok(calls.every(call => call.url.endsWith('/auth/vote/list') && call.options.method === 'POST' &&
+    call.request.sort === 3 && call.request.count === 100 && !call.options.headers.Cookie));
+});
+
+test('快手缺页、跨页重复、错活动、登录失败和缩写票数均拒绝发布', async () => {
+  for (const flag of ['missing', 'duplicate', 'name', 'votes', 'order', 'total', 'token', 'login']) {
+    const { fetchImpl } = kwaiFixture(flag);
+    const result = await invoke(createHandler({ fetchImpl }), 'GET', 'kuaishou');
+    assert.equal(result.status, 502, flag); assert.equal(result.body.rows, undefined);
+  }
 });

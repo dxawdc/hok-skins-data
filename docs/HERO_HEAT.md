@@ -1,13 +1,13 @@
 # 英雄热度接口
 
-`GET /api/hero-votes?platform=xhs|bilibili` 为小程序提供各平台王者荣耀活动投票数据。不传 `platform` 时默认小红书，兼容原客户端。只允许读取固定活动，不接收任意上游地址，不需要登录态、新环境变量、数据库迁移或定时任务。
+`GET /api/hero-votes?platform=xhs|bilibili|kuaishou` 为小程序提供各平台王者荣耀活动投票数据。不传 `platform` 时默认小红书，兼容原客户端。只允许读取固定活动，不接收任意上游地址，不需要登录态、新环境变量、数据库迁移或定时任务。
 
 | 平台 | 活动 | 接入状态 |
 | --- | --- | --- |
 | 小红书 `xhs` | `7694268422240177551` | 已接通，职业使用源站活动分组 |
 | B站 `bilibili` | `23ERAmwloghv9uc00`，组 `24ERA2wloghvqw600` | 已接通，职业与分路关联本站英雄库 |
-| 微博 | `activity_id=59` | 入口确认；网页提示需微博 App 打开，尚未取得可用的榜单读取接口 |
-| 快手 | 待确认 | 尚缺确切活动入口与可用读取接口 |
+| 微博 | `activity_id=59` | App 榜单接口已确认，匿名请求缺客户端校验；原接口大票数返回缩写，暂未接入 |
+| 快手 `kuaishou` | `v_HZQHiKhZ` | 已接通，精确整数票数；职业与分路关联本站英雄库 |
 
 未接通的平台不返回空榜或零票，API 返回 400；小程序显示“待接入”。各平台独立展示，不合并票数。
 
@@ -16,6 +16,8 @@
 小红书首次访问读取活动基础信息，再分批读取刺客、法师、辅助、射手、坦克、战士六组投票选项；有下一页时继续读取。每批并发两组。
 
 B站读取活动页实际使用的 `/x/activity_components/vote_new/rank`，每页 50 条，按源站总数读取后续页，沿用第一页的 `random_version`，避免随机顺序改变导致缺项。不携带 Cookie、CSRF 或账号凭据。活动链接：https://www.bilibili.com/blackboard/era/dNS5HFYbtej7HKqX.html 。
+
+快手读取活动页的 `/rest/doodle/block/activity/auth/vote/list`，固定活动 `v_HZQHiKhZ`，匿名 POST 仅查询榜单。每页最多 100 条，使用组件支持的最新选项顺序（`sort: 3`），核对 ID 严格降序、总数、跨页唯一性和整数票数。默认顺序可能随机，不能直接依赖默认顺序分页。活动链接：https://ppg.viviv.com/doodle/tslqAYIR.html 。
 
 每个平台整轮限时 9 秒。全部成功且分类、票数、ID、分页与重复项校验通过后发布完整快照。任一页或分组失败不发布部分榜单。
 
@@ -28,7 +30,7 @@ B站读取活动页实际使用的 `/x/activity_components/vote_new/rank`，每�
 - `cacheSeconds`：正常缓存时长 300 秒。
 - `activityStatus`：源站活动状态原值。
 - `total` / `rows`：投票选项数量及全部英雄。
-- 每条英雄包括 `id`、`name`、`role`、`votes`。B站没有职业分组，`role` 为空，由小程序关联本站资料并支持多职业筛选。小红书另外含 `tabId`、`sourceRank`，后者是源站职业分类排名；小程序全榜及分路排名自行按票数计算，同票并列。
+- 每条英雄包括 `id`、`name`、`role`、`votes`。B站、快手没有职业分组，`role` 为空，由小程序关联本站资料并支持多职业筛选。小红书另外含 `tabId`、`sourceRank`，后者是源站职业分类排名；小程序全榜及分路排名自行按票数计算，同票并列。
 - `stale` / `warning`：是否因刷新失败返回旧数据及提示。
 
 ## 缓存与故障
@@ -41,8 +43,8 @@ Serverless 实例重启或扩容后内存缓存可能丢失，跨实例不保证
 
 ## 发布与验证
 
-1. 部署 `api/hero-votes.js`、`lib/hero-votes-bilibili.js` 及现有 `vercel.json` 路由到 Vercel。部署环境需能访问 `edith.xiaohongshu.com` 和 `api.bilibili.com`，本机验证不等同于云端连通性。
-2. 分别验证 `/api/hero-votes?platform=xhs` 和 `/api/hero-votes?platform=bilibili` 返回 JSON、正确平台、完整榜单、真实 `fetchedAt` 和正常缓存标记。连续请求应在有效期内保留时间，过期后再更新。
+1. 部署 `api/hero-votes.js`、`lib/hero-votes-bilibili.js`、`lib/hero-votes-kuaishou.js` 及现有 `vercel.json` 路由到 Vercel。部署环境需能访问 `edith.xiaohongshu.com` 、`api.bilibili.com` 和 `ppg.viviv.com`，本机验证不等同于云端连通性。
+2. 分别验证 `/api/hero-votes?platform=xhs` 、`/api/hero-votes?platform=bilibili` 和 `/api/hero-votes?platform=kuaishou` 返回 JSON、正确平台、完整榜单、真实 `fetchedAt` 和正常缓存标记。连续请求应在有效期内保留时间，过期后再更新。
 3. 小程序运行 `node --test tests/hero-heat.test.js` 后用微信开发者工具编译、预览和真机检查。仍仅请求 `https://www.skinsdata.top`，无需新增源平台 request 域名。
 
 后端检查沿用 `npm run check`，其中自动包含 `test/hero-votes.test.js`。覆盖并发合并、缓存时间、分页、数据不完整、源站失败退避、超时与旧数据过期。
@@ -52,3 +54,9 @@ Serverless 实例重启或扩容后内存缓存可能丢失，跨实例不保证
 来源为活动页面使用的读取接口，不是有稳定性承诺的公开开发者 API；活动或接口变化时可能需要更新适配。
 
 2026-10-12 B站本机验证：127 位英雄，3 页，ID 和名称均无重复，全部关联到本站英雄职业、分路资料。微博确认入口：https://m.weibo.cn/c/wbox?id=c0p9sg9tw9&page=pages/recommendanime/mainpage&activity_id=59 。
+
+2026-10-12 快手本机核验：两页 100 + 27 条，共 127 位唯一英雄，返回 `voteCount` 精确整数；不使用登录 Cookie 或用户账号凭据。
+
+## 参考站核验
+
+参考页面 https://pvp.91m.top/tools/5acd9 的前端请求自有 `https://api.91m.top/hero/app?type=getRanking`，通过 `platform=wb|kwai` 切换。前端每 5 秒轮询本站汇总接口，不等于后端每 5 秒采集。匿名读取两榜各 127 条，`allVoteNum` 单位为万，包含源数据更新时间；微博大数值已舍入。公开前端没有其后台采集代码，因此不能确认其使用何种客户端、签名或采集调度。当前项目不依赖这个第三方接口。
