@@ -160,10 +160,61 @@ test('平台缓存、并发和失败退避独立，未知平台不触达源站',
   const refreshed = await invoke(handler);
   assert.equal(refreshed.body.stale, false); assert.notEqual(refreshed.body.fetchedAt, a.body.fetchedAt);
   const calls = xhs.state.calls.length + bili.state.calls.length;
-  for (const value of ['weibo', 'unknown', 'toString', ['xhs', 'bilibili']]) {
+  for (const value of ['unknown', 'toString', ['xhs', 'bilibili']]) {
     assert.equal((await invoke(handler, 'GET', value)).status, 400);
   }
   assert.equal(xhs.state.calls.length + bili.state.calls.length, calls);
+});
+
+function weiboFixture(flag) {
+  const time = Date.parse('2026-10-12T06:00:00Z');
+  const state = { calls: 0 };
+  const fetchImpl = async () => {
+    state.calls++;
+    const rows = Array.from({ length: flag === 'missing' ? 126 : 127 }, (_, i) => ({
+      heroId: flag === 'duplicate' ? 1 : i + 1, heroName: '英雄' + i,
+      allVoteNum: flag === 'invalid' ? null : i === 0 ? 7.2 : 0,
+    }));
+    const date = flag === 'old' ? '2026-10-11 13:00' : flag === 'future' ? '2026-10-12 15:00' : '2026-10-12 13:54';
+    return { ok: true, json: async () => ({ status: { code: 200 }, data: { result: {
+      platform: flag === 'platform' ? 'all' : 'wb', rows,
+      content: flag === 'time' ? '<div>暂无更新时间</div>' : '<div>最后更新时间:' + date + '<hr /><script>不渲染第三方内容</script></div>',
+    } } }) };
+  };
+  return { time, state, fetchImpl };
+}
+
+test('微博转供保留来源时间及署名，万转换票数始终标记为约数，不透传 HTML', async () => {
+  const { time, state, fetchImpl } = weiboFixture();
+  const handler = createHandler({ now: () => time, fetchImpl });
+  const result = await invoke(handler, 'GET', 'weibo');
+  assert.equal(result.status, 200); assert.equal(result.body.total, 127);
+  assert.equal(result.body.sourceUpdatedAt, '2026-10-12T13:54:00+08:00');
+  assert.equal(result.body.fetchedAt, '2026-10-12T06:00:00.000Z');
+  assert.equal(result.body.source.provider.name, '苏苏的荣耀助手');
+  assert.equal(result.body.rows[0].votes, 72000);
+  assert.ok(result.body.rows.every(row => row.approximate === true));
+  assert.equal(result.body.approximate, true); assert.equal(result.body.content, undefined);
+  await invoke(handler, 'GET', 'weibo'); assert.equal(state.calls, 1);
+});
+
+test('微博缺项、跨平台数据、重复英雄、非数字票数或异常来源时间均拒绝发布', async () => {
+  for (const flag of ['missing', 'duplicate', 'invalid', 'platform', 'old', 'future', 'time']) {
+    const { time, fetchImpl } = weiboFixture(flag);
+    const result = await invoke(createHandler({ now: () => time, fetchImpl }), 'GET', 'weibo');
+    assert.equal(result.status, 502, flag);
+  }
+});
+
+test('微博旧来源不会因重新拉取而延寿，缓存及失败回退均受来源时间限制', async () => {
+  const source = weiboFixture(); let time = source.time;
+  const handler = createHandler({ now: () => time, fetchImpl: source.fetchImpl });
+  assert.equal((await invoke(handler, 'GET', 'weibo')).status, 200);
+  time = Date.parse('2026-10-13T05:53:30Z');
+  const last = await invoke(handler, 'GET', 'weibo');
+  assert.equal(last.status, 200); assert.match(last.headers['Cache-Control'], /s-maxage=30,/);
+  time += 30000;
+  assert.equal((await invoke(handler, 'GET', 'weibo')).status, 502);
 });
 
 function kwaiFixture(flag) {

@@ -1,15 +1,15 @@
 # 英雄热度接口
 
-`GET /api/hero-votes?platform=xhs|bilibili|kuaishou` 为小程序提供各平台王者荣耀活动投票数据。不传 `platform` 时默认小红书，兼容原客户端。只允许读取固定活动，不接收任意上游地址，不需要登录态、新环境变量、数据库迁移或定时任务。
+`GET /api/hero-votes?platform=xhs|bilibili|kuaishou|weibo` 为小程序提供各平台王者荣耀活动投票数据。不传 `platform` 时默认小红书，兼容原客户端。只允许读取固定活动，不接收任意上游地址，不需要登录态、新环境变量、数据库迁移或定时任务。
 
 | 平台 | 活动 | 接入状态 |
 | --- | --- | --- |
 | 小红书 `xhs` | `7694268422240177551` | 已接通，职业使用源站活动分组 |
 | B站 `bilibili` | `23ERAmwloghv9uc00`，组 `24ERA2wloghvqw600` | 已接通，职业与分路关联本站英雄库 |
-| 微博 | `activity_id=59` | App 榜单接口已确认，匿名请求缺客户端校验；原接口大票数返回缩写，暂未接入 |
+| 微博 `weibo` | `activity_id=59` | 经苏苏的荣耀助手转供，票数标记约数，单独展示来源更新时间 |
 | 快手 `kuaishou` | `v_HZQHiKhZ` | 已接通，精确整数票数；职业与分路关联本站英雄库 |
 
-未接通的平台不返回空榜或零票，API 返回 400；小程序显示“待接入”。各平台独立展示，不合并票数。
+不支持的平台返回 400；任一平台数据异常时不伪造零票。各平台独立展示，不合并票数。
 
 ## 数据流程
 
@@ -43,8 +43,8 @@ Serverless 实例重启或扩容后内存缓存可能丢失，跨实例不保证
 
 ## 发布与验证
 
-1. 部署 `api/hero-votes.js`、`lib/hero-votes-bilibili.js`、`lib/hero-votes-kuaishou.js` 及现有 `vercel.json` 路由到 Vercel。部署环境需能访问 `edith.xiaohongshu.com` 、`api.bilibili.com` 和 `ppg.viviv.com`，本机验证不等同于云端连通性。
-2. 分别验证 `/api/hero-votes?platform=xhs` 、`/api/hero-votes?platform=bilibili` 和 `/api/hero-votes?platform=kuaishou` 返回 JSON、正确平台、完整榜单、真实 `fetchedAt` 和正常缓存标记。连续请求应在有效期内保留时间，过期后再更新。
+1. 部署 `api/hero-votes.js`、`lib/hero-votes-bilibili.js`、`lib/hero-votes-kuaishou.js`、`lib/hero-votes-weibo.js` 及现有 `vercel.json` 路由到 Vercel。部署环境需能访问 `edith.xiaohongshu.com` 、`api.bilibili.com` 、`ppg.viviv.com` 和 `api.91m.top`，本机验证不等同于云端连通性。
+2. 分别验证 `/api/hero-votes?platform=xhs` 、`/api/hero-votes?platform=bilibili` 、`/api/hero-votes?platform=kuaishou` 和 `/api/hero-votes?platform=weibo` 返回 JSON、正确平台、完整榜单、真实 `fetchedAt` 和正常缓存标记。连续请求应在有效期内保留时间，过期后再更新。
 3. 小程序运行 `node --test tests/hero-heat.test.js` 后用微信开发者工具编译、预览和真机检查。仍仅请求 `https://www.skinsdata.top`，无需新增源平台 request 域名。
 
 后端检查沿用 `npm run check`，其中自动包含 `test/hero-votes.test.js`。覆盖并发合并、缓存时间、分页、数据不完整、源站失败退避、超时与旧数据过期。
@@ -59,4 +59,10 @@ Serverless 实例重启或扩容后内存缓存可能丢失，跨实例不保证
 
 ## 参考站核验
 
-参考页面 https://pvp.91m.top/tools/5acd9 的前端请求自有 `https://api.91m.top/hero/app?type=getRanking`，通过 `platform=wb|kwai` 切换。前端每 5 秒轮询本站汇总接口，不等于后端每 5 秒采集。匿名读取两榜各 127 条，`allVoteNum` 单位为万，包含源数据更新时间；微博大数值已舍入。公开前端没有其后台采集代码，因此不能确认其使用何种客户端、签名或采集调度。当前项目不依赖这个第三方接口。
+参考页面 https://pvp.91m.top/tools/5acd9 的前端请求自有 `https://api.91m.top/hero/app?type=getRanking`，通过 `platform=wb|kwai` 切换。前端每 5 秒轮询本站汇总接口，不等于后端每 5 秒采集。匿名读取两榜各 127 条，`allVoteNum` 单位为万，包含源数据更新时间；微博大数值已舍入。公开前端没有其后台采集代码，因此不能确认其使用何种客户端、签名或采集调度。用户确认后，微博临时使用此转供接口；小红书、B站、快手继续直接读取官方活动接口。
+
+## 微博转供口径
+
+来源活动仍为微博，另返回 `source.provider`（苏苏的荣耀助手及页面链接）、`sourceUpdatedAt`（第三方榜单更新时间）和 `approximate: true`。按万换算的整数仅用于排序，客户端统一加“约”；约为 0 不代表无人投票，同值排名仅代表显示值相同。刷新本页只更新 `fetchedAt`，不得改写来源更新时间。接口不提供列表总数，因此按已核验的本次活动 127 位唯一英雄校验，名单变化需重新核验。
+
+只从第三方说明文本提取更新时间，不传递 HTML、广告或脚本。来源时间异常、超过 24 小时、名单缺项/重复、错平台或非法票数均拒绝发布。服务端内存、CDN 和小程序旧数据兜底均受来源更新时间限制，不能通过重新拉取延长过期数据寿命。服务器按需请求并缓存 5 分钟，不落库。转供接口和其采集时效不受本站控制，页面提供转供来源链接。
