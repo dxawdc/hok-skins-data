@@ -1,5 +1,7 @@
 'use strict';
 
+const { collectBilibili } = require('../lib/hero-votes-bilibili');
+
 const VOTE_ID = '7694268422240177551';
 const SOURCE_URL = 'https://ditto.xiaohongshu.net/ditto/vincent/8c87296afbbb4b19bd8d9798c4f1d3e0/dynpath96403b2c?fullscreen=true&resource_instance_id=330367&naviHidden=yes&source=share&countryCode=CN&lang=zh_cn&instance_id=8c87296afbbb4b19bd8d9798c4f1d3e0&page_instance=2683';
 const UPSTREAM = 'https://edith.xiaohongshu.com/api/sns/v1/activity_platform/vote/';
@@ -9,9 +11,7 @@ const STALE_TTL = 24 * 60 * 60 * 1000;
 
 // 缓存按实例复用；CDN 共享完整响应，不创建数据库表或定时任务。
 function createHandler({ fetchImpl = (...args) => fetch(...args), now = Date.now, timeoutMs = 9000 } = {}) {
-  let snapshot = null;
-  let pending = null;
-  let retryAfter = 0;
+  const states = new Map(['xhs', 'bilibili'].map(platform => [platform, { snapshot: null, pending: null, retryAfter: 0 }]));
 
   async function collect() {
     const controller = new AbortController();
@@ -78,7 +78,7 @@ function createHandler({ fetchImpl = (...args) => fetch(...args), now = Date.now
       }
       rows.sort((a, b) => b.votes - a.votes || a.name.localeCompare(b.name, 'zh-CN'));
       return {
-        activityId: VOTE_ID,
+        platform: 'xhs', activityId: VOTE_ID, roleSource: 'activity',
         source: { name: '小红书王者荣耀活动英雄投票', url: SOURCE_URL },
         startedAt, fetchedAt: new Date(now()).toISOString(), cacheSeconds: TTL / 1000,
         activityStatus: typeof base.play_rule_status === 'string' ? base.play_rule_status : '',
@@ -100,21 +100,29 @@ function createHandler({ fetchImpl = (...args) => fetch(...args), now = Date.now
       res.setHeader('Allow', 'GET, OPTIONS');
       res.status(405).json({ error: '仅支持读取榜单' }); return;
     }
+    const platform = req.query && req.query.platform !== undefined ? req.query.platform : 'xhs';
+    if (!states.has(platform)) {
+      res.status(400).json({ error: '暂不支持该投票平台' }); return;
+    }
+    const state = states.get(platform);
     try {
-      if (!snapshot || now() - Date.parse(snapshot.fetchedAt) >= TTL) {
-        if (now() < retryAfter) throw new Error('活动接口稍后重试');
-        if (!pending) {
-          pending = collect().then(data => { snapshot = data; retryAfter = 0; })
-            .catch(error => { retryAfter = now() + 30 * 1000; throw error; })
-            .finally(() => { pending = null; });
+      if (!state.snapshot || now() - Date.parse(state.snapshot.fetchedAt) >= TTL) {
+        if (now() < state.retryAfter) throw new Error('活动接口稍后重试');
+        if (!state.pending) {
+          const collectPlatform = platform === 'xhs' ? collect : () => collectBilibili({ fetchImpl, now, timeoutMs, ttl: TTL });
+          state.pending = collectPlatform().then(data => { state.snapshot = data; state.retryAfter = 0; })
+            .catch(error => { state.retryAfter = now() + 30 * 1000; throw error; })
+            .finally(() => { state.pending = null; });
         }
-        await pending;
+        await state.pending;
       }
+      const snapshot = state.snapshot;
       // 使用剩余有效期，避免内存缓存再次进入 CDN 时把五分钟延长。
       const remaining = Math.max(0, Math.floor((TTL - (now() - Date.parse(snapshot.fetchedAt))) / 1000));
       res.setHeader('Cache-Control', `public, max-age=0, s-maxage=${remaining}, must-revalidate`);
       res.status(200).json({ ...snapshot, stale: false });
     } catch (error) {
+      const snapshot = state.snapshot;
       if (snapshot && now() - Date.parse(snapshot.fetchedAt) < STALE_TTL) {
         res.status(200).json({ ...snapshot, stale: true, warning: '最新票数暂时获取失败，正在展示上次成功数据' });
       } else {

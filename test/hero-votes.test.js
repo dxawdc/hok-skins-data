@@ -2,6 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createHandler, TTL, STALE_TTL, VOTE_ID, ROLES } = require('../api/hero-votes')._private;
+const { VOTE_ID: BILI_VOTE_ID, GROUP_ID } = require('../lib/hero-votes-bilibili');
 
 function fixture() {
   const tabs = ROLES.map((role, i) => ({ tab_id: String(100 + i), tab_name: role }));
@@ -26,14 +27,14 @@ function fixture() {
   return { state, fetchImpl };
 }
 
-async function invoke(handler, method = 'GET') {
+async function invoke(handler, method = 'GET', platform) {
   const result = { headers: {} };
   const res = {
     setHeader(key, value) { result.headers[key] = value; },
     status(code) { result.status = code; return this; },
     json(body) { result.body = body; }, end() {},
   };
-  await handler({ method, query: {} }, res);
+  await handler({ method, query: platform === undefined ? {} : { platform } }, res);
   return result;
 }
 
@@ -101,4 +102,66 @@ test('上游卡住时超时终止，写入方法不会触达源站', async () =>
   assert.equal((await invoke(readonly, 'POST')).status, 405);
   assert.equal((await invoke(readonly, 'OPTIONS')).status, 204);
   assert.equal(state.calls.length, 0);
+});
+
+function biliFixture() {
+  const state = { calls: [], fail: false, duplicate: false, changedVersion: false, changedTotal: false, invalidVote: false };
+  const fetchImpl = async input => {
+    const url = new URL(input); state.calls.push(url);
+    if (state.fail) throw new Error('模拟 B 站故障');
+    const page = Number(url.searchParams.get('pn'));
+    const size = page === 3 ? 27 : 50;
+    return { ok: true, json: async () => ({ code: 0, data: {
+      vote_id: BILI_VOTE_ID, group_id: GROUP_ID, vote_display: true,
+      random_version: state.changedVersion && page > 1 ? '版本二' : '版本一',
+      page: { num: size, total: state.changedTotal && page > 1 ? 128 : 127, page_num: page, page_size: 50 },
+      items: Array.from({ length: size }, (_, i) => {
+        const id = (state.duplicate && page > 1 ? 0 : (page - 1) * 50) + i;
+        return { item_id: String(id), item: { title: '英雄' + id }, vote: state.invalidVote ? null : id };
+      }),
+    } }) };
+  };
+  return { state, fetchImpl };
+}
+
+test('B 站沿用随机版本完整读取三页，并按票数排序、保留真实零票', async () => {
+  const { state, fetchImpl } = biliFixture();
+  const handler = createHandler({ fetchImpl });
+  const [first, concurrent] = await Promise.all([invoke(handler, 'GET', 'bilibili'), invoke(handler, 'GET', 'bilibili')]);
+  assert.equal(first.status, 200);
+  assert.equal(first.body.platform, 'bilibili');
+  assert.equal(first.body.total, 127);
+  assert.equal(first.body.rows[0].votes, 126);
+  assert.equal(first.body.rows.at(-1).votes, 0);
+  assert.equal(first.body.fetchedAt, concurrent.body.fetchedAt);
+  assert.equal(state.calls.length, 3);
+  assert.deepEqual(state.calls.map(url => url.searchParams.get('random_version')), ['', '版本一', '版本一']);
+  assert.ok(state.calls.every(url => url.searchParams.get('vote_id') === BILI_VOTE_ID && !url.searchParams.has('csrf')));
+});
+
+test('B 站重复、分页版本或总数变化、非法票数均拒绝发布', async () => {
+  for (const flag of ['duplicate', 'changedVersion', 'changedTotal', 'invalidVote']) {
+    const { state, fetchImpl } = biliFixture(); state[flag] = true;
+    const result = await invoke(createHandler({ fetchImpl }), 'GET', 'bilibili');
+    assert.equal(result.status, 502, flag);
+    assert.equal(result.body.rows, undefined);
+  }
+});
+
+test('平台缓存、并发和失败退避独立，未知平台不触达源站', async () => {
+  const xhs = fixture(); const bili = biliFixture();
+  let time = Date.now();
+  const handler = createHandler({ now: () => time, fetchImpl: url => url.includes('api.bilibili.com') ? bili.fetchImpl(url) : xhs.fetchImpl(url) });
+  const [a, b] = await Promise.all([invoke(handler), invoke(handler, 'GET', 'bilibili')]);
+  assert.equal(a.body.platform, 'xhs'); assert.equal(b.body.platform, 'bilibili');
+  time += TTL; bili.state.fail = true;
+  const failed = await invoke(handler, 'GET', 'bilibili');
+  assert.equal(failed.body.stale, true); assert.equal(failed.body.fetchedAt, b.body.fetchedAt);
+  const refreshed = await invoke(handler);
+  assert.equal(refreshed.body.stale, false); assert.notEqual(refreshed.body.fetchedAt, a.body.fetchedAt);
+  const calls = xhs.state.calls.length + bili.state.calls.length;
+  for (const value of ['weibo', 'kuaishou', 'toString', ['xhs', 'bilibili']]) {
+    assert.equal((await invoke(handler, 'GET', value)).status, 400);
+  }
+  assert.equal(xhs.state.calls.length + bili.state.calls.length, calls);
 });
