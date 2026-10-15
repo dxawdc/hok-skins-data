@@ -19,7 +19,9 @@
     { "src": "/api/resources",  "dest": "/api/resources.js" },
     { "src": "/api/analytics",  "dest": "/api/analytics.js" },
     { "src": "/admin",         "dest": "/admin.html" },
-    { "src": "/",              "dest": "/index.html" },
+    { "src": "/",              "dest": "/migration.html" },
+    { "src": "/migration(?:\\.html)?", "dest": "/migration.html" },
+    { "src": "/legacy",        "dest": "/index.html" },
     { "src": "/(?!favicon\\.svg$)(.*)", "dest": "/index.html" }
   ]
 }
