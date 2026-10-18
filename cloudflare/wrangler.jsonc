@@ -10,8 +10,10 @@
     "default": { "type": "worker", "cache": { "enabled": false } },
     "PublicCache": { "type": "worker", "cache": { "enabled": true } }
   },
-  "observability": { "enabled": true, "head_sampling_rate": 1 },
+  "observability": { "enabled": true, "head_sampling_rate": 1, "redact_query_string": true },
   "routes": [
+    { "pattern": "skinsdata.top/api/user*", "zone_name": "skinsdata.top" },
+    { "pattern": "www.skinsdata.top/api/user*", "zone_name": "skinsdata.top" },
     { "pattern": "skinsdata.top/img/*", "zone_name": "skinsdata.top" },
     { "pattern": "www.skinsdata.top/img/*", "zone_name": "skinsdata.top" },
     { "pattern": "skinsdata.top/api/skins*", "zone_name": "skinsdata.top" },

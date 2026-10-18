@@ -1,8 +1,11 @@
 import { WorkerEntrypoint } from 'cloudflare:workers';
 import { gateway, fillPublicCache } from './cache-core.mjs';
+import { proxyUser } from './user-proxy.mjs';
 
 export default {
   fetch(request, env, ctx) {
+    const pathname = new URL(request.url).pathname;
+    if (pathname === '/api/user' || pathname.startsWith('/api/user/')) return proxyUser(request);
     return gateway(request, ctx);
   },
 };
