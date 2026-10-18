@@ -2,6 +2,8 @@
 
 本目录仅用于现有 `/opt/hokskins` 独立站，不部署到 Vercel，也不修改 GDN 应用、数据库或 `/api/`、`/admin` 路由。
 
+2026-10-18 新增公开接口缓存、图片版本缓存及刷新修复，详见 [优化与发布说明](OPTIMIZATION-2026-10-18.md)。这些本地改动需配套发布，不能从源码状态推断生产已更新。
+
 ## 图片与记录
 
 - 原图：`/opt/hokskins/storage/public/originals/hokskins/img/{skin,tag,hero,resource}/...`。

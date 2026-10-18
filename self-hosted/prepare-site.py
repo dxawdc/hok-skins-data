@@ -22,6 +22,10 @@ server = read('server.before.cjs', '764af84b3f21b7f4984bc8452c43234546456bb589c6
 server = replace_once(server, "const jwt = require('jsonwebtoken');", "const jwt = require('jsonwebtoken');\nconst { localImageUrls } = require('./lib/image-store.cjs');")
 server = replace_once(server, 'res.end(JSON.stringify(value)); return res;', 'res.end(JSON.stringify(localImageUrls(value))); return res;')
 server = replace_once(server, "      if (route === '/api/admin/images') { res.status(503).json({ error: '图片尚未迁移，此入口暂不开放上传或删除', code: 'STORAGE_NOT_MIGRATED' }); return; }\n", '')
+spec = spec_from_file_location('prepare_performance', pathlib.Path(__file__).with_name('prepare-performance.py'))
+performance_adapter = module_from_spec(spec)
+spec.loader.exec_module(performance_adapter)
+server = performance_adapter.prepare(server)
 (output / 'server.cjs').write_text(server, encoding='utf-8')
 
 client = read('data-client.before.js', 'f3404e8c825b8e982097fa2a827361cc90524c36a28ea2ba1ad8b887dc625797')
@@ -41,6 +45,10 @@ spec = spec_from_file_location('clean_page', pathlib.Path(__file__).with_name('c
 page_cleaner = module_from_spec(spec)
 spec.loader.exec_module(page_cleaner)
 
+spec = spec_from_file_location('prepare_public', pathlib.Path(__file__).with_name('prepare-public.py'))
+public_adapter = module_from_spec(spec)
+spec.loader.exec_module(public_adapter)
+
 for name in ['index', 'admin']:
     html = read(name + '.before.html')
     if name == 'admin':
@@ -53,6 +61,7 @@ for name in ['index', 'admin']:
     html = html.replace('${cdnUrl}?width=', "${cdnUrl}${cdnUrl.includes('?') ? '&' : '?'}width=")
     html = html.replace('${cdn}?width=', "${cdn}${cdn.includes('?') ? '&' : '?'}width=")
     if name == 'index':
+        html = public_adapter.prepare_html(html)
         # Keep list traffic small on the shared host; full-size detail images remain available.
         html = replace_once(html, 'const imgSrc = r.img_url ? toCdnUrl(r.img_url) : null;', 'const imgSrc = r.img_url ? thumbUrl(r.img_url, 320) : null;')
         html = replace_once(html, 'const tagImgSrc = r.tag_img_url ? toCdnUrl(r.tag_img_url) : null;', 'const tagImgSrc = r.tag_img_url ? thumbUrl(r.tag_img_url, 160) : null;')

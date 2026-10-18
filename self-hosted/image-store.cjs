@@ -18,19 +18,38 @@ function validKey(key) {
   return typeof key === 'string' && key.length <= 220 && !key.includes('..') &&
     /^(skin|tag|hero|resource)\/[A-Za-z0-9][A-Za-z0-9_.-]*\.(png|jpe?g|webp|gif)$/i.test(key);
 }
-function localImageUrls(value) {
+function createImageUrlMapper({ root = '/opt/hokskins/storage', now = Date.now, maxEntries = 4096 } = {}) {
+  const versions = new Map();
+  function map(value) {
   if (typeof value === 'string') {
-    const source = SOURCES.find(prefix => value.startsWith(prefix));
+    const source = [PREFIX, ...SOURCES].find(prefix => value.startsWith(prefix));
     if (source) {
       const suffix = value.slice(source.length);
-      if (validKey(suffix.split(/[?#]/)[0])) return PREFIX + suffix;
+      const key = suffix.split(/[?#]/)[0];
+      if (validKey(key)) {
+        let cached = versions.get(key);
+        if (!cached || now() - cached.at >= 60000) {
+          let version = 0;
+          try { version = Math.trunc(fs.statSync(path.join(root, 'public/originals/hokskins/img', key)).mtimeMs); } catch {}
+          cached = { version, at: now() };
+          if (versions.size >= maxEntries) versions.delete(versions.keys().next().value);
+          versions.set(key, cached);
+        }
+        const url = new URL(PREFIX + suffix);
+        if (cached.version) url.searchParams.set('v', cached.version);
+        return url.toString();
+      }
     }
     return value;
   }
-  if (Array.isArray(value)) return value.map(localImageUrls);
-  if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, localImageUrls(v)]));
+  if (Array.isArray(value)) return value.map(map);
+  if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, map(v)]));
   return value;
+  }
+  map.clear = () => versions.clear();
+  return map;
 }
+const localImageUrls = createImageUrlMapper();
 function createLocalStorage(options = {}) {
   const root = options.root || '/opt/hokskins/storage';
   const python = options.python || '/usr/bin/python3';
@@ -59,6 +78,7 @@ function createLocalStorage(options = {}) {
         try {
           await fsp.writeFile(input, bytes, { flag: 'wx', mode: 0o600 });
           await execute(python, [helper, input, root, key], { timeout: 25000, maxBuffer: 4096, windowsHide: true });
+          localImageUrls.clear();
           return { data: { path: key }, error: null };
         } finally { await fsp.rm(input, { force: true }); }
       }); },
@@ -81,4 +101,4 @@ function createLocalStorage(options = {}) {
     };
   } };
 }
-module.exports = { createLocalStorage, localImageUrls, validKey };
+module.exports = { createLocalStorage, localImageUrls, createImageUrlMapper, validKey };

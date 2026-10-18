@@ -800,6 +800,31 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
   opacity: 0; pointer-events: none; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .app-toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* public-usability-v1 */
+[data-theme="light"] { --text3: #64748b; }
+@media (prefers-color-scheme: light) { [data-theme="auto"] { --text3: #64748b; } }
+button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focus-visible {
+  outline: 2px solid var(--gold); outline-offset: 3px;
+}
+@media (max-width: 899px) {
+  .filter-bar { flex-wrap: wrap; }
+  .filter-bar .search-box { flex: 1 0 100%; width: 100%; min-width: 0 !important; max-width: none; }
+  .filter-bar .filter-select { flex: 1 1 100px; min-width: 100px; min-height: 40px; }
+  .batch-info { flex-basis: 100%; line-height: 1.6; }
+}
+
+/* mobile-navigation-v1 */
+.mobile-more-panel { display: none; }
+.bottom-nav-item { background: none; border: 0; font-family: inherit; }
+@media (max-width: 899px) {
+  .bottom-nav .bottom-nav-item { flex: 1 1 20%; min-width: 0; }
+  .mobile-more-panel:not([hidden]) { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+    position: fixed; left: 12px; right: 12px; bottom: calc(70px + env(safe-area-inset-bottom));
+    z-index: 95; padding: 12px; border: 1px solid var(--border); border-radius: 12px;
+    background: var(--bg2); box-shadow: var(--shadow); }
+  .mobile-more-panel .bottom-nav-item { min-height: 56px; font-size: 12px; }
+}
 </style>
 </head>
 <body>
@@ -881,14 +906,14 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
         <span class="icon">🔍</span>
         <input type="text" id="search-list" placeholder="搜索皮肤/英雄..." oninput="filterList()">
       </div>
-      <select class="filter-select" id="f-hero" onchange="filterList()"><option value="">全部英雄</option></select>
-      <select class="filter-select" id="f-quality" onchange="filterList()">
+      <select class="filter-select" id="f-hero" aria-label="按英雄筛选" onchange="filterList()"><option value="">全部英雄</option></select>
+      <select class="filter-select" id="f-quality" aria-label="按品质筛选" onchange="filterList()">
         <option value="">全部品质</option>
         <option>史诗</option><option>传说</option><option>勇者</option>
         <option>其他</option><option>无双</option><option>荣耀典藏</option>
         <option>珍品传说</option><option>珍品无双</option>
       </select>
-      <select class="filter-select" id="f-year" onchange="filterList()"><option value="">全部年份</option></select>
+      <select class="filter-select" id="f-year" aria-label="按年份筛选" onchange="filterList()"><option value="">全部年份</option></select>
       <div class="filter-chips">
         <div class="chip active" data-ftype="" onclick="setTypeFilter(this,'')">全部</div>
         <div class="chip" data-ftype="首发" onclick="setTypeFilter(this,'首发')">首发</div>
@@ -902,7 +927,7 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
       <span class="filter-clear" onclick="clearFilters()">✕ 清除</span>
     </div>
     <div class="batch-bar" id="batch-bar">
-      <span class="batch-info" id="batch-info">当前筛选 0 款</span>
+      <span class="batch-info" id="batch-info">当前筛选 0 条记录 / 0 款皮肤</span>
       <button class="batch-btn" onclick="batchOwnAll()">全选</button>
       <button class="batch-btn" onclick="batchInvertOwned()">反选</button>
     </div>
@@ -1279,41 +1304,29 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: va
     </div>
   </div>
 
-    </div></div><nav class="bottom-nav" id="bottom-nav">
-    <div class="bottom-nav-item active" id="bnav-list" onclick="showView('list',null,'list');setBottomNav('list')">
-      <span class="bn-icon">📋</span>皮肤
-    </div>
-    <div class="bottom-nav-item" id="bnav-skin-overview" onclick="showView('skin-overview',null,'skin-overview');setBottomNav('skin-overview')">
+    </div></div><div id="mobile-more-panel" class="mobile-more-panel" aria-label="更多导航" hidden><button type="button" class="bottom-nav-item" id="bnav-skin-overview" onclick="showView('skin-overview',null,'skin-overview');setBottomNav('skin-overview')">
       <span class="bn-icon">🗂️</span>总览
-    </div>
-    <div class="bottom-nav-item" id="bnav-return-overview" onclick="showView('return-overview',null,'return-overview');setBottomNav('return-overview')">
+    </button><button type="button" class="bottom-nav-item" id="bnav-return-overview" onclick="showView('return-overview',null,'return-overview');setBottomNav('return-overview')">
       <span class="bn-icon">🔄</span>返场
-    </div>
-    <div class="bottom-nav-item" id="bnav-hero-list" onclick="showView('hero-list',null,'hero-list');setBottomNav('hero-list')">
-      <span class="bn-icon">👤</span>英雄
-    </div>
-    <div class="bottom-nav-item" id="bnav-heroes" onclick="showView('heroes',null,'heroes');setBottomNav('heroes')">
+    </button><button type="button" class="bottom-nav-item" id="bnav-heroes" onclick="showView('heroes',null,'heroes');setBottomNav('heroes')">
       <span class="bn-icon">🎭</span>图鉴
-    </div>
-    <div class="bottom-nav-item" id="bnav-series" onclick="showView('series',null,'series');setBottomNav('series')">
+    </button><button type="button" class="bottom-nav-item" id="bnav-series" onclick="showView('series',null,'series');setBottomNav('series')">
       <span class="bn-icon">🎨</span>套系
-    </div>
-    <div class="bottom-nav-item" id="bnav-ranking" onclick="showView('ranking',null,'ranking');setBottomNav('ranking')">
+    </button><button type="button" class="bottom-nav-item" id="bnav-ranking" onclick="showView('ranking',null,'ranking');setBottomNav('ranking')">
       <span class="bn-icon">🏆</span>盘点
-    </div>
-    <div class="bottom-nav-item" id="bnav-resources" onclick="showView('resources',null,'resources');setBottomNav('resources')">
-      <span class="bn-icon">✨</span>资源
-    </div>
-    <div class="bottom-nav-item" id="bnav-stats" onclick="showView('stats',null,'stats');setBottomNav('stats')">
+    </button><button type="button" class="bottom-nav-item" id="bnav-stats" onclick="showView('stats',null,'stats');setBottomNav('stats')">
       <span class="bn-icon">📊</span>统计
-    </div>
-    <div class="bottom-nav-item" id="bnav-mine" onclick="showView('mine',null,'mine');setBottomNav('mine')">
-      <span class="bn-icon">⭐</span>我的
-    </div>
-    <div class="bottom-nav-item" id="bnav-contact" onclick="showView('contact',null,'contact');setBottomNav('contact')">
+    </button><button type="button" class="bottom-nav-item" id="bnav-contact" onclick="showView('contact',null,'contact');setBottomNav('contact')">
       <span class="bn-icon">📬</span>联系
-    </div>
-  </nav>
+    </button></div><nav class="bottom-nav" id="bottom-nav"><button type="button" class="bottom-nav-item active" id="bnav-list" onclick="showView('list',null,'list');setBottomNav('list')">
+      <span class="bn-icon">📋</span>皮肤
+    </button><button type="button" class="bottom-nav-item" id="bnav-hero-list" onclick="showView('hero-list',null,'hero-list');setBottomNav('hero-list')">
+      <span class="bn-icon">👤</span>英雄
+    </button><button type="button" class="bottom-nav-item" id="bnav-resources" onclick="showView('resources',null,'resources');setBottomNav('resources')">
+      <span class="bn-icon">✨</span>资源
+    </button><button type="button" class="bottom-nav-item" id="bnav-mine" onclick="showView('mine',null,'mine');setBottomNav('mine')">
+      <span class="bn-icon">⭐</span>我的
+    </button><button type="button" class="bottom-nav-item" id="bnav-more" aria-expanded="false" aria-controls="mobile-more-panel" onclick="setMobileMore()"><span class="bn-icon">☰</span>更多</button></nav>
 </div>
   <div id="app-toast" class="app-toast"></div>
   <script>
@@ -1440,12 +1453,19 @@ function toCdnUrl(url) {
   return url.replace(STORAGE_PREFIX, CDN_BASE);
 }
 
-function thumbUrl(url, width, quality = 70) {
-  if (!url) return null;
-  const cdnUrl = toCdnUrl(url);
-  return `${cdnUrl}?width=${width}&height=${width}&quality=${quality}&resize=contain`;
+function thumbUrl(url, width) {
+  if (!url) return '';
+  const cdn = toCdnUrl(url);
+  if (!cdn.startsWith(CDN_BASE + '/')) return cdn;
+  const sizes = [60, 80, 120, 160, 200, 320, 480, 640, 960, 1280];
+  const size = sizes.find(n => n >= (Number(width) || 120)) || 1280;
+  const [base, query = ''] = cdn.split('#')[0].split('?');
+  const params = new URLSearchParams(query);
+  ['width', 'height', 'quality', 'resize', 'format'].forEach(key => params.delete(key));
+  params.set('width', size); params.set('height', size);
+  params.set('quality', size <= 320 ? 70 : 80); params.set('resize', 'contain');
+  return base + '?' + params.toString();
 }
-
 function fullUrl(url) {
   return toCdnUrl(url);
 }
@@ -1585,7 +1605,7 @@ window.onload = async () => {
     });
 
     setLoadingText('渲染页面…');
-    reconcileMarks([...new Set(RAW.map(markKey))]);   // 清理改名/下架皮肤的孤儿标记
+
     buildHeroSelect();
     buildYearSelect();
     filterList();
@@ -1616,7 +1636,7 @@ window.onload = async () => {
 };
 
 // ── 数据刷新 ──────────────────────────────────────────────────
-async function refreshData(refreshVersion = '') {
+async function refreshData(refreshVersion = Date.now()) {
   const btn = document.getElementById('refresh-btn');
   btn.disabled = true;
   btn.innerHTML = '⏳ <span class="refresh-label">刷新中…</span>';
@@ -1636,7 +1656,6 @@ async function refreshData(refreshVersion = '') {
     HERO_BY_ID = {}; HERO_BY_NAME = {};
     HEROES.forEach(h => { HERO_BY_ID[h.id] = h; HERO_BY_NAME[h.name] = h; });
 
-    reconcileMarks([...new Set(RAW.map(markKey))]);   // 刷新后同步孤儿标记
     page = 1;
     hlPage = 1;
     filtered = [...RAW];
@@ -1852,8 +1871,8 @@ function renderTable() {
       <td><span class="badge badge-${r.type}">${escapeHtml(r.type)}</span></td>
       <td><span class="badge badge-${r.permanent}" style="font-size:10px">${escapeHtml(r.permanent)}</span></td>
       <td class="mark-cell" onclick="event.stopPropagation()">
-        <button class="mark-btn${mk.owned?' on':''}" title="拥有" onclick="toggleSkinMark('${esc(r.hero)}','${esc(r.name)}','owned')">⭐</button>
-        <button class="mark-btn follow${mk.follow?' on':''}" title="关注" onclick="toggleSkinMark('${esc(r.hero)}','${esc(r.name)}','follow')">❤️</button>
+        <button class="mark-btn${mk.owned?' on':''}" title="拥有" aria-label="拥有" onclick="toggleSkinMark('${esc(r.hero)}','${esc(r.name)}','owned')">⭐</button>
+        <button class="mark-btn follow${mk.follow?' on':''}" title="关注" aria-label="关注" onclick="toggleSkinMark('${esc(r.hero)}','${esc(r.name)}','follow')">❤️</button>
       </td>
     </tr>`;
   }).join('');
@@ -1872,8 +1891,8 @@ function renderTable() {
           <div class="msc-line msc-line-name">
             <span class="mobile-skin-name">${escapeHtml(r.name)}</span>
             <span class="msc-marks" onclick="event.stopPropagation()">
-              <button class="mark-btn${mk.owned?' on':''}" title="拥有" onclick="toggleSkinMark('${esc(r.hero)}','${esc(r.name)}','owned')">⭐</button>
-              <button class="mark-btn follow${mk.follow?' on':''}" title="关注" onclick="toggleSkinMark('${esc(r.hero)}','${esc(r.name)}','follow')">❤️</button>
+              <button class="mark-btn${mk.owned?' on':''}" title="拥有" aria-label="拥有" onclick="toggleSkinMark('${esc(r.hero)}','${esc(r.name)}','owned')">⭐</button>
+              <button class="mark-btn follow${mk.follow?' on':''}" title="关注" aria-label="关注" onclick="toggleSkinMark('${esc(r.hero)}','${esc(r.name)}','follow')">❤️</button>
             </span>
           </div>
           <div class="msc-line">
@@ -1921,7 +1940,7 @@ function updateBatchInfo() {
   if (!el) return;
   const keys = [...new Set(filtered.map(markKey))];
   const owned = countOwnedIn(keys);
-  el.textContent = `当前筛选 ${filtered.length} 款 · 已拥有 ${owned} 款`;
+  el.textContent = `当前筛选 ${filtered.length} 条记录 / ${keys.length} 款皮肤 · 已拥有 ${owned} 款`;
 }
 
 function batchOwnAll() {
@@ -2169,7 +2188,22 @@ function goHeroListPage(p) {
 }
 
 // ── Bottom Nav ──
+function setMobileMore(open) {
+  const panel = document.getElementById('mobile-more-panel');
+  const button = document.getElementById('bnav-more');
+  panel.hidden = open === undefined ? !panel.hidden : !open;
+  button.setAttribute('aria-expanded', String(!panel.hidden));
+}
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && !document.getElementById('mobile-more-panel').hidden) {
+    setMobileMore(false); document.getElementById('bnav-more').focus();
+  }
+});
+document.addEventListener('click', event => {
+  if (!event.target.closest('#mobile-more-panel, #bnav-more')) setMobileMore(false);
+});
 function setBottomNav(v) {
+  setMobileMore(false);
   document.querySelectorAll('.bottom-nav-item').forEach(el => {
     el.classList.toggle('active', el.id === 'bnav-' + v);
   });
@@ -2643,7 +2677,7 @@ function openHeroDetail(hero) {
   const gender = heroInfo ? heroInfo.gender || '' : '';
   const releaseDate = heroInfo ? heroInfo.release_date || '' : '';
   const heroNotes = heroInfo ? heroInfo.notes || '' : '';
-  const avatarUrl = heroInfo && heroInfo.avatar_url ? toCdnUrl(heroInfo.avatar_url) : null;
+  const avatarUrl = heroInfo && heroInfo.avatar_url ? thumbUrl(heroInfo.avatar_url, 240) : null;
   const allRecords = RAW.filter(r=>r.hero===hero);
   const totalReturns = allRecords.filter(r=>r.type==='返场').length;
 
@@ -3039,7 +3073,7 @@ function openSkinDetail(hero, skinName) {
     : [];
   const detailRecords = showReturnInfo ? records : [first];
   const latestReturn = returns.length ? returns[returns.length-1] : null;
-  const skinImgSrc = fullUrl(first.si || records.find(r=>r.si)?.si || null);
+  const skinImgSrc = thumbUrl(first.si || records.find(r=>r.si)?.si || null, 960);
   const qImgSrc = first.qi || records.find(r=>r.qi)?.qi || null;
   const tagImgUrl = thumbUrl(qImgSrc, 120);
   const skinTag = String(first.tag || '').trim();
@@ -3099,7 +3133,7 @@ function openSkinDetail(hero, skinName) {
           <div class="skin-related-list">
             ${relatedResources.map(entry => {
               const resource = entry.first;
-              const resourceImg = resource.img_url ? toCdnUrl(resource.img_url) : null;
+              const resourceImg = resource.img_url ? thumbUrl(resource.img_url, 240) : null;
               return `<div class="skin-related-card" onclick="openResDetail('${esc(entry.key)}')">
                 <div class="skin-related-img">${resourceImg ? `<img src="${resourceImg}" loading="lazy" alt="${escapeHtml(resource.name)}">` : '✨'}</div>
                 <div class="skin-related-info">
@@ -3974,8 +4008,8 @@ function renderResourceGrid(list) {
   }
   
   grid.innerHTML = list.map(r => {
-    const imgSrc = r.img_url ? toCdnUrl(r.img_url) : null;
-    const tagImgSrc = r.tag_img_url ? toCdnUrl(r.tag_img_url) : null;
+    const imgSrc = r.img_url ? thumbUrl(r.img_url, 320) : null;
+    const tagImgSrc = r.tag_img_url ? thumbUrl(r.tag_img_url, 160) : null;
     const skin = r.skin_profile || {};
     const primaryBadge = r.quality || r.display_type || r.type || '资源';
     const firstDate = r.first_date || r.records?.find(x => x.release_type === '首发')?.date || r.date || '';
@@ -4026,8 +4060,8 @@ function openResDetail(groupKey) {
   const config = resourceTypeConfig(first.type);
   const isWide = config.imageClass === 'tm';
   const isRound = config.imageClass === 'round';
-  const imgSrc = first.img_url ? toCdnUrl(first.img_url) : null;
-  const tagImgSrc = first.tag_img_url ? toCdnUrl(first.tag_img_url) : null;
+  const imgSrc = first.img_url ? thumbUrl(first.img_url, 960) : null;
+  const tagImgSrc = first.tag_img_url ? thumbUrl(first.tag_img_url, 160) : null;
   const skin = first.skin_profile || {};
   const resourceTag = String(first.tag || '').trim();
   const tagDetailHtml = tagImgSrc

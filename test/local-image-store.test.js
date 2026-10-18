@@ -3,7 +3,27 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
-const { createLocalStorage, localImageUrls, validKey } = require('../self-hosted/image-store.cjs');
+const { createLocalStorage, localImageUrls, createImageUrlMapper, validKey } = require('../self-hosted/image-store.cjs');
+
+test('existing local images gain bounded cached versions; replacement invalidation changes the URL', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'hok-version-test-'));
+  try {
+    const file = path.join(root, 'public/originals/hokskins/img/skin/a.png');
+    await fs.mkdir(path.dirname(file), { recursive: true });
+    await fs.writeFile(file, 'fixture');
+    await fs.utimes(file, 1700000000, 1700000000);
+    const map = createImageUrlMapper({ root });
+    const source = 'https://skinsdata.top/img/skin/a.png?width=120';
+    const first = new URL(map(source));
+    assert.equal(first.searchParams.get('v'), '1700000000000');
+    assert.equal(first.searchParams.get('width'), '120');
+    await fs.utimes(file, 1700000100, 1700000100);
+    assert.equal(map(source), first.toString());
+    map.clear();
+    assert.equal(new URL(map(first.toString())).searchParams.get('v'), '1700000100000');
+    assert.equal(map('https://example.com/skin/a.png'), 'https://example.com/skin/a.png');
+  } finally { await fs.rm(root, { recursive: true, force: true }); }
+});
 
 test('self-hosted image URLs replace only the known public source, including nested admin data', () => {
   const source = 'https://erphrsydujqrcvtpdtnf.supabase.co/storage/v1/object/public/skin-images/skin/a.png';
