@@ -37,6 +37,10 @@ admin_adapter = module_from_spec(spec)
 spec.loader.exec_module(admin_adapter)
 (output / 'admin.js').write_text(admin_adapter.prepare(read('admin.before.js')), encoding='utf-8')
 
+spec = spec_from_file_location('clean_page', pathlib.Path(__file__).with_name('clean-page.py'))
+page_cleaner = module_from_spec(spec)
+spec.loader.exec_module(page_cleaner)
+
 for name in ['index', 'admin']:
     html = read(name + '.before.html')
     if name == 'admin':
@@ -44,7 +48,7 @@ for name in ['index', 'admin']:
     if 'https://skinsdata.top/img' not in html:
         raise ValueError('Image source anchor missing')
     html = html.replace('https://skinsdata.top/img', 'https://youtiao.fun/hokskins/img')
-    html = replace_once(html, '图片迁移中', '图片已迁移 · 2026-10-18')
+    html = page_cleaner.prepare_html(html)
     # Preserve the upload's version parameter while selecting local thumbnails.
     html = html.replace('${cdnUrl}?width=', "${cdnUrl}${cdnUrl.includes('?') ? '&' : '?'}width=")
     html = html.replace('${cdn}?width=', "${cdn}${cdn.includes('?') ? '&' : '?'}width=")
