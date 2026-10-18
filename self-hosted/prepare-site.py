@@ -2,6 +2,7 @@
 import hashlib
 import pathlib
 import sys
+from importlib.util import module_from_spec, spec_from_file_location
 
 source, output = map(pathlib.Path, sys.argv[1:])
 output.mkdir(parents=True, exist_ok=True)
@@ -30,8 +31,16 @@ client = replace_once(client, '  });\n}\n', "  });\n  Object.defineProperty(clie
 client = client.replace('图片迁移尚未完成，新站暂不提供图片上传、删除及头像服务', '独立数据接口仅允许本机 REST 请求').replace('STORAGE_NOT_MIGRATED', 'UNSUPPORTED_LOCAL_DATA_PATH')
 (output / 'data-client.js').write_text(client, encoding='utf-8')
 
+# Admin responses must use res.json as well, so previews receive local image URLs.
+spec = spec_from_file_location('prepare_admin', pathlib.Path(__file__).with_name('prepare-admin.py'))
+admin_adapter = module_from_spec(spec)
+spec.loader.exec_module(admin_adapter)
+(output / 'admin.js').write_text(admin_adapter.prepare(read('admin.before.js')), encoding='utf-8')
+
 for name in ['index', 'admin']:
     html = read(name + '.before.html')
+    if name == 'admin':
+        html = admin_adapter.prepare_html(html)
     if 'https://skinsdata.top/img' not in html:
         raise ValueError('Image source anchor missing')
     html = html.replace('https://skinsdata.top/img', 'https://youtiao.fun/hokskins/img')
