@@ -21,7 +21,8 @@
     { "src": "/admin",         "dest": "/admin.html" },
     { "src": "/",              "dest": "/migration.html" },
     { "src": "/migration(?:\\.html)?", "dest": "/migration.html" },
-    { "src": "/legacy",        "dest": "/index.html" },
+    { "src": "/legacy",        "status": 308, "headers": { "Location": "/old" } },
+    { "src": "/old",           "dest": "/index.html" },
     { "src": "/(?!favicon\\.svg$)(.*)", "dest": "/index.html" }
   ]
 }
