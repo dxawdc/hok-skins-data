@@ -2,6 +2,14 @@
 
 这是公开仓库，提供网页版公开展示页、后台管理页，以及部署在 Vercel 的公开/后台 API。小程序版本位于同级目录 `../miniprogram`，两个目录是独立 Git 仓库。
 
+<!-- caige-author:start -->
+**作者：才哥** · 微信公众号：**可以叫我才哥**
+
+微信扫码关注：
+
+<img src="assets/caige-wechat-qrcode.jpg" alt="微信公众号「可以叫我才哥」扫码关注二维码" width="172" height="172" />
+<!-- caige-author:end -->
+
 ## 项目结构
 
 - `index.html`：公开展示页，读取 `/api/skins`、`/api/heroes`、`/api/resources`。
